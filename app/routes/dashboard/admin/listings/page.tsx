@@ -108,7 +108,7 @@ export default function ListingManagement() {
     const loadingToast = toast.loading("Updating listing approval status...");
 
     try {
-      const res = await axios.put(`/api/admin/ownerStatus/${id}`);
+      const res = await axios.put(`/api/admin/listingApproval/${id}`);
       if (res?.data?.success) {
         toast.success(res.data.message || "Approval status updated");
 
