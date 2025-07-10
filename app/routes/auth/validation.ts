@@ -272,19 +272,19 @@ export const validateIdentity = (data: IdentityData): OnboardingErrors => {
     errors.general ||= "Phone number must be exactly 10 digits.";
   }
 
-  // Aadhaar Front
-  const frontError = validateFile(data.aadhaarFront, "Aadhaar Front");
-  if (frontError) {
-    errors.aadharFront = true;
-    errors.general ||= frontError;
-  }
+  // // Aadhaar Front
+  // const frontError = validateFile(data.aadhaarFront, "Aadhaar Front");
+  // if (frontError) {
+  //   errors.aadharFront = true;
+  //   errors.general ||= frontError;
+  // }
 
-  // Aadhaar Back
-  const backError = validateFile(data.aadhaarBack, "Aadhaar Back");
-  if (backError) {
-    errors.aadharBack = true;
-    errors.general ||= backError;
-  }
+  // // Aadhaar Back
+  // const backError = validateFile(data.aadhaarBack, "Aadhaar Back");
+  // if (backError) {
+  //   errors.aadharBack = true;
+  //   errors.general ||= backError;
+  // }
 
   // Additional Documents
   if (data.documents.length > 6) {
@@ -357,34 +357,36 @@ export const validateBankDetails = (
   };
 
   // Account Number
-  if (!data.accountNumber) {
-     errors.accountNumber = true;
-    errors.general ||= "Account number is required";
-  } else if (!/^\d{9,18}$/.test(data.accountNumber)) {
-    errors.accountNumber = true;
-        errors.general = "Account number must be 9–18 digits";
-  }
+  // if (!data.accountNumber) {
+  //    errors.accountNumber = true;
+  //   errors.general ||= "Account number is required";
+  // } else 
+  // if (!/^\d{9,18}$/.test(data.accountNumber)) {
+  //   errors.accountNumber = true;
+  //       errors.general = "Account number must be 9–18 digits";
+  // }
 
   // IFSC Code
-  if (!data.ifscCode) {
-    errors.ifscCode = true;
-    errors.general = "IFSC code is required";
-  } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(data.ifscCode)) {
-    errors.ifscCode = true;
-    errors.general = "Invalid IFSC code format";
-  }
+  // if (!data.ifscCode) {
+  //   errors.ifscCode = true;
+  //   errors.general = "IFSC code is required";
+  // } else
+  //  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(data.ifscCode)) {
+  //   errors.ifscCode = true;
+  //   errors.general = "Invalid IFSC code format";
+  // }
 
   // Account Holder Name
-  if (!data.accountHolderName) {
-    errors.accountHolderName = true;
-    errors.general = "Account holder name is required";
-  }
+  // if (!data.accountHolderName) {
+  //   errors.accountHolderName = true;
+  //   errors.general = "Account holder name is required";
+  // }
 
   // Bank Name
-  if (!data.bankName) {
-    errors.bankName = true;
-    errors.general = "Bank name is required";
-  }
+  // if (!data.bankName) {
+  //   errors.bankName = true;
+  //   errors.general = "Bank name is required";
+  // }
 
   // Optional: UPI validation (if user entered it)
   if (data.upiId && !/^[\w.-]+@[\w]+$/.test(data.upiId)) {

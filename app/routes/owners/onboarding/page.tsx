@@ -357,8 +357,7 @@ function Stepper({
 
 // Main Component
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] =
-    useState<OnboardingStep>("identity");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("identity");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(
     initialOnboardingData
@@ -371,36 +370,34 @@ export default function OnboardingPage() {
   const { user, setUser } = useUserStore();
   const { setLoading } = useLoadingStore();
 
-useEffect(() => {
-  const fetchOwnerStatus = async () => {
-    if (!user) return;
+  useEffect(() => {
+    const fetchOwnerStatus = async () => {
+      if (!user) return;
 
-    setLoading(true);
+      setLoading(true);
 
-    try {
-      if (user.ownerStatus === "pending") {
-        setCurrentStep("confirmation");
-        return;
+      try {
+        if (user.ownerStatus === "pending") {
+          setCurrentStep("confirmation");
+          return;
+        }
+
+        const res = await axios.get("/api/owner/getOwner");
+
+        if (res?.data?.success) {
+          setCurrentStep("bank-details");
+        } else {
+          setCurrentStep("identity");
+        }
+      } catch (error) {
+        console.error("Error fetching owner profile:", error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const res = await axios.get("/api/owner/getOwner");
-
-
-      if (res?.data?.success) {
-        setCurrentStep("bank-details");
-      } else {
-        setCurrentStep("identity");
-      }
-    } catch (error) {
-      console.error("Error fetching owner profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchOwnerStatus();
-}, [user, setLoading]);
-
+    fetchOwnerStatus();
+  }, [user, setLoading]);
 
   // const {
   //   handleOTPChange,
@@ -547,12 +544,13 @@ useEffect(() => {
     });
 
     try {
-      const aadhaarFrontBase64 = await toBase64(
-        onboardingData.identity.aadhaarFront!
-      );
-      const aadhaarBackBase64 = await toBase64(
-        onboardingData.identity.aadhaarBack!
-      );
+      const aadhaarFrontBase64 = onboardingData.identity.aadhaarFront
+        ? await toBase64(onboardingData.identity.aadhaarFront)
+        : null;
+
+      const aadhaarBackBase64 = onboardingData.identity.aadhaarBack
+        ? await toBase64(onboardingData.identity.aadhaarBack)
+        : null;
 
       const documentsBase64 = await Promise.all(
         onboardingData.identity.documents.map((file) => toBase64(file))
@@ -698,13 +696,13 @@ useEffect(() => {
         if (user) {
           const updatedUser = {
             ...user,
-            ownerStatus:"pending",
+            ownerStatus: "pending",
           };
 
           setUser(updatedUser);
         }
 
-          goToNextStep();
+        goToNextStep();
       } else {
         toast.error(res.data.message || "Failed to update bank details.", {
           closeButton: true,
@@ -1135,7 +1133,10 @@ useEffect(() => {
                       </p>
                       <div className="flex flex-wrap gap-2 items-center justify-start">
                         {onboardingData.identity.documents.map((doc, index) => (
-                          <div key={index} className="overflow-hidden relative rounded-xl w-24 h-24">
+                          <div
+                            key={index}
+                            className="overflow-hidden relative rounded-xl w-24 h-24"
+                          >
                             <button
                               type="button"
                               onClick={() => removeDocument(index)}
@@ -1359,7 +1360,10 @@ useEffect(() => {
               animate="visible"
               variants={containerVariants}
             >
-              <motion.div variants={itemVariants} className="text-center pt-4 mb-8">
+              <motion.div
+                variants={itemVariants}
+                className="text-center pt-4 mb-8"
+              >
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
@@ -1401,7 +1405,8 @@ useEffect(() => {
                   <ul className=" text-xs md:text-sm text-blue-700 space-y-1">
                     <li className="flex items-center">
                       <Mail className="w-4 h-4 mr-4 md:mr-2 flex-shrink-0" />
-                      You&apos;ll receive email updates on your application status
+                      You&apos;ll receive email updates on your application
+                      status
                     </li>
                     <li className="flex items-center">
                       <Phone className="w-4 h-4 mr-4 md:mr-2 flex-shrink-0" />

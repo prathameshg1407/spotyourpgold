@@ -17,12 +17,12 @@ export async function POST(req: Request) {
 
     const user = await authUser();
 
-    if (!accountNumber || !ifscCode || !accountHolderName || !bankName) {
-      return NextResponse.json({
-        success: false,
-        message: "Missing required bank details.",
-      });
-    }
+    // if (!accountNumber || !ifscCode || !accountHolderName || !bankName) {
+    //   return NextResponse.json({
+    //     success: false,
+    //     message: "Missing required bank details.",
+    //   });
+    // }
 
     const profile = await OwnerProfile.findOne({ userId: user?.id });
     if (!profile) {
