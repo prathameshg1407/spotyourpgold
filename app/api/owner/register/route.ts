@@ -21,54 +21,50 @@ export async function POST(req: Request) {
     } = await req.json();
 
     // Validate required fields
-    if (
-      !aadhaarNumber ||
-      !phone ||
-      !aadhaarFront ||
-      !aadhaarBack ||
-      !street ||
-      !city ||
-      !state ||
-      !pincode
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Please fill all the fields. (aadhaarNumber, phone, aadhaarFront, aadhaarBack, street, city, state, pincode)",
-        },
-      );
+    if (!aadhaarNumber || !phone || !street || !city || !state || !pincode) {
+      return NextResponse.json({
+        success: false,
+        message:
+          "Please fill all the fields. (aadhaarNumber, phone, street, city, state, pincode)",
+      });
     }
 
-    const user  = await authUser();
+    const user = await authUser();
 
     // Ensure user exists
     const existingUser = await User.findById(user?.id);
     if (!existingUser) {
-      return NextResponse.json(
-        { success: false, message: "User does not exist." },
-      );
+      return NextResponse.json({
+        success: false,
+        message: "User does not exist.",
+      });
     }
 
     // Ensure profile doesn't already exist
     const existingProfile = await OwnerProfile.findOne({ userId: user?.id });
     if (existingProfile) {
-      return NextResponse.json(
-        { success: true, message: "Owner profile already exists." },
-      );
+      return NextResponse.json({
+        success: true,
+        message: "Owner profile already exists.",
+      });
     }
 
+    let aadhaarFrontUrl = null;
+    let aadhaarBackUrl = null;
+    let aadhaarFrontPublicId = null;
+    let aadhaarBackPublicId = null;
 
-    // Upload Aadhaar front & back
-    const {
-      url: aadhaarFrontUrl,
-      public_id: aadhaarFrontPublicId,
-    } = await uploadToCloudinary(aadhaarFront);
+    if (aadhaarFront) {
+      const res = await uploadToCloudinary(aadhaarFront);
+      aadhaarFrontUrl = res.url;
+      aadhaarFrontPublicId = res.public_id;
+    }
 
-    const {
-      url: aadhaarBackUrl,
-      public_id: aadhaarBackPublicId,
-    } = await uploadToCloudinary(aadhaarBack);
+    if (aadhaarBack) {
+      const res = await uploadToCloudinary(aadhaarBack);
+      aadhaarBackUrl = res.url;
+      aadhaarBackPublicId = res.public_id;
+    }
 
     // Upload additional documents
     const uploadedDocuments = await Promise.all(
@@ -77,7 +73,6 @@ export async function POST(req: Request) {
         return { url, public_id };
       })
     );
-
 
     // Create Owner Profile
     await OwnerProfile.create({
@@ -105,8 +100,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[Owner_register_API]", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to register as owner." },
-    );
+    return NextResponse.json({
+      success: false,
+      message: "Failed to register as owner.",
+    });
   }
 }
