@@ -41,7 +41,7 @@ export async function PUT(
 
     const user = await authUser();
 
-    if (user?.role !== "owner") {
+    if (user?.role == "user") {
       return NextResponse.json({
         success: false,
         message: "You are not authorized to perform this action.",
@@ -50,10 +50,7 @@ export async function PUT(
 
     const {
       pgName,
-      monthlyRent,
-      securityDeposit,
-      numberOfRooms,
-      capacityPerRoom,
+      roomTypes,
       genderPreference,
       additionalDetails,
       location,
@@ -62,13 +59,14 @@ export async function PUT(
       foodIncluded,
       electricityIncluded,
       maintenanceIncluded,
-      images, // Contains mix of existing image URLs and new base64 images
+      images,
     } = await req.json();
 
-    // ✅ Validate inputs
+    // ✅ Basic validation
     if (
       !pgName?.trim() ||
-      typeof monthlyRent !== "number" ||
+      !Array.isArray(roomTypes) ||
+      roomTypes.length === 0 ||
       !Array.isArray(amenities) ||
       amenities.length === 0 ||
       !location?.city ||
@@ -76,9 +74,9 @@ export async function PUT(
       !location?.pincode ||
       !Array.isArray(images) ||
       images.length === 0 ||
-      numberOfRooms < 1 ||
-      capacityPerRoom < 1 ||
+      !Array.isArray(additionalDetails) ||
       additionalDetails.length > 10 ||
+      !Array.isArray(rulesAndRegulations) ||
       rulesAndRegulations.length > 10
     ) {
       return NextResponse.json({
@@ -86,6 +84,32 @@ export async function PUT(
         message: "Missing or invalid fields.",
       });
     }
+
+     // ✅ Validate roomTypes
+        for (const room of roomTypes) {
+          if (
+            !room.type?.trim() ||
+            typeof room.numberOfRooms !== "number" ||
+            room.numberOfRooms < 1 ||
+            typeof room.capacityPerRoom !== "number" ||
+            room.capacityPerRoom < 1 ||
+            typeof room.monthlyRent !== "number" ||
+            room.monthlyRent < 0 ||
+            typeof room.securityDeposit !== "number" ||
+            room.securityDeposit < 0
+          ) {
+            return NextResponse.json({
+              success: false,
+              message: "Invalid room type details.",
+            });
+          }
+        }
+    
+        if (pgName.length > 100 || images.length > 10) {
+          return NextResponse.json({ success: false, message: "Input too long." });
+        }
+
+    
 
     if (pgName.length > 100 || images.length > 10) {
       return NextResponse.json({
@@ -157,14 +181,17 @@ export async function PUT(
       },
     };
 
+     const updatedRoomTypes = roomTypes.map((room) => ({
+  ...room,
+  availableRooms: room.numberOfRooms,
+}));
+
+
     // ✅ Update listing
     existingListing.set({
       ownerId: user?.id,
       pgName,
-      monthlyRent,
-      securityDeposit,
-      numberOfRooms,
-      capacityPerRoom,
+      roomTypes: updatedRoomTypes,
       genderPreference,
       additionalDetails,
       location: newLocation,
@@ -214,7 +241,7 @@ export async function DELETE(
     const { id } = await context.params; // Await the params
     const user = await authUser();
 
-    if (user?.role !== "owner") {
+    if (user?.role == "user") {
       return NextResponse.json({
         success: false,
         message: "You are not authorized to perform this action.",

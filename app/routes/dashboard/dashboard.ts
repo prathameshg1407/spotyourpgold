@@ -162,8 +162,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
       return [
         ...baseItems,
         { name: "Owner Requests", href: "/routes/dashboard/admin/owner-management", icon: "UserCheck" },
-        // { name: "User Management", href: "/users", icon: "Users" },
         { name: "All Listings", href: "/routes/dashboard/admin/listings", icon: "Building2" },
+        { name: "My Listings", href: "/routes/dashboard/owners/listings", icon: "Building" },
+        { name: "Add New PG", href: "/routes/dashboard/owners/add-pg", icon: "Plus" },
+         { name: "Room Management", href: "/routes/dashboard/owners/room-management", icon: "Bed" },
+        // { name: "User Management", href: "/users", icon: "Users" },
         // { name: "Featured Requests", href: "/featured-requests", icon: "Star" },
         // { name: "Ad Management", href: "/ads", icon: "Megaphone" },
         // { name: "Analytics", href: "/admin-analytics", icon: "TrendingUp" },
