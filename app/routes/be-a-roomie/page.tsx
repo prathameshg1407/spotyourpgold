@@ -60,7 +60,7 @@ export default function ComingSoonPage() {
         </h1>
 
         <p className="text-xl text-muted-foreground max-w-xl mx-auto">
-          We're working hard to bring you something extraordinary. Stay tuned and be the first to know when we launch.
+          We&apos;re working hard to bring you something extraordinary. Stay tuned and be the first to know when we launch.
         </p>
 
         {/* <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
@@ -86,7 +86,7 @@ export default function ComingSoonPage() {
               Notify Me <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
-          {isSubmitted && <p className="mt-2 text-sm text-green-600">Thanks! We'll notify you when we launch.</p>}
+          {isSubmitted && <p className="mt-2 text-sm text-green-600">Thanks! We&apos;ll notify you when we launch.</p>}
         </div>
 
         {/* <div className="flex justify-center gap-6 mt-8">
