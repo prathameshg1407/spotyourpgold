@@ -290,7 +290,7 @@ export default function RoomManagementPage() {
                  
 
                   <div className="space-y-0">
-                    {pg.roomTypes.map((room, index) => (
+                    {pg?.roomTypes?.map((room, index) => (
                       <div
                         key={room._id}
                         className={`flex items-center justify-between px-6 py-4 ${

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     await connectToDB();
     const user = await authUser();
 
-    if (user?.role !== "owner") {
+    if (user?.role == "user") {
       return NextResponse.json({
         success: false,
         message: "You are not authorized to perform this action.",
@@ -130,6 +130,8 @@ export async function POST(req: Request) {
       location: newLocation,
       rulesAndRegulations,
       amenities,
+      paymentStatus: user?.role === "owner" ? "pending" : "completed",
+      isApproved: user?.role === "owner" ? false : true,
       rentInclusions: {
         foodIncluded,
         electricityIncluded,

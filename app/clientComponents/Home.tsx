@@ -148,12 +148,15 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
           {!searchQuery && (
             <>
               <div className="flex flex-col items-center font-poppins mb-10 md:mb-20">
-                <GradientText
+                {/* <GradientText
                   className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight font-semibold select-none"
                   element="H1"
                 >
                   SPOT YOUR PG
-                </GradientText>
+                </GradientText> */}
+                <h1 className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight text-HG-500  select-none font-zen">
+                  SPOT YOUR <span>PG</span>
+                </h1>
 
                 <TextGenerateEffect
                   className="font-inter select-none text-center md:tracking-wider font-medium text-[clamp(12px,4vw,18px)] md:text-lg text-gray-600"

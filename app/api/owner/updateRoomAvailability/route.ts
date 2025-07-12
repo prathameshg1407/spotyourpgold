@@ -8,7 +8,7 @@ export async function PUT(req: Request) {
     await connectToDB();
     const user = await authUser();
 
-    if (user?.role !== "owner") {
+    if (user?.role == "user") {
       return NextResponse.json({
         success: false,
         message: "You are not authorized to perform this action.",
