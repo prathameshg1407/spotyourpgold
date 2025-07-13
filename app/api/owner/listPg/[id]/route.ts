@@ -55,6 +55,7 @@ export async function PUT(
       additionalDetails,
       location,
       rulesAndRegulations,
+      detailedRules,
       amenities,
       foodIncluded,
       electricityIncluded,
@@ -85,31 +86,29 @@ export async function PUT(
       });
     }
 
-     // ✅ Validate roomTypes
-        for (const room of roomTypes) {
-          if (
-            !room.type?.trim() ||
-            typeof room.numberOfRooms !== "number" ||
-            room.numberOfRooms < 1 ||
-            typeof room.capacityPerRoom !== "number" ||
-            room.capacityPerRoom < 1 ||
-            typeof room.monthlyRent !== "number" ||
-            room.monthlyRent < 0 ||
-            typeof room.securityDeposit !== "number" ||
-            room.securityDeposit < 0
-          ) {
-            return NextResponse.json({
-              success: false,
-              message: "Invalid room type details.",
-            });
-          }
-        }
-    
-        if (pgName.length > 100 || images.length > 10) {
-          return NextResponse.json({ success: false, message: "Input too long." });
-        }
+    // ✅ Validate roomTypes
+    for (const room of roomTypes) {
+      if (
+        !room.type?.trim() ||
+        typeof room.numberOfRooms !== "number" ||
+        room.numberOfRooms < 1 ||
+        typeof room.capacityPerRoom !== "number" ||
+        room.capacityPerRoom < 1 ||
+        typeof room.monthlyRent !== "number" ||
+        room.monthlyRent < 0 ||
+        typeof room.securityDeposit !== "number" ||
+        room.securityDeposit < 0
+      ) {
+        return NextResponse.json({
+          success: false,
+          message: "Invalid room type details.",
+        });
+      }
+    }
 
-    
+    if (pgName.length > 100 || images.length > 10) {
+      return NextResponse.json({ success: false, message: "Input too long." });
+    }
 
     if (pgName.length > 100 || images.length > 10) {
       return NextResponse.json({
@@ -182,11 +181,10 @@ export async function PUT(
       },
     };
 
-     const updatedRoomTypes = roomTypes.map((room) => ({
-  ...room,
-  availableRooms: room.numberOfRooms,
-}));
-
+    const updatedRoomTypes = roomTypes.map((room) => ({
+      ...room,
+      availableRooms: room.numberOfRooms,
+    }));
 
     // ✅ Update listing
     existingListing.set({
@@ -197,6 +195,16 @@ export async function PUT(
       additionalDetails,
       location: newLocation,
       rulesAndRegulations,
+      detailedRules: detailedRules ||
+        existingListing.detailedRules || {
+          lockInPeriod: "",
+          noticePeriod: "",
+          maintenanceCharges: "",
+          entryTiming: "",
+          exitTiming: "",
+          guestStayPolicy: "",
+          smokingAlcoholPolicy: "",
+        },
       amenities,
       rentInclusions: {
         foodIncluded,

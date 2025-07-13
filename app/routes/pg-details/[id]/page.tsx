@@ -49,6 +49,11 @@ import {
   Building,
   IndianRupee,
   UserCheck,
+  AirVent,
+  Droplets,
+  Camera,
+  Refrigerator,
+  BrushIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,31 +87,58 @@ L.Icon.Default.mergeOptions({
 // Amenities icon mapping
 const amenityIcons: Record<string, any> = {
   wifi: Wifi,
+  "wi-fi": Wifi,
   parking: Car,
   meals: Utensils,
   security: Shield,
+  "24x7-security": Shield,
+  "24x7 security": Shield,
   power: Zap,
-  ac: Zap,
+  "power-backup": Zap,
+  "power backup": Zap,
+  ac: AirVent,
+  "air conditioning": AirVent,
+  geyser: Zap,
+  "water-purifier": Droplets,
+  "water purifier": Droplets,
   tv: Tv,
+  "tv/entertainment": Tv,
   sofa: Sofa,
   laundry: Shirt,
+  "laundry facility": Shirt,
   bed: Bed,
+  "mattress-wardrobe": Bed,
+  "mattress and wardrobe": Bed,
   bathroom: Bath,
   kitchen: Home,
+  "combined-cooking": Coffee,
+  "combined cooking area": Coffee,
   common: Users,
+  "common-area": Users,
+  "common area": Users,
+  "common area / lounge": Users,
   coffee: Coffee,
   games: Gamepad2,
   gym: Dumbbell,
   study: BookOpen,
+  "study-desk": BookOpen,
+  "study desk": BookOpen,
+  library: BookOpen,
   "24/7": Clock,
   electricity: Lightbulb,
   food: Utensils,
   internet: Wifi,
-  cctv: Shield,
+  cctv: Camera,
   generator: Zap,
   furniture: Sofa,
   cleaning: Bath,
+  housekeeping: BrushIcon,
   maintenance: Home,
+  refrigerator: Refrigerator,
+  "common-refrigerator": Refrigerator,
+  "common refrigerator": Refrigerator,
+  "separate-refrigerator": Refrigerator,
+  "separate refrigerator": Refrigerator,
 };
 
 // Room type icons mapping
@@ -1098,8 +1130,8 @@ export default function ProductPage() {
                               {/* Price */}
                               <div className="mb-4">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <IndianRupee className="w-4 h-4 text-green-600" />
-                                  <span className="text-2xl font-bold text-green-600">
+                                  <IndianRupee className="w-4 h-4 text-yellow-600" />
+                                  <span className="text-2xl font-bold text-yellow-600">
                                     {room?.monthlyRent?.toLocaleString() ??
                                       "N/A"}
                                   </span>
@@ -1108,9 +1140,12 @@ export default function ProductPage() {
                                   </span>
                                 </div>
                                 <p className="text-sm text-gray-600">
-                                  Security: ₹
-                                  {room?.securityDeposit?.toLocaleString() ??
-                                    "0"}
+                                  Security:{" "}
+                                  <span className="text-yellow-600 font-semibold">
+                                    ₹
+                                    {room?.securityDeposit?.toLocaleString() ??
+                                      "0"}
+                                  </span>
                                 </p>
                               </div>
 
@@ -1166,9 +1201,16 @@ export default function ProductPage() {
                     <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                       Gender Preference
                     </h3>
-                    <p className="text-sm text-gray-700">
-                      {listing?.genderPreference}
-                    </p>
+                    <div className="flex items-center gap-3 p-4 bg-HG-50 rounded-lg border border-HG-200">
+                      <div className="p-2 bg-HG-100 rounded-lg">
+                        <Users className="w-5 h-5 text-HG-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {listing?.genderPreference === "both"
+                          ? "Male & Female"
+                          : listing?.genderPreference}
+                      </span>
+                    </div>
                   </div>
 
                   {/* ✅ Section 1: Additional Details */}
@@ -1188,17 +1230,19 @@ export default function ProductPage() {
                     <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                       Amenities
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
                       {listing?.amenities.map((amenity, index) => {
                         const IconComponent =
                           amenityIcons[amenity.toLowerCase()] || Home;
                         return (
                           <div
                             key={index}
-                            className="flex items-center gap-2 py-3 px-4 md:p-4 rounded-lg bg-HG-400/20 capitalize hover:bg-HG-400/30 transition-colors"
+                            className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[60px]"
                           >
-                            <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-HG-600" />
-                            <span className="text-xs md:text-sm">
+                            <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
+                              <IconComponent className="w-5 h-5 text-HG-600" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700 capitalize flex-grow">
                               {amenity}
                             </span>
                           </div>

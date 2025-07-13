@@ -30,6 +30,17 @@ export interface PGFormData {
   rulesAndRegulations: string[];
   newRuleInput: string;
 
+  // Enhanced Rules Structure
+  detailedRules: {
+    lockInPeriod: string;
+    noticePeriod: string;
+    maintenanceCharges: string;
+    entryTiming: string;
+    exitTiming: string;
+    guestStayPolicy: "allowed" | "not-allowed" | "limited-access" | "";
+    smokingAlcoholPolicy: "allowed" | "not-allowed" | "limited-access" | "";
+  };
+
   amenities: string[];
   customAmenities: string;
 

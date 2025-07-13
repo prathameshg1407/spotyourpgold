@@ -47,6 +47,25 @@ const listingSchema = new mongoose.Schema(
     // Rules
     rulesAndRegulations: { type: [String], default: [] },
 
+    // Enhanced Rules Structure (optional - for backward compatibility)
+    detailedRules: {
+      lockInPeriod: { type: String, default: "" },
+      noticePeriod: { type: String, default: "" },
+      maintenanceCharges: { type: String, default: "" },
+      entryTiming: { type: String, default: "" },
+      exitTiming: { type: String, default: "" },
+      guestStayPolicy: {
+        type: String,
+        enum: ["allowed", "not-allowed", "limited-access", ""],
+        default: "",
+      },
+      smokingAlcoholPolicy: {
+        type: String,
+        enum: ["allowed", "not-allowed", "limited-access", ""],
+        default: "",
+      },
+    },
+
     // Images
     images: [
       {
