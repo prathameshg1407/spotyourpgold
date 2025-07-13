@@ -10,24 +10,34 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q")?.trim() || "";
+    const type = searchParams.get("type")?.trim() || "";
+    const subType = searchParams.get("subType")?.trim() || "";
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
-    const per_page = Math.max(1, Math.min(Number(searchParams.get("per_page") ?? 20), 100));
+    const per_page = Math.max(
+      1,
+      Math.min(Number(searchParams.get("per_page") ?? 20), 100)
+    );
 
     if (!q) {
-      return NextResponse.json({ success: false, message: "Query required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Query required" },
+        { status: 400 }
+      );
     }
 
     const user = await authUser().catch(() => null);
 
     let userWatchlist: string[] = [];
     if (user) {
-      const dbUser = await User.findById(user.id).select("watchlist").lean() as { watchlist?: string[] } | null;
+      const dbUser = (await User.findById(user.id)
+        .select("watchlist")
+        .lean()) as { watchlist?: string[] } | null;
       if (dbUser?.watchlist) {
         userWatchlist = dbUser.watchlist.map((id) => id.toString());
       }
     }
 
-   const query = {
+       const query: any = {
   $and: [
     {
       $or: [
@@ -42,6 +52,15 @@ export async function GET(req: Request) {
   ],
 };
 
+// Add type filter if provided
+if (type) {
+  query.$and.push({ type: type });
+}
+
+// Add subType filter if provided
+if (subType) {
+  query.$and.push({ subType: subType });
+}
 
     const [listings, total] = await Promise.all([
       Listing.find(query)
@@ -69,6 +88,9 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     console.error("Search error:", err);
-    return NextResponse.json({ success: false, message: "Search failed" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Search failed" },
+      { status: 500 }
+    );
   }
 }

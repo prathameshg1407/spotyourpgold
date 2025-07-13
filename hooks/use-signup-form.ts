@@ -17,6 +17,7 @@ const initialErrors: FormErrors = {
   password: false,
   confirmPassword: false,
   otp: false,
+  mobile: false,
   general: "",
 };
 

@@ -2,6 +2,8 @@ import type React from "react"
 export interface PGFormData {
   id: string; // Unique identifier for the listing, can be empty for new listings
   pgName: string;
+  type: "hostels" | "flats" | "pgs" | "rooms" | "";
+  subType: string;
 
   roomTypes: {
     type: string;

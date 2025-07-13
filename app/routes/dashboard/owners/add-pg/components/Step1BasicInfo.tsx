@@ -3,8 +3,16 @@
 import type React from "react";
 import { Label } from "@/components/ui/label";
 import { FormInput } from "@/app/routes/auth/form-input";
-import { Building, IndianRupee, Shield, BedDouble, Users } from "lucide-react";
+import {
+  Building,
+  IndianRupee,
+  Shield,
+  BedDouble,
+  Users,
+  Home,
+} from "lucide-react";
 import type { StepProps } from "../types";
+import { propertyTypes } from "../constants";
 
 export const Step1BasicInfo: React.FC<StepProps> = ({
   formData,
@@ -16,7 +24,7 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
       <div className="space-y-4 text-left pb-10">
         <FormInput
           id="pgName"
-          label="PG Name"
+          label="Name"
           type="text"
           value={formData?.pgName}
           onChange={(value) =>
@@ -29,6 +37,71 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
           hasError={errors?.pgName}
           icon={Building}
         />
+
+        {/* Property Type Selection */}
+        <div className="space-y-4">
+          <div className="space-y-1 font-inter">
+            <Label className="text-gray-700 text-[14px] font-inter">
+              Property Type
+            </Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {propertyTypes.map((type) => (
+                <div
+                  key={type.id}
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      type: type.id as "hostels" | "flats" | "pgs" | "rooms",
+                      subType: "", // Reset subtype when type changes
+                    }))
+                  }
+                  className={`flex items-center justify-center p-3 rounded-md cursor-pointer text-sm border font-inter transition-all ${
+                    formData?.type === type.id
+                      ? "bg-HG-400/10 border-HG-400 text-HG-500"
+                      : "bg-white border-gray-200 hover:border-HG-300"
+                  }`}
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  <span>{type.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sub-type Selection */}
+          {formData?.type &&
+            propertyTypes.find((t) => t.id === formData.type)?.subTypes &&
+            propertyTypes.find((t) => t.id === formData.type)!.subTypes.length >
+              0 && (
+              <div className="space-y-1 font-inter">
+                <Label className="text-gray-700 text-[14px] font-inter">
+                  Sub Category
+                </Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {propertyTypes
+                    .find((t) => t.id === formData.type)!
+                    .subTypes.map((subType) => (
+                      <div
+                        key={subType.id}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            subType: subType.id,
+                          }))
+                        }
+                        className={`flex items-center justify-center p-3 rounded-md cursor-pointer text-sm border font-inter transition-all ${
+                          formData?.subType === subType.id
+                            ? "bg-HG-400/10 border-HG-400 text-HG-500"
+                            : "bg-white border-gray-200 hover:border-HG-300"
+                        }`}
+                      >
+                        <span>{subType.label}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+        </div>
 
         {formData?.roomTypes?.map((room, index) => (
           <div key={index} className="border p-4 rounded-lg space-y-4">
@@ -177,44 +250,37 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
             + Add Room Type
           </button>
 
-
-
- <div className="space-y-1 font-inter">
-          <Label className="text-gray-700 text-[14px] font-inter">
-            Gender Preference
-          </Label>
-          <div className="flex gap-4">
-            {["male", "female", "both"].map((gender) => (
-              <label
-                key={gender}
-                className="flex items-center gap-2 text-sm cursor-pointer"
-              >
-                <input
-                  type="radio"
-                  name="genderPreference"
-                  value={gender}
-                  checked={formData?.genderPreference === gender}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      genderPreference: e.target.value as
-                        | "male"
-                        | "female"
-                        | "both",
-                    }))
-                  }
-                />
-                <span className="capitalize">{gender}</span>
-              </label>
-            ))}
+          <div className="space-y-1 font-inter">
+            <Label className="text-gray-700 text-[14px] font-inter">
+              Gender Preference
+            </Label>
+            <div className="flex gap-4">
+              {["male", "female", "both"].map((gender) => (
+                <label
+                  key={gender}
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name="genderPreference"
+                    value={gender}
+                    checked={formData?.genderPreference === gender}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        genderPreference: e.target.value as
+                          | "male"
+                          | "female"
+                          | "both",
+                      }))
+                    }
+                  />
+                  <span className="capitalize">{gender}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
-
-
-
-        </div>
-
-       
       </div>
     </form>
   );

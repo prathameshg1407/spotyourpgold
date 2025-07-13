@@ -4,7 +4,6 @@ import authUser from "@/actions/authUser"; // if using JWT/session based auth
 import OwnerProfile from "@/models/ownerProfile";
 import User from "@/models/user";
 
-
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -15,31 +14,39 @@ export async function GET(
 
     const user = await authUser(); // if you're using session or token auth
 
-    if(!user || user.role !== "admin") {
+    if (!user || user.role !== "admin") {
       return NextResponse.json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const owner = await User.findById(id).select("_id fullName email ownerStatus").lean();
+    const owner = await User.findById(id)
+      .select("_id fullName email ownerStatus")
+      .lean();
 
-    if(!owner) {
+    if (!owner) {
       return NextResponse.json({
         success: false,
         message: "Owner not found",
       });
     }
 
-    const ownerProfile = await OwnerProfile.findOne({userId:id}).select("_id phone aadhaarNumber address documents paymentDetails").lean();
+    const ownerProfile = await OwnerProfile.findOne({ userId: id })
+      .select("_id phone aadhaarNumber address documents paymentDetails")
+      .lean();
 
-    if(!ownerProfile) {
+    // If no owner profile exists (user created from admin panel), return user data with null ownerDetails
+    if (!ownerProfile) {
       return NextResponse.json({
-        success: false,
-        message: "Owner profile not found",
-      });   
+        success: true,
+        message: "Owner profile fetched successfully",
+        data: {
+          ...owner,
+          ownerDetails: null,
+        },
+      });
     }
-
 
     return NextResponse.json({
       success: true,

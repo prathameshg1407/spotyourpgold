@@ -1,4 +1,3 @@
-
 // "use client";
 
 // import { useEffect, useState } from "react";
@@ -36,7 +35,6 @@
 // import { BlurImage } from "@/components/BlurImage";
 // import { useRouter, useSearchParams } from "next/navigation";
 // import Link from "next/link";
-
 
 // const OwnerManagement = () => {
 //  const [owners, setOwners] = useState<any[]>([]);
@@ -629,17 +627,12 @@
 
 // export default OwnerManagement
 
-
-
-
-
-
-"use client"
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+"use client";
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   CheckCircle,
   XCircle,
@@ -653,8 +646,14 @@ import {
   CreditCard,
   Shield,
   Plus,
-} from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -663,216 +662,213 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { toast } from "sonner"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import axios from "axios"
-import { BlurImage } from "@/components/BlurImage"
-import { useRouter, useSearchParams } from "next/navigation"
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import axios from "axios";
+import { BlurImage } from "@/components/BlurImage";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const OwnerManagement = () => {
-  const [owners, setOwners] = useState<any[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filter, setFilter] = useState<"all" | "verified" | "pending">("all")
-  const [loading, setLoading] = useState(true)
-  const [activeOwner, setActiveOwner] = useState<any | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [ownerDetailsLoading, setOwnerDetailsLoading] = useState(false)
+  const [owners, setOwners] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "verified" | "pending">("all");
+  const [loading, setLoading] = useState(true);
+  const [activeOwner, setActiveOwner] = useState<any | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [ownerDetailsLoading, setOwnerDetailsLoading] = useState(false);
 
   // Dialog states
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [createUserLoading, setCreateUserLoading] = useState(false)
-  const [newUserEmail, setNewUserEmail] = useState("")
-  const [newUserPassword, setNewUserPassword] = useState("")
-  const [newUserFullName, setNewUserFullName] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createUserLoading, setCreateUserLoading] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserFullName, setNewUserFullName] = useState("");
 
-  const searchParams = useSearchParams()
-  const mode = searchParams.get("mode")
-  const ownerId = searchParams.get("id")
-  const router = useRouter()
-
-
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const ownerId = searchParams.get("id");
+  const router = useRouter();
 
   const fetchOwners = async () => {
-      setLoading(true)
-      try {
-        const res = await axios.get("/api/admin/getOwner")
-        if (res?.data?.success) {
-          setOwners(res.data.data)
-        } else {
-          toast.error("Failed to fetch owners")
-        }
-      } catch {
-        toast.error("Something went wrong")
-      } finally {
-        setLoading(false)
+    setLoading(true);
+    try {
+      const res = await axios.get("/api/admin/getOwner");
+      if (res?.data?.success) {
+        setOwners(res.data.data);
+      } else {
+        toast.error("Failed to fetch owners");
       }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
     }
+  };
 
+  const PASSWORD_REQUIREMENTS = {
+    MIN_LENGTH: 6,
+    PATTERNS: {
+      LOWERCASE: /[a-z]/,
+      UPPERCASE: /[A-Z]/,
+      NUMBER: /\d/,
+      SPECIAL_CHAR: /[!@#$%^&*(),.?":{}|<>]/,
+    },
+  } as const;
 
-
-
-    const PASSWORD_REQUIREMENTS = {
-  MIN_LENGTH: 6,
-  PATTERNS: {
-    LOWERCASE: /[a-z]/,
-    UPPERCASE: /[A-Z]/,
-    NUMBER: /\d/,
-    SPECIAL_CHAR: /[!@#$%^&*(),.?":{}|<>]/,
-  },
-} as const
-
-const EMAIL_PATTERN = /\S+@\S+\.\S+/
-
+  const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 
   const handleCreateUser = async () => {
-
     if (!newUserFullName.trim()) {
-    toast.error("Full name is required")
-    return
-  }
+      toast.error("Full name is required");
+      return;
+    }
 
+    if (!newUserEmail.trim()) {
+      toast.error("Email is required");
+      return;
+    }
 
-     if (!newUserEmail.trim()) {
-    toast.error("Email is required")
-    return
-  }
+    if (!EMAIL_PATTERN.test(newUserEmail)) {
+      toast.error("Invalid email format");
+      return;
+    }
 
-  if (!EMAIL_PATTERN.test(newUserEmail)) {
-    toast.error("Invalid email format")
-    return
-  }
+    if (!newUserPassword.trim()) {
+      toast.error("Password is required");
+      return;
+    }
 
-  if (!newUserPassword.trim()) {
-    toast.error("Password is required")
-    return 
-  }
+    if (newUserPassword.length < PASSWORD_REQUIREMENTS.MIN_LENGTH) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
 
-  if (newUserPassword.length < PASSWORD_REQUIREMENTS.MIN_LENGTH) {
-    toast.error("Password must be at least 6 characters long")
-    return 
-  }
+    if (!PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(newUserPassword)) {
+      toast.error("Password must contain a lowercase letter");
+      return;
+    }
 
-  if (!PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(newUserPassword)) {
-   toast.error("Password must contain a lowercase letter")
-    return
-  }
+    if (!PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(newUserPassword)) {
+      toast.error("Password must contain an uppercase letter");
+      return;
+    }
 
-  if (!PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(newUserPassword)) {
-    toast.error("Password must contain an uppercase letter")
-    return 
-  }
+    if (!PASSWORD_REQUIREMENTS.PATTERNS.NUMBER.test(newUserPassword)) {
+      toast.error("Password must contain a number");
+      return;
+    }
 
-  if (!PASSWORD_REQUIREMENTS.PATTERNS.NUMBER.test(newUserPassword)) {
-   toast.error("Password must contain a number")
-    return
-  }
+    if (!PASSWORD_REQUIREMENTS.PATTERNS.SPECIAL_CHAR.test(newUserPassword)) {
+      toast.error("Password must contain a special character");
+      return;
+    }
 
-  if (!PASSWORD_REQUIREMENTS.PATTERNS.SPECIAL_CHAR.test(newUserPassword)) {
-    toast.error("Password must contain a special character")
-    return
-  }
-
-
-    setCreateUserLoading(true)
+    setCreateUserLoading(true);
     try {
       const res = await axios.post("/api/admin/createUser", {
         fullName: newUserFullName,
         email: newUserEmail,
         password: newUserPassword,
-      })
+      });
 
       if (res?.data?.success) {
-        toast.success("User created successfully")
-        setDialogOpen(false)
-        setNewUserEmail("")
-        setNewUserPassword("")
-        setNewUserFullName("")
-        fetchOwners() // Refresh the owners list after creating a new user
+        toast.success("User created successfully");
+        setDialogOpen(false);
+        setNewUserEmail("");
+        setNewUserPassword("");
+        setNewUserFullName("");
+        fetchOwners(); // Refresh the owners list after creating a new user
         // Optionally refresh the owners list
       } else {
-        toast.error(res?.data?.message || "Failed to create user")
+        toast.error(res?.data?.message || "Failed to create user");
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Something went wrong")
+      toast.error(error?.response?.data?.message || "Something went wrong");
     } finally {
-      setCreateUserLoading(false)
+      setCreateUserLoading(false);
     }
-  }
-
-
-
-
+  };
 
   useEffect(() => {
-    fetchOwners()
-  }, [])
+    fetchOwners();
+  }, []);
 
   useEffect(() => {
     if (mode === "view" && ownerId) {
-      handleViewOwner(ownerId)
-      const url = new URL(window.location.href)
-      url.searchParams.delete("mode")
-      url.searchParams.delete("id")
-      router.replace(url.pathname)
+      handleViewOwner(ownerId);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("mode");
+      url.searchParams.delete("id");
+      router.replace(url.pathname);
     }
-  }, [])
+  }, []);
 
   const fetchOwnerDetails = async (userId: string) => {
-    setOwnerDetailsLoading(true)
+    setOwnerDetailsLoading(true);
     try {
-      const res = await axios.get("/api/admin/getOwner/" + userId)
+      const res = await axios.get("/api/admin/getOwner/" + userId);
       if (res?.data?.success) {
-        setActiveOwner(res.data.data)
+        setActiveOwner(res.data.data);
       } else {
-        toast.error("Failed to fetch owner")
+        toast.error("Failed to fetch owner");
       }
     } catch {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     } finally {
-      setOwnerDetailsLoading(false)
+      setOwnerDetailsLoading(false);
     }
-  }
+  };
 
   const handleViewOwner = async (userId: string) => {
-    setDrawerOpen(true)
-    await fetchOwnerDetails(userId)
-  }
+    setDrawerOpen(true);
+    await fetchOwnerDetails(userId);
+  };
 
   const handleApproval = async (id: string) => {
-    setDrawerOpen(false)
-    setLoading(true)
-    toast.loading("Updating owner status...")
+    setDrawerOpen(false);
+    setLoading(true);
+    toast.loading("Updating owner status...");
     try {
-      const res = await axios.put(`/api/admin/ownerStatus/${id}`)
+      const res = await axios.put(`/api/admin/ownerStatus/${id}`);
       if (res?.data?.success) {
-        toast.success(res.data.message || "Owner status updated")
+        toast.success(res.data.message || "Owner status updated");
         setOwners((prev) =>
-          prev.map((owner) => (owner._id === id ? { ...owner, ownerStatus: res.data.newStatus } : owner)),
-        )
+          prev.map((owner) =>
+            owner._id === id
+              ? { ...owner, ownerStatus: res.data.newStatus }
+              : owner
+          )
+        );
       } else {
-        toast.error("Failed to update owner status")
+        toast.error("Failed to update owner status");
       }
     } catch (error) {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     } finally {
-      toast.dismiss()
-      setLoading(false)
+      toast.dismiss();
+      setLoading(false);
     }
-  }
-
-
+  };
 
   const filteredOwners = owners
     .filter((owner) => {
-      if (filter === "verified") return owner.ownerStatus === "verified"
-      if (filter === "pending") return owner.ownerStatus === "pending"
-      return true
+      if (filter === "verified") return owner.ownerStatus === "verified";
+      if (filter === "pending") return owner.ownerStatus === "pending";
+      return true;
     })
     .filter((owner) => {
-      const val = searchQuery.toLowerCase()
-      return owner.fullName.toLowerCase().includes(val) || owner.email.toLowerCase().includes(val)
-    })
+      const val = searchQuery.toLowerCase();
+      return (
+        owner.fullName.toLowerCase().includes(val) ||
+        owner.email.toLowerCase().includes(val)
+      );
+    });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -881,15 +877,15 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">
             Verified
           </span>
-        )
+        );
       default:
         return (
           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
             Pending
           </span>
-        )
+        );
     }
-  }
+  };
 
   return (
     <div className="flex flex-col gap-6 min-h-[calc(100vh-15px)]">
@@ -912,7 +908,9 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="font-poppins">Create New User</DialogTitle>
+              <DialogTitle className="font-poppins">
+                Create New User
+              </DialogTitle>
               <DialogDescription className="font-inter">
                 Enter the email and password for the new user account.
               </DialogDescription>
@@ -959,13 +957,24 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => {
-                setNewUserEmail("")
-                setNewUserPassword("")
-                setDialogOpen(false)}} className="font-poppins">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setNewUserEmail("");
+                  setNewUserPassword("");
+                  setDialogOpen(false);
+                }}
+                className="font-poppins"
+              >
                 Cancel
               </Button>
-              <Button type="button" onClick={handleCreateUser} disabled={createUserLoading} className="font-poppins">
+              <Button
+                type="button"
+                onClick={handleCreateUser}
+                disabled={createUserLoading}
+                className="font-poppins"
+              >
                 {createUserLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -991,7 +1000,13 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
               className="w-full px-10 py-2 font-poppins text-sm md:text-base rounded-lg bg-[#faf4eb] text-black focus:outline-HG-400/40"
             />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1004,8 +1019,18 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                 onClick={() => setSearchQuery("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </div>
             )}
@@ -1014,7 +1039,9 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
         <div className="justify-end hidden md:flex flex-wrap gap-3 text-gray-600 font-inter">
           <Select
             value={filter}
-            onValueChange={(value) => setFilter(value.toLowerCase() as "all" | "verified" | "pending")}
+            onValueChange={(value) =>
+              setFilter(value.toLowerCase() as "all" | "verified" | "pending")
+            }
           >
             <SelectTrigger className="w-32 md:w-[130px] border-gray-200">
               <SelectValue placeholder="Status Filter" />
@@ -1061,8 +1088,12 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
           <Card className="h-[60vh] w-full flex justify-center items-center shadow-none border-none">
             <CardContent className="p-12 text-center font-inter">
               <User className="w-20 h-20 mx-auto text-HG-500 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Owners found</h3>
-              <p className="text-gray-500">Try adjusting your search or filters</p>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                No Owners found
+              </h3>
+              <p className="text-gray-500">
+                Try adjusting your search or filters
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -1072,17 +1103,28 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
               <div className="hidden md:flex flex-col space-y-4">
                 {/* Header Row */}
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2 px-2">
-                  <p className="text-sm font-medium text-gray-500 w-1/3">Name</p>
+                  <p className="text-sm font-medium text-gray-500 w-1/3">
+                    Name
+                  </p>
                   <div className="flex justify-between w-2/5 pr-10 ">
-                    <p className="text-sm font-medium text-gray-500 pl-2">Status</p>
-                    <p className="text-sm font-medium text-gray-500">Documents</p>
+                    <p className="text-sm font-medium text-gray-500 pl-2">
+                      Status
+                    </p>
+                    <p className="text-sm font-medium text-gray-500">
+                      Documents
+                    </p>
                   </div>
                 </div>
                 {/* Data Rows */}
                 {filteredOwners.map((owner) => (
-                  <div key={owner._id} className="flex justify-between items-center bg-white border-b pr-2  pl-4 py-3 ">
+                  <div
+                    key={owner._id}
+                    className="flex justify-between items-center bg-white border-b pr-2  pl-4 py-3 "
+                  >
                     {/* Name */}
-                    <div className="w-1/3 font-medium text-gray-800">{owner.fullName}</div>
+                    <div className="w-1/3 font-medium text-gray-800">
+                      {owner.fullName}
+                    </div>
                     {/* Status & Actions */}
                     <div className="flex justify-between items-center w-2/5 pr-10 ">
                       {/* Status */}
@@ -1106,7 +1148,10 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
               {/* Mobile version */}
               <div className="md:hidden space-y-4">
                 {filteredOwners.map((owner) => (
-                  <div key={owner._id} className="border rounded-xl p-4 space-y-2 bg-white shadow-sm">
+                  <div
+                    key={owner._id}
+                    className="border rounded-xl p-4 space-y-2 bg-white shadow-sm"
+                  >
                     <p className="font-medium text-base">{owner.fullName}</p>
                     <div className="flex justify-between items-center text-sm">
                       <span>{getStatusBadge(owner.ownerStatus)}</span>
@@ -1133,7 +1178,9 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
         <DrawerContent className="max-h-[90vh] [scrollbar-width:none]">
           <DrawerHeader className="flex justify-between items-center">
             <div className="flex items-center gap-5">
-              <DrawerTitle className="text-xl font-semibold font-poppins">Owner Details</DrawerTitle>
+              <DrawerTitle className="text-xl font-semibold font-poppins">
+                Owner Details
+              </DrawerTitle>
               <div className="flex items-center text-sm md:text-lg md:pr-4 justify-between">
                 {activeOwner && getStatusBadge(activeOwner?.ownerStatus)}
               </div>
@@ -1163,14 +1210,18 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
             {ownerDetailsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-HG-500" />
-                <span className="ml-2 text-gray-600">Loading owner details...</span>
+                <span className="ml-2 text-gray-600">
+                  Loading owner details...
+                </span>
               </div>
             ) : activeOwner ? (
               <div className="space-y-6">
                 {/* Owner Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-[#faf4eb] rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-800">Personal Information</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800">
+                      Personal Information
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="flex gap-2 items-center">
@@ -1184,14 +1235,21 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                           <Phone className="h-4 w-4 text-gray-500" />
                           <p className="text-sm text-gray-500">Phone</p>
                         </div>
-                        <p>{activeOwner.ownerDetails.phone}</p>
+                        <p>
+                          {activeOwner.ownerDetails?.phone || "Not provided"}
+                        </p>
                       </div>
                       <div>
                         <div className="flex gap-2 items-center">
                           <Shield className="h-4 w-4 text-gray-500" />
-                          <p className="text-sm text-gray-500">Aadhaar Number</p>
+                          <p className="text-sm text-gray-500">
+                            Aadhaar Number
+                          </p>
                         </div>
-                        <p>{activeOwner.ownerDetails.aadhaarNumber}</p>
+                        <p>
+                          {activeOwner.ownerDetails?.aadhaarNumber ||
+                            "Not provided"}
+                        </p>
                       </div>
                       <div>
                         <div className="flex gap-2 items-center">
@@ -1203,20 +1261,40 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                     </div>
                   </div>
                   {/* Address Information */}
-                  <div className="bg-[#faf4eb] h-full rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                      <MapPin className="h-5 w-5" />
-                      Address Information
-                    </h3>
-                    <div className="space-y-2">
-                      <p className="font-medium">{activeOwner.ownerDetails.address.street}</p>
-                      <p className="text-gray-600">
-                        {activeOwner.ownerDetails.address.city}, {activeOwner.ownerDetails.address.state} -{" "}
-                        {activeOwner.ownerDetails.address.pincode}
-                      </p>
-                      <p className="text-gray-600">{activeOwner.ownerDetails.address.country}</p>
+                  {activeOwner.ownerDetails?.address ? (
+                    <div className="bg-[#faf4eb] h-full rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        Address Information
+                      </h3>
+                      <div className="space-y-2">
+                        <p className="font-medium">
+                          {activeOwner.ownerDetails.address.street}
+                        </p>
+                        <p className="text-gray-600">
+                          {activeOwner.ownerDetails.address.city},{" "}
+                          {activeOwner.ownerDetails.address.state} -{" "}
+                          {activeOwner.ownerDetails.address.pincode}
+                        </p>
+                        <p className="text-gray-600">
+                          {activeOwner.ownerDetails.address.country}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-[#faf4eb] h-full rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        Address Information
+                      </h3>
+                      <div className="space-y-2">
+                        <p className="text-gray-600">Address not provided</p>
+                        <p className="text-sm text-gray-500">
+                          User created from admin panel
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {/* Payment Details */}
                 {activeOwner.ownerDetails?.paymentDetails && (
@@ -1228,23 +1306,39 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Account Holder</p>
-                        <p className="font-medium">{activeOwner.ownerDetails.paymentDetails.accountHolderName}</p>
+                        <p className="font-medium">
+                          {
+                            activeOwner.ownerDetails.paymentDetails
+                              .accountHolderName
+                          }
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Bank Name</p>
-                        <p className="font-medium">{activeOwner.ownerDetails.paymentDetails.bankName}</p>
+                        <p className="font-medium">
+                          {activeOwner.ownerDetails.paymentDetails.bankName}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Account Number</p>
-                        <p className="font-medium">{activeOwner.ownerDetails.paymentDetails.accountNumber}</p>
+                        <p className="font-medium">
+                          {
+                            activeOwner.ownerDetails.paymentDetails
+                              .accountNumber
+                          }
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">IFSC Code</p>
-                        <p className="font-medium">{activeOwner.ownerDetails.paymentDetails.ifscCode}</p>
+                        <p className="font-medium">
+                          {activeOwner.ownerDetails.paymentDetails.ifscCode}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">UPI ID</p>
-                        <p className="font-medium">{activeOwner.ownerDetails.paymentDetails.upiId}</p>
+                        <p className="font-medium">
+                          {activeOwner.ownerDetails.paymentDetails.upiId}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1252,19 +1346,26 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                 {/* Documents */}
                 {activeOwner.ownerDetails?.documents && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-800">Uploaded Documents</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800">
+                      Uploaded Documents
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Aadhaar Front */}
                       <div className=" rounded-lg  p-4 bg-[#faf4eb]">
                         <div className="flex gap-3 items-center">
                           <FileText className="h-5 w-5 text-blue-500 mt-1" />
-                          <p className="font-medium text-gray-800">Aadhaar Card (Front)</p>
+                          <p className="font-medium text-gray-800">
+                            Aadhaar Card (Front)
+                          </p>
                         </div>
                         <div className="overflow-hidden mt-2">
                           <BlurImage
                             width={500}
                             height={500}
-                            src={activeOwner?.ownerDetails?.documents?.aadhaarFrontUrl || "/placeholder.svg"}
+                            src={
+                              activeOwner?.ownerDetails?.documents
+                                ?.aadhaarFrontUrl || "/placeholder.svg"
+                            }
                             alt="Aadhaar Front"
                             className=" w-full h-[300px] object-cover overflow-hidden cursor-pointer rounded border"
                             crossOrigin="anonymous"
@@ -1276,13 +1377,18 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                       <div className=" rounded-lg p-4 bg-[#faf4eb]">
                         <div className="flex gap-3 items-center">
                           <FileText className="h-5 w-5 text-blue-500 mt-1" />
-                          <p className="font-medium text-gray-800">Aadhaar Card (Back)</p>
+                          <p className="font-medium text-gray-800">
+                            Aadhaar Card (Back)
+                          </p>
                         </div>
                         <div className="overflow-hidden mt-2">
                           <BlurImage
                             width={500}
                             height={500}
-                            src={activeOwner?.ownerDetails?.documents?.aadhaarBackUrl || "/placeholder.svg"}
+                            src={
+                              activeOwner?.ownerDetails?.documents
+                                ?.aadhaarBackUrl || "/placeholder.svg"
+                            }
                             alt="Aadhaar Front"
                             className=" w-full h-[300px] object-cover overflow-hidden cursor-pointer rounded border"
                             crossOrigin="anonymous"
@@ -1291,25 +1397,35 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
                         </div>
                       </div>
                       {/* Additional Documents */}
-                      {activeOwner.ownerDetails.documents.additionalDocuments?.map((doc: any, index: number) => (
-                        <div key={index} className=" rounded-lg p-4 bg-[#faf4eb]">
-                          <div className="flex gap-3 items-center">
-                            <FileText className="h-5 w-5 text-blue-500 mt-1" />
-                            <p className="font-medium text-gray-800">Additional Document {index + 1}</p>
+                      {activeOwner.ownerDetails.documents.additionalDocuments?.map(
+                        (doc: any, index: number) => (
+                          <div
+                            key={index}
+                            className=" rounded-lg p-4 bg-[#faf4eb]"
+                          >
+                            <div className="flex gap-3 items-center">
+                              <FileText className="h-5 w-5 text-blue-500 mt-1" />
+                              <p className="font-medium text-gray-800">
+                                Additional Document {index + 1}
+                              </p>
+                            </div>
+                            <div className="overflow-hidden mt-2">
+                              <BlurImage
+                                width={500}
+                                height={500}
+                                src={
+                                  activeOwner?.ownerDetails?.documents
+                                    ?.aadhaarFrontUrl || "/placeholder.svg"
+                                }
+                                alt="Aadhaar Front"
+                                className=" w-full h-[300px] object-cover overflow-hidden cursor-pointer rounded border"
+                                crossOrigin="anonymous"
+                                openInNewTab={true}
+                              />
+                            </div>
                           </div>
-                          <div className="overflow-hidden mt-2">
-                            <BlurImage
-                              width={500}
-                              height={500}
-                              src={activeOwner?.ownerDetails?.documents?.aadhaarFrontUrl || "/placeholder.svg"}
-                              alt="Aadhaar Front"
-                              className=" w-full h-[300px] object-cover overflow-hidden cursor-pointer rounded border"
-                              crossOrigin="anonymous"
-                              openInNewTab={true}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                     </div>
                   </div>
                 )}
@@ -1323,7 +1439,7 @@ const EMAIL_PATTERN = /\S+@\S+\.\S+/
         </DrawerContent>
       </Drawer>
     </div>
-  )
-}
+  );
+};
 
-export default OwnerManagement
+export default OwnerManagement;

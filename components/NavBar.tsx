@@ -17,19 +17,26 @@ import { toast } from "sonner";
 import axios from "axios";
 import { IconCrown } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import PropertyTypeFilter from "./PropertyTypeFilter";
 
 const NavBar = ({
   searchQuery,
   setSearchQuery,
+  selectedType,
+  selectedSubType,
+  onTypeChange,
 }: {
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  selectedType: string;
+  selectedSubType: string;
+  onTypeChange: (type: string, subType: string) => void;
 }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const { user, setUser } = useUserStore();
 
-    // const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  // const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
 
@@ -43,8 +50,6 @@ const NavBar = ({
   //   }, 600); // 600ms debounce
   // }, [searchQuery, router]);
 
-
-
   return (
     <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur-md bg-white/20 py-3 md:py-4 md:px-4 shadow-2xl shadow-HG-500/10   ">
       <div className="flex flex-wrap items-center justify-between px-4">
@@ -53,60 +58,73 @@ const NavBar = ({
           href="/"
           className="flex items-center gap-2 text-lg md:text-2xl font-semibold font-poppins"
         >
-          <img src="/logo.png" alt="Logo" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-12 w-12 md:h-16 md:w-16 object-contain"
+          />
           SYPG
         </Link>
 
-        {/* Search Input */}
-        <div className="relative w-[70%] md:w-[50%] hidden  md:block">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Location, Owner, or PG Name..."
-            className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
+        {/* Search Input and Filter */}
+        <div className="flex items-center gap-3 w-[70%] md:w-[50%] hidden md:flex">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Location, Owner, or PG Name..."
+              className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
+            />
+
+            {!searchQuery && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+                  />
+                </svg>
+              </div>
+            )}
+
+            {searchQuery && (
+              <div
+                onClick={() => {
+                  setSearchQuery("");
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Property Type Filter */}
+          <PropertyTypeFilter
+            selectedType={selectedType}
+            selectedSubType={selectedSubType}
+            onTypeChange={onTypeChange}
           />
-
-          {!searchQuery && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-                />
-              </svg>
-            </div>
-          )}
-
-          {searchQuery && (
-            <div
-              onClick={() => {
-                setSearchQuery("");
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-5">
@@ -231,8 +249,8 @@ const NavBar = ({
                     });
 
                     const res = await axios.post("/api/auth/logout");
-                     toast.dismiss(loadingToast);
-                     if (res && res?.data && res?.data?.success) {
+                    toast.dismiss(loadingToast);
+                    if (res && res?.data && res?.data?.success) {
                       toast.dismiss(loadingToast);
                       setUser(null);
                       toast.success(

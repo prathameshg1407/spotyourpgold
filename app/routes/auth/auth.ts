@@ -1,33 +1,39 @@
 export interface FormErrors {
-  fullName: boolean
-  email: boolean
-  password: boolean
-  confirmPassword: boolean
-  otp: boolean
-  general: string
+  fullName: boolean;
+  email: boolean;
+  password: boolean;
+  confirmPassword: boolean;
+  otp: boolean;
+  mobile: boolean;
+  general: string;
 }
 
 export interface SignupFormData {
-  fullName: string
-  email: string
-  password: string
-  confirmPassword: string
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface LoginFormData {
-  email: string
-  password: string
+  email: string;
+  password: string;
+  mobile: string;
 }
 
 export interface ForgotPasswordData {
-  email: string
-  newPassword: string
-  confirmPassword: string
+  email: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 export interface OTPData {
-  digits: string[]
-  isComplete: boolean
+  digits: string[];
+  isComplete: boolean;
 }
 
-export type LoginStep = "login" | "forgot-password" | "forgot-otp" | "reset-password"
+export type LoginStep =
+  | "login"
+  | "forgot-password"
+  | "forgot-otp"
+  | "reset-password";

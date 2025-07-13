@@ -2322,6 +2322,8 @@ export default function AddNewPG() {
           setFormData((prev: any) => ({
             ...prev,
             pgName: listing?.pgName,
+            type: listing?.type || "",
+            subType: listing?.subType || "",
             roomTypes: listing?.roomTypes || [],
             genderPreference: listing.genderPreference,
             additionalDetails: listing.additionalDetails,

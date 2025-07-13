@@ -11,8 +11,8 @@ import {
   Shield,
   BrushIcon as BrushCleaning,
   Camera,
-} from "lucide-react"
-import type { PGFormData, ValidationErrors } from "./types"
+} from "lucide-react";
+import type { PGFormData, ValidationErrors } from "./types";
 
 export const predefinedAmenities = [
   { id: "wifi", label: "WiFi", icon: Wifi },
@@ -27,7 +27,37 @@ export const predefinedAmenities = [
   { id: "24x7-security", label: "24x7 Security", icon: Shield },
   { id: "housekeeping", label: "Housekeeping", icon: BrushCleaning },
   { id: "cctv", label: "CCTV", icon: Camera },
-]
+];
+
+export const propertyTypes = [
+  {
+    id: "hostels",
+    label: "Hostels",
+    subTypes: [],
+  },
+  {
+    id: "flats",
+    label: "Flats",
+    subTypes: [
+      { id: "1bhk", label: "1 BHK" },
+      { id: "2bhk", label: "2 BHK" },
+      { id: "3bhk", label: "3 BHK" },
+    ],
+  },
+  {
+    id: "pgs",
+    label: "PGs",
+    subTypes: [],
+  },
+  {
+    id: "rooms",
+    label: "Rooms",
+    subTypes: [
+      { id: "single-room", label: "Single Room" },
+      { id: "1rk", label: "1 RK" },
+    ],
+  },
+];
 
 export const initialErrors: ValidationErrors = {
   pgName: false,
@@ -45,18 +75,22 @@ export const initialErrors: ValidationErrors = {
   numberOfRooms: false,
   capacityPerRoom: false,
   genderPreference: false,
-}
+};
 
 export const initialFormData: PGFormData = {
   id: "",
   pgName: "",
-  roomTypes: [ {
-    type: "",
-    numberOfRooms: 0,
-    capacityPerRoom: 0,
-    monthlyRent: 0,
-    securityDeposit: 0,
-  } ],
+  type: "",
+  subType: "",
+  roomTypes: [
+    {
+      type: "",
+      numberOfRooms: 0,
+      capacityPerRoom: 0,
+      monthlyRent: 0,
+      securityDeposit: 0,
+    },
+  ],
   genderPreference: "both",
   additionalDetails: [],
   additionalDetailsInput: "",
@@ -77,14 +111,12 @@ export const initialFormData: PGFormData = {
   electricityIncluded: false,
   maintenanceIncluded: false,
   // New fields for payment
-  planType: "free", 
+  planType: "free",
   paymentStatus: "pending",
   paymentId: "",
   paymentProof: "",
   // paymentProof: File,
-
-
-}
+};
 
 export const stepTitles = {
   1: "Basic Information",
@@ -93,4 +125,4 @@ export const stepTitles = {
   4: "Rules & Regulations",
   5: "Upload Images",
   6: "Review & Submit",
-}
+};

@@ -10,6 +10,15 @@ const listingSchema = new mongoose.Schema(
 
     // Basic Info
     pgName: { type: String, required: true, trim: true },
+    type: {
+      type: String,
+      enum: ["hostels", "flats", "pgs", "rooms"],
+      required: false,
+    },
+    subType: {
+      type: String,
+      required: false,
+    },
     roomTypes: [
       {
         type: { type: String, required: true, trim: true },

@@ -21,6 +21,8 @@ import { BlurImage } from "@/components/BlurImage";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedSubType, setSelectedSubType] = useState("");
 
   const { isLoading, setContainerLoading } = useLoadingStore();
 
@@ -66,14 +68,28 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const debouncedSearch = useDebouncedValue(searchQuery, 800);
   const { setListings } = useListingStore();
 
+  const handleTypeChange = (type: string, subType: string) => {
+    setSelectedType(type);
+    setSelectedSubType(subType);
+  };
+
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (!debouncedSearch.trim()) return;
-        setContainerLoading("homeContainer", true);
+      setContainerLoading("homeContainer", true);
 
       try {
+        const queryParams = new URLSearchParams({
+          q: debouncedSearch,
+          page: "1",
+          per_page: "20",
+        });
+
+        if (selectedType) queryParams.append("type", selectedType);
+        if (selectedSubType) queryParams.append("subType", selectedSubType);
+
         const res = await axios.get(
-          `/api/listing/search?q=${debouncedSearch}&page=1&per_page=20`
+          `/api/listing/search?${queryParams.toString()}`
         );
         // console.log(res);
         if (res?.data?.success) {
@@ -83,18 +99,18 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         }
       } catch (error) {
         toast.error("Something went wrong");
-      }finally {
+      } finally {
         setContainerLoading("homeContainer", false);
       }
     };
 
     fetchSearchResults();
-  }, [debouncedSearch]);
+  }, [debouncedSearch, selectedType, selectedSubType]);
 
   const [featuredPGs, setFeaturedListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
     let ignore = false;
     setLoading(true);
 
@@ -154,7 +170,13 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
   return (
     <>
-      <NavBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <NavBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedType={selectedType}
+        selectedSubType={selectedSubType}
+        onTypeChange={handleTypeChange}
+      />
 
       {searchQuery && (
         <section className="pt-36 md:pt-40 px-4 md:px-8 md:-mb-28">
