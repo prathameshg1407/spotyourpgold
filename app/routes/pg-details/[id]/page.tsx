@@ -60,7 +60,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { IconHeart, IconHeartFilled } from "@tabler/icons-react";
+import {
+  IconHeart,
+  IconHeartFilled,
+  IconArrowUpRight,
+} from "@tabler/icons-react";
 import { BlurImage } from "@/components/BlurImage";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -338,12 +342,21 @@ function InfiniteScrollListings({
     return (
       <div className="mt-16">
         <SectionHeading>More PG Accommodations</SectionHeading>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          {[...Array(6)].map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
-              <div className="bg-gray-300 h-4 rounded mb-2"></div>
-              <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
+          {[...Array(8)].map((_, index) => (
+            <div
+              key={index}
+              className="w-full max-w-[320px] mx-auto animate-pulse"
+            >
+              <div className="border-4 border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-300 h-44 w-full"></div>
+                <div className="p-4 bg-white">
+                  <div className="bg-gray-300 h-3 rounded mb-2 w-1/2"></div>
+                  <div className="bg-gray-300 h-5 rounded mb-2"></div>
+                  <div className="bg-gray-300 h-4 rounded mb-4 w-3/4"></div>
+                  <div className="bg-gray-300 h-6 rounded w-1/2"></div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -359,59 +372,94 @@ function InfiniteScrollListings({
     <div className="mt-16">
       <SectionHeading>More PG Accommodations</SectionHeading>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
         {listings.map((listing: any) => (
-          <Link key={listing._id} href={`/routes/pg-details/${listing._id}`}>
-            <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
-              <div className="relative h-48 sm:h-52 md:h-48">
-                <BlurImage
-                  src={
-                    listing.primaryImage ||
-                    listing.images?.[0]?.url ||
-                    "/placeholder.svg"
-                  }
-                  alt={listing.pgName}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-3 sm:p-4">
-                <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-1">
-                  {listing.pgName}
-                </h3>
-                <p className="text-gray-600 text-xs sm:text-sm mb-2 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {listing.location?.city}
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <IndianRupee className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                    <span className="font-bold text-sm sm:text-base text-green-600">
-                      {listing.minRent?.toLocaleString()}
-                    </span>
-                    <span className="text-xs sm:text-sm text-gray-500">
-                      /month
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-xs sm:text-sm">4.5</span>
-                  </div>
+          <div key={listing._id} className="w-full max-w-[320px] mx-auto">
+            <Link
+              href={`/routes/pg-details/${listing._id}`}
+              className="hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
+              hover:scale-[1.02]
+              w-full border-4 border-HG-500  
+              rounded-xl border-opacity-25 overflow-hidden 
+              hover:border-opacity-50 transition duration-300 ease-in group @container
+              flex flex-col h-full block"
+            >
+              <div className="flex relative items-center justify-center rounded-b-2xl">
+                <div className="w-full h-44 overflow-hidden">
+                  <BlurImage
+                    className="object-cover w-full h-44"
+                    src={
+                      listing.primaryImage ||
+                      listing.images?.[0]?.url ||
+                      "/placeholder.svg"
+                    }
+                    width={400}
+                    height={176}
+                    alt={listing.pgName}
+                  />
+                </div>
+
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-70 transition-opacity bg-black/40 p-3 rounded-xl backdrop-blur-2xl">
+                  <IconArrowUpRight className="text-white w-7 h-7" />
                 </div>
               </div>
-            </div>
-          </Link>
+
+              <div className="p-4 font-inter relative bg-white flex-grow flex flex-col">
+                <div className="flex-grow">
+                  <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-2 leading-tight mb-1">
+                    {listing.location?.area}
+                  </p>
+
+                  <h5 className="text-lg font-semibold text-HG-900 dark:text-white py-1 line-clamp-1">
+                    {listing.pgName}
+                  </h5>
+
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-1">
+                      by {listing.ownerId?.fullName}
+                    </p>
+                    {listing.genderPreference && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Users className="w-4 h-4 text-HG-600" />
+                        <span className="text-gray-600 capitalize font-medium">
+                          {listing.genderPreference === "both"
+                            ? "Male & Female"
+                            : listing.genderPreference}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-2xl font-bold font-poppins text-HG-400 pt-4 mt-auto">
+                  ₹{listing.minRent?.toLocaleString()}{" "}
+                  <span className="text-base font-medium text-gray-600 dark:text-gray-300">
+                    /mo
+                  </span>
+                </p>
+              </div>
+            </Link>
+          </div>
         ))}
       </div>
 
       {/* Loading indicator */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {[...Array(3)].map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
-              <div className="bg-gray-300 h-4 rounded mb-2"></div>
-              <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={index}
+              className="w-full max-w-[320px] mx-auto animate-pulse"
+            >
+              <div className="border-4 border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-300 h-44 w-full"></div>
+                <div className="p-4 bg-white">
+                  <div className="bg-gray-300 h-3 rounded mb-2 w-1/2"></div>
+                  <div className="bg-gray-300 h-5 rounded mb-2"></div>
+                  <div className="bg-gray-300 h-4 rounded mb-4 w-3/4"></div>
+                  <div className="bg-gray-300 h-6 rounded w-1/2"></div>
+                </div>
+              </div>
             </div>
           ))}
         </div>

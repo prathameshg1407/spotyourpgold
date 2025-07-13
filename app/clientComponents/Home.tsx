@@ -116,7 +116,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
     const fetchData = async () => {
       try {
-        const res = await axios.get(`/api/listing/getFeatured`);
+        const res = await axios.get(`/api/listing/getFeatured?per_page=10`);
         if (res?.data?.success && !ignore) {
           setFeaturedListings(res.data.data);
         } else if (!ignore) {
@@ -383,17 +383,17 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
               <section>
                 <SectionHeading
-                // rightSide={
-                //   <Link
-                //     href={"/featured-listings"}
-                //     className="flex items-center gap-2"
-                //   >
-                //     <p className="font-inter text-xs md:text-base text-HG-500">
-                //       View All
-                //     </p>
-                //     <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
-                //   </Link>
-                // }
+                  rightSide={
+                    <Link
+                      href={"/routes/featured-listings"}
+                      className="flex items-center gap-2"
+                    >
+                      <p className="font-inter text-xs md:text-base text-HG-500">
+                        View All
+                      </p>
+                      <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
+                    </Link>
+                  }
                 >
                   Featured PG&apos;s
                 </SectionHeading>

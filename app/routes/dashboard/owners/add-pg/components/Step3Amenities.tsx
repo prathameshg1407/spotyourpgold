@@ -1,23 +1,29 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { motion } from "framer-motion"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Plus, X, ListCollapse } from "lucide-react"
-import type { StepProps } from "../types"
-import { predefinedAmenities } from "../constants"
+import type React from "react";
+import { motion } from "framer-motion";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Plus, X, ListCollapse } from "lucide-react";
+import type { StepProps } from "../types";
+import { predefinedAmenities } from "../constants";
 
-export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, errors }) => {
+export const Step3Amenities: React.FC<StepProps> = ({
+  formData,
+  setFormData,
+  errors,
+}) => {
   return (
     <form>
       <div className="space-y-6 text-left pb-10">
         <div className="space-y-1">
-          <Label className="text-gray-700 text-[14px] font-inter">Available Amenities</Label>
+          <Label className="text-gray-700 text-[14px] font-inter">
+            Available Amenities
+          </Label>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {predefinedAmenities.map((amenity) => {
-              const isSelected = formData.amenities.includes(amenity.id)
+              const isSelected = formData.amenities.includes(amenity.id);
               return (
                 <div
                   key={amenity.id}
@@ -29,20 +35,31 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
                         : [...prev.amenities, amenity.id],
                     }))
                   }
-                  className={`flex items-center space-x-3 p-3 overflow-hidden text-nowrap rounded-md cursor-pointer text-sm border font-inter transition-all ${
+                  className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer text-sm border-2 font-inter transition-all duration-300 min-h-[60px] ${
                     isSelected
-                      ? "bg-HG-50 bg-HG-400/10 border-transparent text-HG-500"
-                      : "bg-white border-gray-200 hover:border-HG-300"
+                      ? "bg-HG-50 border-HG-400 text-HG-600 shadow-md"
+                      : "bg-white border-gray-200 hover:border-HG-300 hover:shadow-sm"
                   }`}
                 >
-                  <amenity.icon className="w-5 h-5" />
-                  <span>{amenity.label}</span>
+                  <div
+                    className={`p-2 rounded-lg flex-shrink-0 ${
+                      isSelected ? "bg-HG-100" : "bg-gray-100"
+                    }`}
+                  >
+                    <amenity.icon className="w-5 h-5" />
+                  </div>
+                  <span className="flex-grow text-left font-medium">
+                    {amenity.label}
+                  </span>
                 </div>
-              )
+              );
             })}
 
             {formData.amenities
-              .filter((amenityId) => !predefinedAmenities.some((a) => a.id === amenityId))
+              .filter(
+                (amenityId) =>
+                  !predefinedAmenities.some((a) => a.id === amenityId)
+              )
               .map((amenityId) => (
                 <div
                   key={amenityId}
@@ -52,10 +69,14 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
                       amenities: prev.amenities.filter((a) => a !== amenityId),
                     }))
                   }
-                  className="flex items-center space-x-3 p-3 overflow-hidden text-nowrap rounded-md cursor-pointer text-sm border font-inter transition-all bg-HG-400/10 border-transparent text-HG-500"
+                  className="flex items-center gap-3 p-4 rounded-lg cursor-pointer text-sm border-2 font-inter transition-all duration-300 min-h-[60px] bg-HG-50 border-HG-400 text-HG-600 shadow-md"
                 >
-                  <span className="w-5 h-5 inline-block bg-HG-500/70 rounded-full" />
-                  <span className="capitalize">{amenityId}</span>
+                  <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
+                    <span className="w-5 h-5 inline-block bg-HG-500/70 rounded-full" />
+                  </div>
+                  <span className="flex-grow text-left font-medium capitalize">
+                    {amenityId}
+                  </span>
                 </div>
               ))}
           </div>
@@ -73,15 +94,15 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
             }
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                e.preventDefault()
-                const value = formData.customAmenities.trim()
-                const alreadyExists = formData.amenities.includes(value)
+                e.preventDefault();
+                const value = formData.customAmenities.trim();
+                const alreadyExists = formData.amenities.includes(value);
                 if (value && !alreadyExists) {
                   setFormData((prev) => ({
                     ...prev,
                     amenities: [...prev.amenities, value],
                     customAmenities: "",
-                  }))
+                  }));
                 }
               }
             }}
@@ -92,14 +113,14 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
           <button
             type="button"
             onClick={() => {
-              const value = formData.customAmenities.trim()
-              const alreadyExists = formData.amenities.includes(value)
+              const value = formData.customAmenities.trim();
+              const alreadyExists = formData.amenities.includes(value);
               if (value && !alreadyExists) {
                 setFormData((prev) => ({
                   ...prev,
                   amenities: [...prev.amenities, value],
                   customAmenities: "",
-                }))
+                }));
               }
             }}
             className="absolute inset-y-0 right-3 flex items-center justify-center text-HG-500 hover:text-HG-600"
@@ -122,7 +143,9 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
                   onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
-                      additionalDetails: prev.additionalDetails.filter((_, i) => i !== idx),
+                      additionalDetails: prev.additionalDetails.filter(
+                        (_, i) => i !== idx
+                      ),
                     }))
                   }
                   className="text-gray-400 hover:text-red-500 transition"
@@ -170,33 +193,41 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
               }
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  e.preventDefault()
-                  const value = formData.additionalDetailsInput?.trim()
+                  e.preventDefault();
+                  const value = formData.additionalDetailsInput?.trim();
                   if (value) {
                     setFormData((prev) => ({
                       ...prev,
-                      additionalDetails: [...(prev.additionalDetails || []), value],
+                      additionalDetails: [
+                        ...(prev.additionalDetails || []),
+                        value,
+                      ],
                       additionalDetailsInput: "",
-                    }))
+                    }));
                   }
                 }
               }}
               placeholder="Type and Press Enter or Tap +"
               className={`h-11 pl-10 pr-10 bg-white rounded-md text-[15px] ${
-                errors.additionalDetails ? "border-red-400 border-2" : "border-gray-200"
+                errors.additionalDetails
+                  ? "border-red-400 border-2"
+                  : "border-gray-200"
               } border focus:border-HG-400 placeholder:font-inter focus:outline-none placeholder:opacity-80 focus-visible:ring-HG-400 focus-visible:ring-1`}
             />
 
             <button
               type="button"
               onClick={() => {
-                const value = formData.additionalDetailsInput?.trim()
+                const value = formData.additionalDetailsInput?.trim();
                 if (value) {
                   setFormData((prev) => ({
                     ...prev,
-                    additionalDetails: [...(prev.additionalDetails || []), value],
+                    additionalDetails: [
+                      ...(prev.additionalDetails || []),
+                      value,
+                    ],
                     additionalDetailsInput: "",
-                  }))
+                  }));
                 }
               }}
               className="absolute inset-y-0 right-3 flex items-center justify-center text-HG-500 hover:text-HG-600"
@@ -208,14 +239,19 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
         </motion.div>
 
         <div className="space-y-2">
-          <Label className="text-gray-700 text-[14px] font-inter">Included in Rent</Label>
+          <Label className="text-gray-700 text-[14px] font-inter">
+            Included in Rent
+          </Label>
           <div className="flex items-center gap-8">
             {[
               { key: "foodIncluded", label: "Food/Meals" },
               { key: "electricityIncluded", label: "Electricity" },
               { key: "maintenanceIncluded", label: "Maintenance" },
             ].map((item) => (
-              <label key={item.key} className="flex items-center gap-2 text-sm cursor-pointer font-inter">
+              <label
+                key={item.key}
+                className="flex items-center gap-2 text-sm cursor-pointer font-inter"
+              >
                 <input
                   type="checkbox"
                   checked={!!formData[item.key as keyof typeof formData]}
@@ -234,5 +270,5 @@ export const Step3Amenities: React.FC<StepProps> = ({ formData, setFormData, err
         </div>
       </div>
     </form>
-  )
-}
+  );
+};

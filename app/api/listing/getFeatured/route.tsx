@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
     }
 
     let featuredListings = await Listing.find(query)
-      .select("_id primaryImage location pgName ownerId roomTypes images")
+      .select(
+        "_id primaryImage location pgName ownerId roomTypes images genderPreference"
+      )
       .sort({ updatedAt: -1 })
       .skip((page - 1) * per_page)
       .limit(per_page)

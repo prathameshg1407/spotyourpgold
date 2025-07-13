@@ -5,6 +5,7 @@ import {
   IconHeart,
   IconHeartFilled,
 } from "@tabler/icons-react";
+import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BlurImage } from "../BlurImage";
 import { useRouter } from "next/navigation";
@@ -72,10 +73,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
         >
           <div className="absolute right-0 z-[1000] h-auto w-[5%] overflow-hidden bg-gradient-to-l" />
           <div
-            className={cn(
-              "flex flex-row justify-start gap-5 md:gap-10",
-              ""
-            )}
+            className={cn("flex flex-row justify-start gap-5 md:gap-10", "")}
           >
             {items.map((item, index) => (
               <div key={index} className="rounded-3xl">
@@ -101,112 +99,96 @@ export const Card = ({
   // const [wishlisted, setWishlisted] = useState(card.isWishlisted);
   const router = useRouter();
 
-
   const [loading, setLoading] = useState(false); // ✅ prevent multiple clicks
 
+  const { listings, setListings } = useListingStore();
 
-  const {listings,setListings} = useListingStore();
+  const toggleWatchlist = async () => {
+    if (loading) return;
+    setLoading(true);
 
+    const loadingToast = toast.loading("Updating watchlist...", {
+      closeButton: true,
+    });
 
-    const toggleWatchlist = async () => {
-      if (loading) return;
-      setLoading(true);
-  
-      const loadingToast = toast.loading("Updating watchlist...", {
-        closeButton: true,
+    try {
+      const res = await axios.put(`/api/listing/toggleWatchlist`, {
+        id: card?._id,
+        isWishlisted: card?.isWatchlisted,
       });
-  
-      try {
-        const res = await axios.put(`/api/listing/toggleWatchlist`, {
-          id: card?._id,
-          isWishlisted: card?.isWatchlisted,
-        });
-  
-        if (
-          res?.data &&
-          !res.data.success &&
-          res.data.message === "Unauthorized"
-        ) {
-          toast.error("You are not authorized to perform this action.", {
-            closeButton: true,
-            duration: 2000,
-          });
-          router.push("/routes/auth/login");
-          return;
-        }
-  
-        if (res?.data?.success) {
 
-          card.isWatchlisted = !card.isWatchlisted;
-
-          setListings(
-            listings.map((pg: { _id: string; inWatchList: any }) =>
-              pg._id === card?._id
-                ? { ...pg, inWatchList: !pg.inWatchList }
-                : pg
-            )
-          );
-          
-          toast.success(res.data.message || "Watchlist updated!", {
-            closeButton: true,
-            duration: 2000,
-          });
-        } else {
-          toast.error(res?.data?.message || "Something went wrong", {
-            closeButton: true,
-            duration: 2000,
-          });
-        }
-      } catch (error) {
-        console.error("Toggle watchlist error:", error);
-        toast.error("Failed to update watchlist. Try again.", {
+      if (
+        res?.data &&
+        !res.data.success &&
+        res.data.message === "Unauthorized"
+      ) {
+        toast.error("You are not authorized to perform this action.", {
           closeButton: true,
           duration: 2000,
         });
-      } finally {
-        toast.dismiss(loadingToast);
-        setLoading(false);
+        router.push("/routes/auth/login");
+        return;
       }
-    };
 
+      if (res?.data?.success) {
+        card.isWatchlisted = !card.isWatchlisted;
 
+        setListings(
+          listings.map((pg: { _id: string; inWatchList: any }) =>
+            pg._id === card?._id ? { ...pg, inWatchList: !pg.inWatchList } : pg
+          )
+        );
 
-
-
-
-
-
-
-
-
-
-
+        toast.success(res.data.message || "Watchlist updated!", {
+          closeButton: true,
+          duration: 2000,
+        });
+      } else {
+        toast.error(res?.data?.message || "Something went wrong", {
+          closeButton: true,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error("Toggle watchlist error:", error);
+      toast.error("Failed to update watchlist. Try again.", {
+        closeButton: true,
+        duration: 2000,
+      });
+    } finally {
+      toast.dismiss(loadingToast);
+      setLoading(false);
+    }
+  };
 
   return (
     <div
       className="
       hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
-
-      min-w-[250px] cursor-pointer md:max-w-[280px]  border-4 border-HG-500  rounded-xl border-opacity-25 overflow-hidden hover:border-opacity-50 transition duration-150 ease-in group @container relative"
+      hover:scale-[1.02]
+      w-full max-w-[320px] cursor-pointer border-4 border-HG-500  
+      rounded-xl border-opacity-25 overflow-hidden 
+      hover:border-opacity-50 transition duration-300 ease-in group @container 
+      relative flex flex-col h-full"
       onClick={() => {
         router.push(`/routes/pg-details/${card?._id}`);
       }}
     >
       <div className="w-full h-44 object-cover rounded-t-lg overflow-hidden">
         <BlurImage
-          className="w- h-44 object-cover rounded-t-lg"
+          className="w-full h-44 object-cover rounded-t-lg"
           src={card?.primaryImage}
           width={400}
-          height={440}
+          height={176}
           alt={card?.pgName}
         />
       </div>
 
       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-70 transition-opacity bg-black/40 p-3 rounded-xl backdrop-blur-2xl">
-        <IconArrowUpRight className="  text-white  w-7 h-7 " />
+        <IconArrowUpRight className="text-white w-7 h-7" />
       </div>
 
-      <div className="p-4 relative font-inter text-left w-full">
+      <div className="p-4 relative font-inter text-left w-full bg-white flex-grow flex flex-col">
         <button
           className="absolute top-2 right-2 z-10 p-1 hover:scale-125 transition"
           onClick={(e) => {
@@ -221,16 +203,32 @@ export const Card = ({
             <IconHeart className="h-5 w-5 text-HG-500 dark:text-white" />
           )}
         </button>
-        <p className="text-xs uppercase text-gray-400 dark:text-gray-400">
-          {card?.location?.area}
-        </p>
-        <h5 className="text-lg font-semibold text-HG-900 dark:text-white py-1">
-          {card?.pgName}
-        </h5>
-        <p className="text-sm text-gray-500 dark:text-gray-300">
-          by {card?.ownerId?.fullName}
-        </p>
-        <p className="text-2xl font-bold font-poppins text-HG-400 pt-4">
+
+        <div className="flex-grow">
+          <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-2 leading-tight mb-1">
+            {card?.location?.area}
+          </p>
+          <h5 className="text-lg font-semibold text-HG-900 dark:text-white py-1 line-clamp-1">
+            {card?.pgName}
+          </h5>
+          <div className="space-y-1">
+            <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-1">
+              by {card?.ownerId?.fullName}
+            </p>
+            {card?.genderPreference && (
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="w-4 h-4 text-HG-600" />
+                <span className="text-gray-600 capitalize font-medium">
+                  {card?.genderPreference === "both"
+                    ? "Male & Female"
+                    : card?.genderPreference}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <p className="text-2xl font-bold font-poppins text-HG-400 pt-4 mt-auto">
           ₹{card?.minRent?.toLocaleString()}
           <span className="text-base font-medium text-gray-600 dark:text-gray-300">
             /mo
