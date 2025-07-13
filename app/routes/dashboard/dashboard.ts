@@ -166,6 +166,7 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
         { name: "My Listings", href: "/routes/dashboard/owners/listings", icon: "Building" },
         { name: "Add New PG", href: "/routes/dashboard/owners/add-pg", icon: "Plus" },
          { name: "Room Management", href: "/routes/dashboard/owners/room-management", icon: "Bed" },
+         { name: "favorites", href: "/routes/dashboard/admin/favorites", icon: "Heart" },
         // { name: "User Management", href: "/users", icon: "Users" },
         // { name: "Featured Requests", href: "/featured-requests", icon: "Star" },
         // { name: "Ad Management", href: "/ads", icon: "Megaphone" },

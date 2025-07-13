@@ -45,7 +45,7 @@ export default function MonetizationPlanPage() {
 
   const handleContactUs = (planType: string) => {
     // Handle contact us functionality
-    toast.success(`We'll contact you about switching to ${planType}!`)
+    toast.success(`We&apos;ll contact you about switching to ${planType}!`)
   }
 
   const handleLearnMore = (planType: string) => {
@@ -95,31 +95,23 @@ export default function MonetizationPlanPage() {
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <h3 className="text-2xl font-bold text-orange-900 font-poppins">
-                      {currentPlan?.planName || "Subscription Model"}
+                      Brokerage Model
                     </h3>
 
                     <p className="text-gray-600 font-inter leading-relaxed">
-                      {currentPlan?.description ||
-                        "You are on a fixed monthly subscription. All leads are forwarded to you directly."}
+                      Pay only when you get a confirmed booking through us. We charge a small percentage of the first month&apos;s rent.
                     </p>
 
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-bold text-gray-900 font-poppins">
-                          ₹{currentPlan?.price?.toLocaleString() || "1,999"}
+                          % of 1st month rent
                         </span>
-                        <span className="text-gray-600 font-inter">/ month</span>
+                        <span className="text-gray-600 font-inter">/ per booking</span>
                       </div>
 
                       <p className="text-sm text-gray-500 font-inter">
-                        Next renewal on:{" "}
-                        {currentPlan?.nextRenewal
-                          ? new Date(currentPlan.nextRenewal).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "July 1, 2025"}
+                        No monthly fees. Pay only on success.
                       </p>
                     </div>
                   </div>
@@ -132,45 +124,32 @@ export default function MonetizationPlanPage() {
               <h2 className="text-xl font-semibold text-gray-700 font-inter">Available Plans</h2>
 
               <div className="space-y-6">
-                {/* Brokerage Model */}
-                <Card className="border border-gray-200 bg-white hover:shadow-md transition-shadow">
+                {/* Subscription Model - Coming Soon */}
+                <Card className="border border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed relative">
                   <CardContent className="p-8">
                     <div className="space-y-4">
-                      <h3 className="text-2xl font-bold text-gray-900 font-poppins">Brokerage Model</h3>
-
+                      <h3 className="text-2xl font-bold text-gray-900 font-poppins flex items-center">
+                        Subscription Model
+                        <span className="ml-3 px-2 py-1 text-xs rounded bg-orange-200 text-orange-800 font-semibold">Coming Soon</span>
+                      </h3>
                       <p className="text-gray-600 font-inter leading-relaxed">
-                        Pay only when you get a confirmed booking through us. We charge a small percentage of the first
-                        month&apos;s rent.
+                        Fixed monthly subscription. All leads are forwarded to you directly.
                       </p>
-
-                      <button
-                        onClick={() => handleContactUs("Brokerage Model")}
-                        className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium font-inter transition-colors"
-                      >
-                        Contact us to switch
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Partnership */}
-                <Card className="border border-gray-200 bg-white hover:shadow-md transition-shadow">
+                {/* Partnership - Coming Soon */}
+                <Card className="border border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed relative">
                   <CardContent className="p-8">
                     <div className="space-y-4">
-                      <h3 className="text-2xl font-bold text-gray-900 font-poppins">Partnership</h3>
-
+                      <h3 className="text-2xl font-bold text-gray-900 font-poppins flex items-center">
+                        Partnership
+                        <span className="ml-3 px-2 py-1 text-xs rounded bg-orange-200 text-orange-800 font-semibold">Coming Soon</span>
+                      </h3>
                       <p className="text-gray-600 font-inter leading-relaxed">
                         Feature your PG prominently on our homepage and search results for maximum visibility.
                       </p>
-
-                      <button
-                        onClick={() => handleLearnMore("Partnership")}
-                        className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium font-inter transition-colors"
-                      >
-                        Learn More
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
                     </div>
                   </CardContent>
                 </Card>

@@ -5,8 +5,9 @@ export type ContainerKey =
   | "homeContainer"
   // | "profileSidebar"
   // | "reviewSection"
-  |"ownerListings"
-  | "pgDetails";
+  | "ownerListings"
+  | "pgDetails"
+  | "userFavorites";
 
 type LoadingState = {
   isLoading: boolean;
@@ -24,6 +25,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
     // profileSidebar: false,
     // reviewSection: false,
     pgDetails: true,
+    userFavorites: true,
   },
   setLoading: (value) => set({ isLoading: value }),
   setContainerLoading: (key, value) =>
@@ -38,6 +40,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
         // profileSidebar: false,
         // reviewSection: false,
         pgDetails: false,
+        userFavorites: false,
       },
     }),
 }));
