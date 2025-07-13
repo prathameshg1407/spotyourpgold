@@ -51,8 +51,9 @@ const NavBar = ({
         {/* Logo */}
         <Link
           href="/"
-          className="text-lg md:text-2xl font-semibold font-poppins"
+          className="flex items-center gap-2 text-lg md:text-2xl font-semibold font-poppins"
         >
+          <img src="/logo.png" alt="Logo" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
           SYPG
         </Link>
 

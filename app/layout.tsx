@@ -6,6 +6,7 @@ import { DockWrapper } from "@/components/DockWrapper";
 import { Toaster } from "@/components/ui/sonner";
 import PageLoader from "@/components/PageLoader";
 import AuthProvider from "@/components/AuthProvider";
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({
@@ -42,7 +43,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+         
       <body className={` ${inter.variable} ${poppins.variable} ${parisienne.variable} `}>
+      <GoogleAnalytics gaId="G-5PWF1SMC4Q" />
         <AuthProvider />
         <PageLoader />
         {children}
