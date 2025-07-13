@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Poppins, Zen_Tokyo_Zoo } from "next/font/google";
+import { Inter, Poppins, Zen_Tokyo_Zoo, Parisienne
+ } from "next/font/google";
 import "./globals.css";
 import { DockWrapper } from "@/components/DockWrapper";
 import { Toaster } from "@/components/ui/sonner";
@@ -13,11 +14,20 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
-const zen = Zen_Tokyo_Zoo({
-  subsets: ["latin"],
-  variable: "--font-zen-tokyo-zoo",
-  weight: ["400"],
-});
+// const zen = Zen_Tokyo_Zoo({
+//   subsets: ["latin"],
+//   variable: "--font-zen-tokyo-zoo",
+//   weight: ["400"],
+// });
+
+const parisienne
+ = Parisienne(
+  {
+    subsets: ["latin"],
+    variable: "--font-parisienne",
+    weight: ["400"],
+  },
+);
 
 
 export const metadata: Metadata = {
@@ -32,7 +42,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={` ${inter.variable} ${poppins.variable} ${zen.variable}`}>
+      <body className={` ${inter.variable} ${poppins.variable} ${parisienne.variable} `}>
         <AuthProvider />
         <PageLoader />
         {children}
