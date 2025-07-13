@@ -14,7 +14,8 @@ const config: Config = {
       fontFamily: {
         inter: ["var(--font-inter)", "sans-serif"],
         poppins: ["var(--font-poppins)", "sans-serif"],
-        zen : ["var(--font-zen-tokyo-zoo)", "sans-serif"],
+        // zen : ["var(--font-zen-tokyo-zoo)", "sans-serif"],
+        Parisienne: ["var(--font-parisienne)", "sans-serif"],
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

@@ -17,6 +17,7 @@ import Skeleton from "@/components/Skeleton";
 import { Button } from "@/components/ui/button";
 import { useListingStore } from "@/store/listingStore";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { BlurImage } from "@/components/BlurImage";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -90,10 +91,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     fetchSearchResults();
   }, [debouncedSearch]);
 
-
-    const [featuredPGs, setFeaturedListings] = useState<any[]>([]);
+  const [featuredPGs, setFeaturedListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
 
     useEffect(() => {
     let ignore = false;
@@ -126,7 +125,32 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     };
   }, []);
 
+  const column1Images = [
+    { src: "/placeholder.svg?height=200&width=250", alt: "Modern house" },
+    { src: "/placeholder.svg?height=220&width=250", alt: "Interior room" },
+    { src: "/placeholder.svg?height=180&width=250", alt: "Apartment" },
+    { src: "/placeholder.svg?height=210&width=250", alt: "Minimalist home" },
+    { src: "/placeholder.svg?height=190&width=250", alt: "Urban loft" },
+  ];
 
+  const column2Images = [
+    { src: "/placeholder.svg?height=160&width=250", alt: "Dark modern house" },
+    { src: "/placeholder.svg?height=180&width=250", alt: "Triangular houses" },
+    { src: "/placeholder.svg?height=170&width=250", alt: "Glass building" },
+    { src: "/placeholder.svg?height=190&width=250", alt: "Duplex house" },
+    { src: "/placeholder.svg?height=175&width=250", alt: "Studio apartment" },
+  ];
+
+  const column3Images = [
+    { src: "/placeholder.svg?height=150&width=250", alt: "Concrete house" },
+    { src: "/placeholder.svg?height=200&width=250", alt: "Luxury house" },
+    { src: "/placeholder.svg?height=160&width=250", alt: "Traditional house" },
+    {
+      src: "/placeholder.svg?height=180&width=250",
+      alt: "Beachfront property",
+    },
+    { src: "/placeholder.svg?height=170&width=250", alt: "Garden house" },
+  ];
 
   return (
     <>
@@ -134,8 +158,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
       {searchQuery && (
         <section className="pt-36 md:pt-40 px-4 md:px-8 md:-mb-28">
-          <SectionHeading >
-          {/* <SectionHeading rightSide={<FilterButton />}> */}
+          <SectionHeading>
+            {/* <SectionHeading rightSide={<FilterButton />}> */}
             Searching For{" "}
             <span className="text-HG-400 block mt-2 md:mt-0 md:inline-block ">
               {searchQuery}...
@@ -147,22 +171,185 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         <div className="md:px-8 px-4 mt-32 md:mt-40 space-y-10">
           {!searchQuery && (
             <>
-              <div className="flex flex-col items-center font-poppins mb-10 md:mb-20">
-                {/* <GradientText
-                  className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight font-semibold select-none"
-                  element="H1"
-                >
-                  SPOT YOUR PG
-                </GradientText> */}
-                <h1 className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight text-HG-500  select-none font-zen">
-                  SPOT YOUR <span>PG</span>
-                </h1>
+              {false && (
+                <div className="flex flex-col items-center font-poppins mb-10 md:mb-20">
+                  {/* <GradientText
+                    className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight font-semibold select-none"
+                    element="H1"
+                  >
+                    SPOT YOUR PG
+                  </GradientText> */}
+                  <h1 className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight text-HG-500  select-none font-zen">
+                    SPOT YOUR <span>PG</span>
+                  </h1>
 
-                <TextGenerateEffect
-                  className="font-inter select-none text-center md:tracking-wider font-medium text-[clamp(12px,4vw,18px)] md:text-lg text-gray-600"
-                  words="Discover the perfect PG around you — filtered by comfort, budget, and location."
-                  shouldAnimate={!isLoading}
-                />
+                  <TextGenerateEffect
+                    className="font-inter select-none text-center md:tracking-wider font-medium text-[clamp(12px,4vw,18px)] md:text-lg text-gray-600"
+                    words="Discover the perfect PG around you — filtered by comfort, budget, and location."
+                    shouldAnimate={!isLoading}
+                  />
+                </div>
+              )}
+
+              <div className=" w-full  md:p-8 overflow-hidden -mt-4  md:-mt-20">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  {/* Left Content - Text Only */}
+                  <div className="space-y-6">
+                    <h1 className="text-4xl lg:text-7xl font-Parisienne font-medium text-HG-400 ">
+                      Searching for a place?
+                      <br />
+                      <span className="font-medium text-3xl md:text-6xl font-poppins">
+                        We&apos;ve got you!
+                      </span>
+                    </h1>
+                    <TextGenerateEffect
+                      className="font-inter select-none md:tracking-wider font-medium text-[clamp(12px,4vw,18px)] md:text-lg text-gray-600"
+                      words="Discover the perfect PG around you — filtered by comfort, budget, and location."
+                      shouldAnimate={!isLoading}
+                    />
+                  </div>
+
+                  {/* Right Image Animated Grid */}
+                  <div className=" grid-cols-3 gap-4 h-[520px] relative hidden md:grid">
+                    {/* Column 1 - Moving Down */}
+                    <div className="relative overflow-hidden rounded-lg ">
+                      <div className="animate-scroll-down space-y-4">
+                        {/* Duplicate images for infinite scroll */}
+                        {[
+                          ...column1Images,
+                          ...column1Images,
+                          ...column1Images,
+                        ].map((image, index) => (
+                          <div
+                            key={index}
+                            className="bg-white rounded-xl overflow-hidden shadow-lg flex-shrink-0"
+                          >
+                            {/* <BlurImage
+                              src={image.src || "/placeholder.svg"}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            /> */}
+
+                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Top blur overlay */}
+                      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                      {/* Bottom blur overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                    </div>
+
+                    {/* Column 2 - Moving Up */}
+                    <div className="relative overflow-hidden rounded-lg">
+                      <div className="animate-scroll-up space-y-4">
+                        {/* Teal accent block */}
+                        <div className=" rounded-xl h-32 flex-shrink-0 shadow-lg"></div>
+                        {/* Duplicate images for infinite scroll */}
+                        {[
+                          ...column2Images,
+                          ...column2Images,
+                          ...column2Images,
+                        ].map((image, index) => (
+                          <div
+                            key={index}
+                            className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
+                          >
+                            {/* <BlurImage
+                              src={image.src || "/placeholder.svg"}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            /> */}
+
+                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                          </div>
+                        ))}
+                        {/* Gray accent block */}
+                        <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl h-24 flex-shrink-0 shadow-md"></div>
+                      </div>
+                      {/* Top blur overlay */}
+                      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                      {/* Bottom blur overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                    </div>
+
+                    {/* Column 3 - Moving Down */}
+                    <div className="relative overflow-hidden rounded-lg">
+                      <div className="animate-scroll-down-slow space-y-4">
+                        {/* Duplicate images for infinite scroll */}
+                        {[
+                          ...column3Images,
+                          ...column3Images,
+                          ...column3Images,
+                        ].map((image, index) => (
+                          <div
+                            key={index}
+                            className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
+                          >
+                            {/* <BlurImage
+                              src={image.src || "/placeholder.svg"}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            /> */}
+
+                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Top blur overlay */}
+                      <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                      {/* Bottom blur overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white via-gray-50/80 to-transparent backdrop-blur-sm z-10"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <style jsx>{`
+                  @keyframes scroll-down {
+                    0% {
+                      transform: translateY(-50%);
+                    }
+                    100% {
+                      transform: translateY(0%);
+                    }
+                  }
+
+                  @keyframes scroll-up {
+                    0% {
+                      transform: translateY(0%);
+                    }
+                    100% {
+                      transform: translateY(-50%);
+                    }
+                  }
+
+                  @keyframes scroll-down-slow {
+                    0% {
+                      transform: translateY(-50%);
+                    }
+                    100% {
+                      transform: translateY(0%);
+                    }
+                  }
+
+                  .animate-scroll-down {
+                    animation: scroll-down 20s linear infinite;
+                  }
+
+                  .animate-scroll-up {
+                    animation: scroll-up 25s linear infinite;
+                  }
+
+                  .animate-scroll-down-slow {
+                    animation: scroll-down-slow 30s linear infinite;
+                  }
+                `}</style>
               </div>
 
               {availableAd && (
@@ -174,17 +361,17 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
               <section>
                 <SectionHeading
-                  // rightSide={
-                  //   <Link
-                  //     href={"/featured-listings"}
-                  //     className="flex items-center gap-2"
-                  //   >
-                  //     <p className="font-inter text-xs md:text-base text-HG-500">
-                  //       View All
-                  //     </p>
-                  //     <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
-                  //   </Link>
-                  // }
+                // rightSide={
+                //   <Link
+                //     href={"/featured-listings"}
+                //     className="flex items-center gap-2"
+                //   >
+                //     <p className="font-inter text-xs md:text-base text-HG-500">
+                //       View All
+                //     </p>
+                //     <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
+                //   </Link>
+                // }
                 >
                   Featured PG&apos;s
                 </SectionHeading>
