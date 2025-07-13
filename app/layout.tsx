@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import PageLoader from "@/components/PageLoader";
 import AuthProvider from "@/components/AuthProvider";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import Footer from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({
@@ -54,7 +55,10 @@ export default function RootLayout({
         <GoogleAnalytics gaId="G-5PWF1SMC4Q" />
         <AuthProvider />
         <PageLoader />
-        {children}
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </div>
         <Toaster />
         <DockWrapper />
       </body>

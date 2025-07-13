@@ -20,6 +20,7 @@ const Signup = () => {
     isLoading,
     errors,
     timer,
+    termsAccepted,
     updateFormData,
     setShowPassword,
     setShowConfirmPassword,
@@ -29,6 +30,7 @@ const Signup = () => {
     submitOTP,
     resendOTP,
     backToSignup,
+    setTermsAccepted,
     isOTPComplete,
     isTimerExpired,
   } = useSignupForm();
@@ -164,6 +166,36 @@ const Signup = () => {
             />
 
             <motion.div variants={itemVariants} className="pt-2">
+              <div className="flex items-start gap-3 mb-4">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-HG-500 focus:ring-HG-500 focus:ring-offset-0"
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-gray-700 leading-5"
+                >
+                  I agree to the{" "}
+                  <Link
+                    href="/routes/terms-of-service"
+                    className="text-HG-500 hover:text-HG-400 transition-colors underline"
+                    target="_blank"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/routes/privacy-policy"
+                    className="text-HG-500 hover:text-HG-400 transition-colors underline"
+                    target="_blank"
+                  >
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
               <LoadingButton
                 type="submit"
                 isLoading={isLoading}
@@ -252,31 +284,6 @@ const Signup = () => {
                   className="font-normal text-HG-400 hover:text-HG-500 transition-colors"
                 >
                   Log In
-                </motion.span>
-              </Link>
-            </p>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="mt-4">
-            <p className="text-[13px] text-gray-400 text-center">
-              By signing up, you agree to our{" "}
-              <Link href="#">
-                <motion.span
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Terms
-                </motion.span>{" "}
-              </Link>
-              and{" "}
-              <Link href="#">
-                <motion.span
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Privacy Policy
                 </motion.span>
               </Link>
             </p>

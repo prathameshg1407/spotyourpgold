@@ -41,6 +41,7 @@ export const useSignupForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>(initialErrors);
   const [timer, setTimer] = useState(300); // 5 minutes = 300 seconds
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const router = useRouter();
 
@@ -94,6 +95,16 @@ export const useSignupForm = () => {
   const submitSignupForm = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+
+      // Check if terms are accepted
+      if (!termsAccepted) {
+        setErrors({
+          ...initialErrors,
+          general:
+            "Please accept the Terms of Service and Privacy Policy to continue.",
+        });
+        return;
+      }
 
       const validationErrors = validateSignupForm(formData);
       if (validationErrors.general) {
@@ -163,7 +174,7 @@ export const useSignupForm = () => {
         toast.dismiss(loadingToast);
       }
     },
-    [formData, clearErrors]
+    [formData, clearErrors, termsAccepted]
   );
 
   const submitOTP = useCallback(
@@ -210,8 +221,6 @@ export const useSignupForm = () => {
             closeButton: true,
             duration: 2000,
           });
-
-
         } else {
           toast.error(res.data?.message || "Failed to verify OTP", {
             closeButton: true,
@@ -329,6 +338,7 @@ export const useSignupForm = () => {
     isLoading,
     errors,
     timer, // Add timer to returned state
+    termsAccepted,
 
     // Actions
     updateFormData,
@@ -340,6 +350,7 @@ export const useSignupForm = () => {
     submitOTP,
     resendOTP,
     backToSignup,
+    setTermsAccepted,
 
     // Computed
     isOTPComplete: otp.every((digit) => digit !== ""),
