@@ -1,13 +1,19 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { FormInput } from "@/app/routes/auth/form-input"
-import { MapPin, Loader2, Navigation } from "lucide-react"
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet"
-import L from "leaflet"
-import type { StepProps } from "../types"
+import type React from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { FormInput } from "@/app/routes/auth/form-input";
+import { MapPin, Loader2, Navigation, Plus, X } from "lucide-react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import type { StepProps } from "../types";
 
 const createMarkerIcon = () => {
   return L.divIcon({
@@ -23,32 +29,32 @@ const createMarkerIcon = () => {
     "></div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
-  })
-}
+  });
+};
 
 function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap()
+  const map = useMap();
 
   useEffect(() => {
-    map.setView(center, 13)
-  }, [center, map])
+    map.setView(center, 13);
+  }, [center, map]);
 
-  return null
+  return null;
 }
 
 function MapController({
   position,
   onLocationChange,
 }: {
-  position: [number, number]
-  onLocationChange: (lat: number, lng: number) => void
+  position: [number, number];
+  onLocationChange: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e) {
-      const { lat, lng } = e.latlng
-      onLocationChange(lat, lng)
+      const { lat, lng } = e.latlng;
+      onLocationChange(lat, lng);
     },
-  })
+  });
 
   return (
     <Marker
@@ -57,80 +63,127 @@ function MapController({
       icon={createMarkerIcon()}
       eventHandlers={{
         dragend: (e) => {
-          const marker = e.target
-          const { lat, lng } = marker.getLatLng()
-          onLocationChange(lat, lng)
+          const marker = e.target;
+          const { lat, lng } = marker.getLatLng();
+          onLocationChange(lat, lng);
         },
       }}
     />
-  )
+  );
 }
 
-export default function Step2Location({ formData, setFormData, errors }: StepProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [mapKey, setMapKey] = useState(0)
+export default function Step2Location({
+  formData,
+  setFormData,
+  errors,
+}: StepProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
+
+  const addNearbyPlace = () => {
+    const place = formData.location.nearbyPlacesInput.trim();
+    if (place && !formData.location.nearbyPlaces.includes(place)) {
+      setFormData((prev) => ({
+        ...prev,
+        location: {
+          ...prev.location,
+          nearbyPlaces: [...prev.location.nearbyPlaces, place],
+          nearbyPlacesInput: "",
+        },
+      }));
+    }
+  };
+
+  const removeNearbyPlace = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        nearbyPlaces: prev.location.nearbyPlaces.filter((_, i) => i !== index),
+      },
+    }));
+  };
+
+  const handleNearbyPlaceKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addNearbyPlace();
+    }
+  };
 
   const getAddressFromCoords = useCallback(
     async (lat: number, lng: number) => {
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        )
-        const data = await response.json()
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+        );
+        const data = await response.json();
 
         if (data && data.address) {
-          const addr = data.address
-          const area = [addr.house_number, addr.road, addr.neighbourhood, addr.suburb, addr.city_district]
+          const addr = data.address;
+          const area = [
+            addr.house_number,
+            addr.road,
+            addr.neighbourhood,
+            addr.suburb,
+            addr.city_district,
+          ]
             .filter(Boolean)
-            .join(", ")
+            .join(", ");
           setFormData((prev) => ({
             ...prev,
             location: {
               ...prev.location,
               coordinates: { lat, lng },
               area: area || prev.location.area,
-              city: addr.city || addr.town || addr.village || prev.location.city,
+              city:
+                addr.city || addr.town || addr.village || prev.location.city,
               state: addr.state || prev.location.state,
               pincode: addr.postcode || prev.location.pincode,
             },
-          }))
+          }));
         }
       } catch (error) {
-        console.error("Failed to get address:", error)
+        console.error("Failed to get address:", error);
         setFormData((prev) => ({
           ...prev,
           location: {
             ...prev.location,
             coordinates: { lat, lng },
           },
-        }))
+        }));
       }
     },
-    [setFormData],
-  )
+    [setFormData]
+  );
 
   const getCoordsFromAddress = useCallback(async () => {
-    const { area, city, state, pincode } = formData.location
+    const { area, city, state, pincode } = formData.location;
 
-    const queryLevels = [[area, city, state, pincode], [city, state, pincode], [state, pincode], [pincode]]
+    const queryLevels = [
+      [area, city, state, pincode],
+      [city, state, pincode],
+      [state, pincode],
+      [pincode],
+    ];
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       for (const level of queryLevels) {
-        const query = level.filter(Boolean).join(", ")
-        if (!query.trim()) continue
+        const query = level.filter(Boolean).join(", ");
+        if (!query.trim()) continue;
 
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query,
-          )}&limit=1&addressdetails=1`,
-        )
-        const data = await response.json()
+            query
+          )}&limit=1&addressdetails=1`
+        );
+        const data = await response.json();
 
         if (data && data[0]) {
-          const lat = Number.parseFloat(data[0].lat)
-          const lng = Number.parseFloat(data[0].lon)
+          const lat = Number.parseFloat(data[0].lat);
+          const lng = Number.parseFloat(data[0].lon);
 
           setFormData((prev) => ({
             ...prev,
@@ -138,54 +191,57 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
               ...prev.location,
               coordinates: { lat, lng },
             },
-          }))
+          }));
 
-          setMapKey((prev) => prev + 1)
-          break
+          setMapKey((prev) => prev + 1);
+          break;
         }
       }
     } catch (error) {
-      console.error("Failed to get coordinates:", error)
+      console.error("Failed to get coordinates:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [formData, setFormData])
+  }, [formData, setFormData]);
 
   const handleMapLocationChange = useCallback(
     (lat: number, lng: number) => {
-      getAddressFromCoords(lat, lng)
+      getAddressFromCoords(lat, lng);
     },
-    [getAddressFromCoords],
-  )
+    [getAddressFromCoords]
+  );
 
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by this browser")
-      return
+      alert("Geolocation is not supported by this browser");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords
-        getAddressFromCoords(latitude, longitude)
-        setMapKey((prev) => prev + 1)
-        setIsLoading(false)
+        const { latitude, longitude } = position.coords;
+        getAddressFromCoords(latitude, longitude);
+        setMapKey((prev) => prev + 1);
+        setIsLoading(false);
       },
       (error) => {
-        console.error("Error getting location:", error)
-        alert("Unable to get your current location")
-        setIsLoading(false)
+        console.error("Error getting location:", error);
+        alert("Unable to get your current location");
+        setIsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 },
-    )
-  }, [getAddressFromCoords])
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [getAddressFromCoords]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          getAddressFromCoords(position.coords.latitude, position.coords.longitude)
+          getAddressFromCoords(
+            position.coords.latitude,
+            position.coords.longitude
+          );
           setFormData((prev) => ({
             ...prev,
             location: {
@@ -195,16 +251,16 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
                 lng: position.coords.longitude,
               },
             },
-          }))
+          }));
         },
         (err) => {
-          console.warn("Geolocation denied or unavailable", err)
-        },
-      )
+          console.warn("Geolocation denied or unavailable", err);
+        }
+      );
     } else {
-      alert("Geolocation is not supported by this browser try to enable it")
+      alert("Geolocation is not supported by this browser try to enable it");
     }
-  }, [getAddressFromCoords, setFormData])
+  }, [getAddressFromCoords, setFormData]);
 
   return (
     <form>
@@ -276,6 +332,57 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
         </div>
       </div>
 
+      {/* Nearby Places Section */}
+      <div className="space-y-4 pb-5">
+        <div className="flex items-center gap-2">
+          <FormInput
+            id="nearbyPlacesInput"
+            label="Nearby Places"
+            type="text"
+            value={formData.location.nearbyPlacesInput}
+            onChange={(value) =>
+              setFormData((prev) => ({
+                ...prev,
+                location: { ...prev.location, nearbyPlacesInput: value },
+              }))
+            }
+            placeholder="e.g. Metro Station, Shopping Mall, Hospital"
+            icon={MapPin}
+            hasError={false}
+            onKeyPress={handleNearbyPlaceKeyPress}
+          />
+          <Button
+            type="button"
+            onClick={addNearbyPlace}
+            className="mt-6 bg-HG-500 hover:bg-HG-600"
+            disabled={!formData.location.nearbyPlacesInput.trim()}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Display added nearby places */}
+        {formData.location.nearbyPlaces.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {formData.location.nearbyPlaces.map((place, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 bg-HG-100 text-HG-700 px-3 py-1 rounded-full text-sm"
+              >
+                <span>{place}</span>
+                <button
+                  type="button"
+                  onClick={() => removeNearbyPlace(index)}
+                  className="text-HG-500 hover:text-HG-700"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-2 pb-5 justify-between">
         <Button
           type="button"
@@ -284,7 +391,11 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
           disabled={isLoading}
           className="flex items-center gap-2 bg-transparent text-gray-500 font-inter"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <MapPin className="w-4 h-4" />
+          )}
           Find on Map
         </Button>
         <Button
@@ -293,7 +404,11 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
           disabled={isLoading}
           className="flex items-center gap-2 font-inter"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4" />
+          )}
           Current Location
         </Button>
       </div>
@@ -301,7 +416,10 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
       <div className="h-[300px] sm:h-[400px] w-full rounded-lg overflow-hidden border-2 border-dashed border-HG-400">
         <MapContainer
           key={mapKey}
-          center={[formData.location.coordinates.lat, formData.location.coordinates.lng]}
+          center={[
+            formData.location.coordinates.lat,
+            formData.location.coordinates.lng,
+          ]}
           zoom={13}
           scrollWheelZoom={true}
           className="h-full w-full"
@@ -311,18 +429,27 @@ export default function Step2Location({ formData, setFormData, errors }: StepPro
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapUpdater center={[formData.location.coordinates.lat, formData.location.coordinates.lng]} />
+          <MapUpdater
+            center={[
+              formData.location.coordinates.lat,
+              formData.location.coordinates.lng,
+            ]}
+          />
           <MapController
-            position={[formData.location.coordinates.lat, formData.location.coordinates.lng]}
+            position={[
+              formData.location.coordinates.lat,
+              formData.location.coordinates.lng,
+            ]}
             onLocationChange={handleMapLocationChange}
           />
         </MapContainer>
       </div>
 
       <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2 mb-10">
-        <strong>Instructions:</strong> Click anywhere on map or drag the red marker to select location. Use &quot;Find on
-        Map&quot; to locate typed address or &quot;Current Location&quot; for GPS.
+        <strong>Instructions:</strong> Click anywhere on map or drag the red
+        marker to select location. Use &quot;Find on Map&quot; to locate typed
+        address or &quot;Current Location&quot; for GPS.
       </div>
     </form>
-  )
+  );
 }

@@ -99,6 +99,8 @@ export const initialFormData: PGFormData = {
     city: "",
     state: "",
     pincode: "",
+    nearbyPlaces: [],
+    nearbyPlacesInput: "",
     coordinates: { lat: 30.7333, lng: 76.7794 },
   },
   rulesAndRegulations: [],

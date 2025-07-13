@@ -25,6 +25,20 @@ export async function GET(req: Request) {
       );
     }
 
+    // Extract keywords from "near" queries
+    const processSearchQuery = (query: string) => {
+      const keywords = query
+        .toLowerCase()
+        .replace(/\b(near|close to|around|beside|next to)\b/g, "")
+        .split(/\s+/)
+        .filter((word) => word.length > 1)
+        .join("|");
+
+      return keywords || query;
+    };
+
+    const processedQuery = processSearchQuery(q);
+
     const user = await authUser().catch(() => null);
 
     let userWatchlist: string[] = [];
@@ -37,30 +51,35 @@ export async function GET(req: Request) {
       }
     }
 
-       const query: any = {
-  $and: [
-    {
-      $or: [
-        { pgName: { $regex: q, $options: "i" } },
-        { "location.area": { $regex: q, $options: "i" } },
-        { "location.city": { $regex: q, $options: "i" } },
-        // Remove this line: { "ownerId.fullName": { $regex: q, $options: "i" } },
+    const query: any = {
+      $and: [
+        {
+          $or: [
+            { pgName: { $regex: processedQuery, $options: "i" } },
+            { "location.area": { $regex: processedQuery, $options: "i" } },
+            { "location.city": { $regex: processedQuery, $options: "i" } },
+            {
+              "location.nearbyPlaces": {
+                $elemMatch: { $regex: processedQuery, $options: "i" },
+              },
+            },
+            // Remove this line: { "ownerId.fullName": { $regex: processedQuery, $options: "i" } },
+          ],
+        },
+        { isActive: true },
+        { isApproved: true },
       ],
-    },
-    { isActive: true },
-    { isApproved: true },
-  ],
-};
+    };
 
-// Add type filter if provided
-if (type) {
-  query.$and.push({ type: type });
-}
+    // Add type filter if provided
+    if (type) {
+      query.$and.push({ type: type });
+    }
 
-// Add subType filter if provided
-if (subType) {
-  query.$and.push({ subType: subType });
-}
+    // Add subType filter if provided
+    if (subType) {
+      query.$and.push({ subType: subType });
+    }
 
     const [listings, total] = await Promise.all([
       Listing.find(query)

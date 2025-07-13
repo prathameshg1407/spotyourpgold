@@ -21,7 +21,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Star, Phone, Calendar, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  Star,
+  Phone,
+  Calendar,
+  MapPin,
+  Wifi,
+  Car,
+  Utensils,
+  Shield,
+  Zap,
+  Tv,
+  Sofa,
+  Shirt,
+  Bed,
+  Bath,
+  Home,
+  Users,
+  Coffee,
+  Gamepad2,
+  Dumbbell,
+  BookOpen,
+  Clock,
+  Lightbulb,
+  DoorOpen,
+  Building,
+  IndianRupee,
+  UserCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +78,52 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: "/marker-icon-2x.png",
   shadowUrl: "/marker-shadow.png",
 });
+
+// Amenities icon mapping
+const amenityIcons: Record<string, any> = {
+  wifi: Wifi,
+  parking: Car,
+  meals: Utensils,
+  security: Shield,
+  power: Zap,
+  ac: Zap,
+  tv: Tv,
+  sofa: Sofa,
+  laundry: Shirt,
+  bed: Bed,
+  bathroom: Bath,
+  kitchen: Home,
+  common: Users,
+  coffee: Coffee,
+  games: Gamepad2,
+  gym: Dumbbell,
+  study: BookOpen,
+  "24/7": Clock,
+  electricity: Lightbulb,
+  food: Utensils,
+  internet: Wifi,
+  cctv: Shield,
+  generator: Zap,
+  furniture: Sofa,
+  cleaning: Bath,
+  maintenance: Home,
+};
+
+// Room type icons mapping
+const roomTypeIcons: Record<string, any> = {
+  single: Bed,
+  double: Users,
+  triple: Building,
+  shared: Users,
+  private: DoorOpen,
+  "1 bhk": Home,
+  "2 bhk": Building,
+  "3 bhk": Building,
+  "1 rk": DoorOpen,
+  dormitory: Building,
+  suite: Home,
+  studio: DoorOpen,
+};
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -138,7 +212,6 @@ type Listing = {
   amenities: string[];
   additionalDetails: string[];
 
-
   // Rules
   rulesAndRegulations: string[];
 
@@ -163,6 +236,167 @@ type Listing = {
   // Timestamps
   createdAt: Date;
 };
+
+// Infinite Scroll Listings Component
+function InfiniteScrollListings({
+  currentListingId,
+}: {
+  currentListingId: string;
+}) {
+  const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [initialLoad, setInitialLoad] = useState(false);
+
+  const fetchMoreListings = useCallback(async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `/api/listing/getFeatured?page=${page}&per_page=6&exclude=${currentListingId}`
+      );
+
+      if (response.data.success) {
+        const newListings = response.data.data;
+
+        if (newListings.length === 0) {
+          setHasMore(false);
+        } else {
+          setListings((prev) => [...prev, ...newListings]);
+          setPage((prev) => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching more listings:", error);
+    } finally {
+      setLoading(false);
+      setInitialLoad(true);
+    }
+  }, [page, loading, hasMore, currentListingId]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && initialLoad && !loading && hasMore) {
+          fetchMoreListings();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const trigger = document.getElementById("scroll-trigger");
+    if (trigger) {
+      observer.observe(trigger);
+    }
+
+    return () => observer.disconnect();
+  }, [fetchMoreListings, initialLoad, loading, hasMore]);
+
+  // Initial load when component mounts
+  useEffect(() => {
+    if (!initialLoad) {
+      fetchMoreListings();
+    }
+  }, []);
+
+  if (!initialLoad && loading) {
+    return (
+      <div className="mt-16">
+        <SectionHeading>More PG Accommodations</SectionHeading>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
+              <div className="bg-gray-300 h-4 rounded mb-2"></div>
+              <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (listings.length === 0 && !loading) {
+    return null;
+  }
+
+  return (
+    <div className="mt-16">
+      <SectionHeading>More PG Accommodations</SectionHeading>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+        {listings.map((listing: any) => (
+          <Link key={listing._id} href={`/routes/pg-details/${listing._id}`}>
+            <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+              <div className="relative h-48 sm:h-52 md:h-48">
+                <BlurImage
+                  src={
+                    listing.primaryImage ||
+                    listing.images?.[0]?.url ||
+                    "/placeholder.svg"
+                  }
+                  alt={listing.pgName}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-3 sm:p-4">
+                <h3 className="font-semibold text-base sm:text-lg mb-2 line-clamp-1">
+                  {listing.pgName}
+                </h3>
+                <p className="text-gray-600 text-xs sm:text-sm mb-2 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                  {listing.location?.city}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <IndianRupee className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                    <span className="font-bold text-sm sm:text-base text-green-600">
+                      {listing.minRent?.toLocaleString()}
+                    </span>
+                    <span className="text-xs sm:text-sm text-gray-500">
+                      /month
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-xs sm:text-sm">4.5</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Loading indicator */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
+              <div className="bg-gray-300 h-4 rounded mb-2"></div>
+              <div className="bg-gray-300 h-4 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scroll trigger */}
+      <div id="scroll-trigger" className="h-4 mt-8"></div>
+
+      {/* End message */}
+      {!hasMore && listings.length > 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No more listings to show</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProductPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -204,7 +438,6 @@ export default function ProductPage() {
     // Amenities
     amenities: [],
     additionalDetails: [],
-    
 
     // Rules
     rulesAndRegulations: [],
@@ -624,192 +857,192 @@ export default function ProductPage() {
       </nav>
 
       <main className="px-4 py-32 md:py-36 max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
-            {/* Product Images */}
-            <div className="space-y-8">
-              {/* Main Image - Smaller on mobile */}
-              <div className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg">
-                <BlurImage
-                  openInNewTab={true}
-                  className="object-cover w-full cursor-pointer"
-                  src={listing?.images[currentImageIndex]?.url || ""}
-                  width={600}
-                  height={600}
-                  alt={"Main PG image"}
-                  priority={true}
-                />
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
+          {/* Product Images */}
+          <div className="space-y-8">
+            {/* Main Image - Smaller on mobile */}
+            <div className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg">
+              <BlurImage
+                openInNewTab={true}
+                className="object-cover w-full cursor-pointer"
+                src={listing?.images[currentImageIndex]?.url || ""}
+                width={600}
+                height={600}
+                alt={"Main PG image"}
+                priority={true}
+              />
 
-                {/* Navigation Arrows */}
-                {listing.images.length > 1 && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
-                      onClick={previousImage}
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
-                      onClick={nextImage}
-                    >
-                      <ArrowLeft className="w-4 h-4 rotate-180" />
-                    </Button>
-                  </>
-                )}
-
-                {/* Image Counter */}
-                <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
-                  {currentImageIndex + 1} / {listing.images.length}
-                </div>
-              </div>
-
-              <div className="grid md:hidden grid-cols-5 gap-3 max-w-sm sm:max-w-none mx-auto">
-                {listing.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
-                      currentImageIndex === index
-                        ? "ring-[2.5px] ring-HG-500 shadow-md"
-                        : "hover:ring-2 hover:ring-gray-400 hover:shadow-lg"
-                    }`}
+              {/* Navigation Arrows */}
+              {listing.images.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    onClick={previousImage}
                   >
-                    <BlurImage
-                      className="object-cover w-full"
-                      src={listing?.images[index].url}
-                      width={200}
-                      height={200}
-                      alt={"PG image"}
-                    />
-                  </button>
-                ))}
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    onClick={nextImage}
+                  >
+                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                  </Button>
+                </>
+              )}
+
+              {/* Image Counter */}
+              <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
+                {currentImageIndex + 1} / {listing.images.length}
               </div>
             </div>
 
-            {/* Product Details */}
+            <div className="grid md:hidden grid-cols-5 gap-3 max-w-sm sm:max-w-none mx-auto">
+              {listing.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
+                    currentImageIndex === index
+                      ? "ring-[2.5px] ring-HG-500 shadow-md"
+                      : "hover:ring-2 hover:ring-gray-400 hover:shadow-lg"
+                  }`}
+                >
+                  <BlurImage
+                    className="object-cover w-full"
+                    src={listing?.images[index].url}
+                    width={200}
+                    height={200}
+                    alt={"PG image"}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <div className="space-y flex flex-col justify-between gap-5 pb-10 md:pb-0">
-              {/* Product Info */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h1 className=" md:text-3xl font-semibold mb-1 md:mb-3 font-poppins ">
-                  {listing?.pgName}
-                </h1>
+          {/* Product Details */}
 
-                <div className="flex flex-col items-start gap-3 mb-2 md:mb-3">
-                  <div className="flex items-center gap-2 text-xs md:text-sm ">
-                    <StarRating rating={averageRating} />
-                    <span className="text-sm text-gray-600 font-medium">
-                      {reviews?.length > 0
-                        ? `${averageRating.toFixed(1)} (${
-                            reviews.length
-                          } reviews)`
-                        : `${averageRating.toFixed(1)} (0 reviews)`}
-                    </span>
-                  </div>
-                  <div className="text-xs md:text-sm text-gray-500 font-inter">
-                    Listed on{" "}
-                    {listing?.createdAt
-                      ? new Date(listing.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </div>
-                </div>
+          <div className="space-y flex flex-col justify-between gap-5 pb-10 md:pb-0">
+            {/* Product Info */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <h1 className=" md:text-3xl font-semibold mb-1 md:mb-3 font-poppins ">
+                {listing?.pgName}
+              </h1>
 
-                <p className="text-2xl md:text-4xl font-bold font-poppins text-HG-400 pt-1 md:pt-2 pb-4 md:pb-5">
-                  ₹{listing?.minRent?.toLocaleString()}{" "}
-                  <span className="text-sm md:text-base font-medium text-gray-600 dark:text-gray-300">
-                    /mo
+              <div className="flex flex-col items-start gap-3 mb-2 md:mb-3">
+                <div className="flex items-center gap-2 text-xs md:text-sm ">
+                  <StarRating rating={averageRating} />
+                  <span className="text-sm text-gray-600 font-medium">
+                    {reviews?.length > 0
+                      ? `${averageRating.toFixed(1)} (${
+                          reviews.length
+                        } reviews)`
+                      : `${averageRating.toFixed(1)} (0 reviews)`}
                   </span>
-                </p>
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 md:gap-5 ">
-                  <Button className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center">
-                    <Calendar className="w-4 h-4 font-semibold hidden md:block" />
-                    Visit Now
-                  </Button>
-                  <Button className="py-3 font-semibold hover: border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500">
-                    <Phone className="w-4 h-4 hidden md:block " />
-                    Book Now
-                  </Button>
+                </div>
+                <div className="text-xs md:text-sm text-gray-500 font-inter">
+                  Listed on{" "}
+                  {listing?.createdAt
+                    ? new Date(listing.createdAt).toLocaleDateString()
+                    : "N/A"}
                 </div>
               </div>
 
-              {/* Owner Info */}
-              <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-5 md:mb-4">
-                  {/* <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <p className="text-2xl md:text-4xl font-bold font-poppins text-HG-400 pt-1 md:pt-2 pb-4 md:pb-5">
+                ₹{listing?.minRent?.toLocaleString()}{" "}
+                <span className="text-sm md:text-base font-medium text-gray-600 dark:text-gray-300">
+                  /mo
+                </span>
+              </p>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 md:gap-5 ">
+                <Button className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center">
+                  <Calendar className="w-4 h-4 font-semibold hidden md:block" />
+                  Visit Now
+                </Button>
+                <Button className="py-3 font-semibold hover: border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500">
+                  <Phone className="w-4 h-4 hidden md:block " />
+                  Book Now
+                </Button>
+              </div>
+            </div>
+
+            {/* Owner Info */}
+            <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm">
+              <div className="flex items-center gap-4 mb-5 md:mb-4">
+                {/* <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                         <span className="text-lg font-bold text-white">AS</span>
                       </div> */}
 
-                  <Avatar className="md:w-14 md:h-14 w-10 h-10">
-                    {/* <AvatarImage src={user.avatarUrl} /> */}
-                    <AvatarFallback className="text-HG-500 text-xl font-poppins">
-                      {listing?.ownerId?.fullName?.slice(0, 1).toUpperCase() ||
-                        "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                <Avatar className="md:w-14 md:h-14 w-10 h-10">
+                  {/* <AvatarImage src={user.avatarUrl} /> */}
+                  <AvatarFallback className="text-HG-500 text-xl font-poppins">
+                    {listing?.ownerId?.fullName?.slice(0, 1).toUpperCase() ||
+                      "?"}
+                  </AvatarFallback>
+                </Avatar>
 
-                  <div className="flex-1">
-                    <h3 className="font-bold text-sm nd:text-lg font-poppins">
-                      {listing?.ownerId?.fullName}
-                    </h3>
-                    <p className="text-xs md:text-sm text-gray-600">
-                      Verified Seller • Member since{" "}
-                      {listing?.ownerId?.createdAt
-                        ? new Date(
-                            listing?.ownerId?.createdAt
-                          ).toLocaleDateString()
-                        : "N/A"}
-                    </p>
-                  </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm nd:text-lg font-poppins">
+                    {listing?.ownerId?.fullName}
+                  </h3>
+                  <p className="text-xs md:text-sm text-gray-600">
+                    Verified Seller • Member since{" "}
+                    {listing?.ownerId?.createdAt
+                      ? new Date(
+                          listing?.ownerId?.createdAt
+                        ).toLocaleDateString()
+                      : "N/A"}
+                  </p>
                 </div>
+              </div>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-gray-600 ">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="md:w-4 md:h-4 w-3 h-3" />
-                    <span className=" text-xs md:text-sm ">
-                      {listing?.ownerId?.address?.city +
-                        ", " +
-                        listing?.ownerId?.address?.state}
-                    </span>
-                  </div>
-                  {/* <Link
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-gray-600 ">
+                <div className="flex items-center gap-2">
+                  <MapPin className="md:w-4 md:h-4 w-3 h-3" />
+                  <span className=" text-xs md:text-sm ">
+                    {listing?.ownerId?.address?.city +
+                      ", " +
+                      listing?.ownerId?.address?.state}
+                  </span>
+                </div>
+                {/* <Link
                       href={"/"}
                       className="text-xs md:text-sm hover:underline font-medium text-HG-500 cursor-pointer"
                     >
                       Other PG&apos;s by {listing?.ownerId?.fullName}
                     </Link> */}
-                </div>
-              </div>
-
-              {/* Thumbnail Images */}
-              <div className=" hidden md:grid grid-cols-5 gap-4 ">
-                {listing.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
-                      currentImageIndex === index
-                        ? "ring-[3px] ring-HG-500 shadow-md"
-                        : "hover:ring-2 hover:ring-gray-400 hover:shadow-lg"
-                    }`}
-                  >
-                    <BlurImage
-                      className="object-cover w-full"
-                      src={listing?.images[index].url}
-                      width={200}
-                      height={200}
-                      alt={"PG images"}
-                    />
-                  </button>
-                ))}
               </div>
             </div>
+
+            {/* Thumbnail Images */}
+            <div className=" hidden md:grid grid-cols-5 gap-4 ">
+              {listing.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
+                    currentImageIndex === index
+                      ? "ring-[3px] ring-HG-500 shadow-md"
+                      : "hover:ring-2 hover:ring-gray-400 hover:shadow-lg"
+                  }`}
+                >
+                  <BlurImage
+                    className="object-cover w-full"
+                    src={listing?.images[index].url}
+                    width={200}
+                    height={200}
+                    alt={"PG images"}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
 
         <div className="md:mt-20 bg-white rounded-2xl shadow-md overflow-hidden py-5 px-3 md:p-5">
           <Tabs defaultValue="details" className="w-full   ">
@@ -838,30 +1071,91 @@ export default function ProductPage() {
               <TabsContent value="details" className="mt-0">
                 <div className="prose max-w-none space-y-10">
                   <div>
-                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                      Room Types
+                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">
+                      Room Types & Pricing
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5 text-sm text-gray-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 text-sm text-gray-700">
                       {listing?.roomTypes?.length > 0 ? (
-                        listing.roomTypes.map((room, index) => (
-                          <div
-                            key={index}
-                            className="border rounded-xl p-4 shadow-sm bg-white hover:shadow-md transition"
-                          >
-                            <h4 className="font-semibold text-gray-900 mb-1 capitalize">
-                              {room?.type || "Type N/A"}
-                            </h4>
-                            <p>₹{room?.monthlyRent ?? "N/A"} / month</p>
-                            <p>availableRooms: {room?.availableRooms ?? "0"}</p>
-                            <p>
-                              capacity: {room?.capacityPerRoom ?? "0"} per room
-                            </p>
-                            <p>Security: ₹{room?.securityDeposit ?? "0"}</p>
-                          </div>
-                        ))
+                        listing.roomTypes.map((room, index) => {
+                          const IconComponent =
+                            roomTypeIcons[room?.type?.toLowerCase()] || Bed;
+                          return (
+                            <div
+                              key={index}
+                              className="border-2 border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm bg-white hover:shadow-lg hover:border-HG-400 transition-all duration-300"
+                            >
+                              {/* Header with Icon and Type */}
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-HG-100 rounded-lg">
+                                  <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-HG-600" />
+                                </div>
+                                <h4 className="font-semibold text-lg text-gray-900 capitalize">
+                                  {room?.type || "Type N/A"}
+                                </h4>
+                              </div>
+
+                              {/* Price */}
+                              <div className="mb-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <IndianRupee className="w-4 h-4 text-green-600" />
+                                  <span className="text-2xl font-bold text-green-600">
+                                    {room?.monthlyRent?.toLocaleString() ??
+                                      "N/A"}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    / month
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  Security: ₹
+                                  {room?.securityDeposit?.toLocaleString() ??
+                                    "0"}
+                                </p>
+                              </div>
+
+                              {/* Room Details */}
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-600">
+                                    Available Rooms:
+                                  </span>
+                                  <span className="font-medium text-HG-600">
+                                    {room?.availableRooms ?? "0"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-600">
+                                    Capacity per Room:
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <UserCheck className="w-4 h-4 text-gray-500" />
+                                    <span className="font-medium">
+                                      {room?.capacityPerRoom ?? "0"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Availability Badge */}
+                              <div className="mt-4 pt-3 border-t border-gray-100">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    (room?.availableRooms ?? 0) > 0
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {(room?.availableRooms ?? 0) > 0
+                                    ? "Available"
+                                    : "Fully Occupied"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
                       ) : (
-                        <p className="text-gray-500 col-span-full">
+                        <p className="text-gray-500 col-span-full text-center py-8">
                           No room types available.
                         </p>
                       )}
@@ -894,15 +1188,22 @@ export default function ProductPage() {
                     <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                       Amenities
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-5 text-xs md:text-sm text-gray-700">
-                      {listing?.amenities.map((amenity, index) => (
-                        <div
-                          key={index}
-                          className=" py-3  px-4 md:p-4 rounded-lg bg-HG-400/20 capitalize"
-                        >
-                          {amenity}
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                      {listing?.amenities.map((amenity, index) => {
+                        const IconComponent =
+                          amenityIcons[amenity.toLowerCase()] || Home;
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 py-3 px-4 md:p-4 rounded-lg bg-HG-400/20 capitalize hover:bg-HG-400/30 transition-colors"
+                          >
+                            <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-HG-600" />
+                            <span className="text-xs md:text-sm">
+                              {amenity}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -911,7 +1212,6 @@ export default function ProductPage() {
                       Rent Inclusions
                     </h3>
                     <ul className="list-disc text-gray-700 pl-5 text-sm md:text-base space-y-2">
-                     
                       {listing?.rentInculsions?.foodIncluded && (
                         <li>Food Included</li>
                       )}
@@ -921,7 +1221,6 @@ export default function ProductPage() {
                       {listing?.rentInculsions?.maintenanceIncluded && (
                         <li>Maintenance Included</li>
                       )}
-                      
                     </ul>
                   </div>
 
@@ -1204,6 +1503,9 @@ export default function ProductPage() {
 
           <FeaturedCarousel loading={ownerPgsLoading} pgs={ownerPgs} />
         </div>
+
+        {/* Infinite Scroll Listings */}
+        <InfiniteScrollListings currentListingId={params.id as string} />
       </main>
     </div>
   );

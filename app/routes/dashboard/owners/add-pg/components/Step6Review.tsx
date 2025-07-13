@@ -124,6 +124,21 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
               </p>
             )} */}
           </div>
+          {formData.location.nearbyPlaces.length > 0 && (
+            <div className="mt-4">
+              <p className="font-semibold text-sm mb-2">Nearby Places:</p>
+              <div className="flex flex-wrap gap-2">
+                {formData.location.nearbyPlaces.map((place, index) => (
+                  <span
+                    key={index}
+                    className="bg-HG-100 text-HG-700 px-3 py-1 rounded-full text-xs"
+                  >
+                    {place}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* ✅ Images */}

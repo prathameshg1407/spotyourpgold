@@ -62,6 +62,7 @@ const listingSchema = new mongoose.Schema(
       city: { type: String, required: true },
       state: { type: String, required: true },
       pincode: { type: String, required: true },
+      nearbyPlaces: { type: [String], default: [] }, // Array of nearby places
       coordinates: {
         type: {
           type: String,

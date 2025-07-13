@@ -175,6 +175,7 @@ export async function PUT(
 
     const newLocation = {
       ...location,
+      nearbyPlaces: location.nearbyPlaces || [],
       coordinates: {
         type: "Point",
         coordinates: [location.coordinates.lng, location.coordinates.lat],

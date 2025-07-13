@@ -8,6 +8,14 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const per_page = Math.max(
+      1,
+      Math.min(Number(searchParams.get("per_page") ?? 10), 50)
+    );
+    const exclude = searchParams.get("exclude");
+
     const user = await authUser().catch(() => null);
     let watchlistIds: string[] = [];
 
@@ -16,10 +24,21 @@ export async function GET(req: NextRequest) {
       watchlistIds = dbUser?.watchlist?.map((id: any) => id.toString()) || [];
     }
 
-    let featuredListings = await Listing.find({ isFeatured: true })
-      .select("_id primaryImage location pgName ownerId roomTypes")
+    // Build query
+    const query: any = {
+      isActive: true,
+      isApproved: true,
+    };
+
+    if (exclude) {
+      query._id = { $ne: exclude };
+    }
+
+    let featuredListings = await Listing.find(query)
+      .select("_id primaryImage location pgName ownerId roomTypes images")
       .sort({ updatedAt: -1 })
-      .limit(10)
+      .skip((page - 1) * per_page)
+      .limit(per_page)
       .populate("ownerId", "fullName")
       .lean();
 
@@ -27,7 +46,9 @@ export async function GET(req: NextRequest) {
     featuredListings = featuredListings.map((listing: any) => ({
       ...listing,
       minRent: Math.min(
-        ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
+        ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+          Infinity,
+        ])
       ),
     }));
 

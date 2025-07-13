@@ -1,4 +1,4 @@
-import type React from "react"
+import type React from "react";
 export interface PGFormData {
   id: string; // Unique identifier for the listing, can be empty for new listings
   pgName: string;
@@ -22,6 +22,8 @@ export interface PGFormData {
     city: string;
     state: string;
     pincode: string;
+    nearbyPlaces: string[];
+    nearbyPlacesInput: string;
     coordinates: { lat: number; lng: number };
   };
 
@@ -46,26 +48,26 @@ export interface PGFormData {
 }
 
 export interface StepProps {
-  formData: PGFormData
-  setFormData: React.Dispatch<React.SetStateAction<PGFormData>>
-  errors: any
-  setErrors: React.Dispatch<React.SetStateAction<any>>
+  formData: PGFormData;
+  setFormData: React.Dispatch<React.SetStateAction<PGFormData>>;
+  errors: any;
+  setErrors: React.Dispatch<React.SetStateAction<any>>;
 }
 
 export interface ValidationErrors {
-  pgName: boolean
-  monthlyRent: boolean
-  securityDeposit: boolean
-  numberOfRooms: boolean
-  capacityPerRoom: boolean
-  additionalDetails: boolean
-  rulesAndRegulations: boolean
-  genderPreference: boolean
-  images: boolean
-  area: boolean
-  city: boolean
-  state: boolean
-  pincode: boolean
-  coordinates: boolean
-  general: string
+  pgName: boolean;
+  monthlyRent: boolean;
+  securityDeposit: boolean;
+  numberOfRooms: boolean;
+  capacityPerRoom: boolean;
+  additionalDetails: boolean;
+  rulesAndRegulations: boolean;
+  genderPreference: boolean;
+  images: boolean;
+  area: boolean;
+  city: boolean;
+  state: boolean;
+  pincode: boolean;
+  coordinates: boolean;
+  general: string;
 }

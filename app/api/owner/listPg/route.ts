@@ -108,17 +108,17 @@ export async function POST(req: Request) {
 
     const newLocation = {
       ...location,
+      nearbyPlaces: location.nearbyPlaces || [],
       coordinates: {
         type: "Point",
         coordinates: [location.coordinates.lng, location.coordinates.lat],
       },
     };
 
- const updatedRoomTypes = roomTypes.map((room) => ({
-  ...room,
-  availableRooms: room.numberOfRooms,
-}));
-
+    const updatedRoomTypes = roomTypes.map((room) => ({
+      ...room,
+      availableRooms: room.numberOfRooms,
+    }));
 
     // ✅ Create new listing
     const pg = await Listing.create({
