@@ -148,25 +148,70 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "owner":
       return [
         ...baseItems,
-        { name: "My Listings", href: "/routes/dashboard/owners/listings", icon: "Building" },
+        {
+          name: "My Listings",
+          href: "/routes/dashboard/owners/listings",
+          icon: "Building",
+        },
         // { name: "Add New PG", href: "/add-pg", icon: "Plus" },
-        { name: "Add New PG", href: "/routes/dashboard/owners/add-pg", icon: "Plus" },
-        { name: "Room Management", href: "/routes/dashboard/owners/room-management", icon: "Bed" },
+        {
+          name: "Add New PG",
+          href: "/routes/dashboard/owners/add-pg",
+          icon: "Plus",
+        },
+        {
+          name: "Room Management",
+          href: "/routes/dashboard/owners/room-management",
+          icon: "Bed",
+        },
         // { name: "Bookings", href: "/owner-bookings", icon: "Calendar" },
         // { name: "Analytics", href: "/analytics", icon: "BarChart3" },
-        { name: "Subscription", href: "/routes/dashboard/owners/subscription", icon: "Crown" },
+        {
+          name: "Subscription",
+          href: "/routes/dashboard/owners/subscription",
+          icon: "Crown",
+        },
         // { name: "Payments", href: "/payments", icon: "CreditCard" },
       ];
 
     case "admin":
       return [
         ...baseItems,
-        { name: "Owner Requests", href: "/routes/dashboard/admin/owner-management", icon: "UserCheck" },
-        { name: "All Listings", href: "/routes/dashboard/admin/listings", icon: "Building2" },
-        { name: "My Listings", href: "/routes/dashboard/owners/listings", icon: "Building" },
-        { name: "Add New PG", href: "/routes/dashboard/owners/add-pg", icon: "Plus" },
-         { name: "Room Management", href: "/routes/dashboard/owners/room-management", icon: "Bed" },
-         { name: "favorites", href: "/routes/dashboard/admin/favorites", icon: "Heart" },
+        {
+          name: "Owner Requests",
+          href: "/routes/dashboard/admin/owner-management",
+          icon: "UserCheck",
+        },
+        {
+          name: "All Listings",
+          href: "/routes/dashboard/admin/listings",
+          icon: "Building2",
+        },
+        {
+          name: "Visit Requests",
+          href: "/routes/dashboard/admin/visit-requests",
+          icon: "Calendar",
+        },
+        {
+          name: "My Listings",
+          href: "/routes/dashboard/owners/listings",
+          icon: "Building",
+        },
+        {
+          name: "Add New PG",
+          href: "/routes/dashboard/owners/add-pg",
+          icon: "Plus",
+        },
+        {
+          name: "Room Management",
+          href: "/routes/dashboard/owners/room-management",
+          icon: "Bed",
+        },
+        {
+          name: "favorites",
+          href: "/routes/dashboard/admin/favorites",
+          icon: "Heart",
+        },
         // { name: "User Management", href: "/users", icon: "Users" },
         // { name: "Featured Requests", href: "/featured-requests", icon: "Star" },
         // { name: "Ad Management", href: "/ads", icon: "Megaphone" },
@@ -179,7 +224,6 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
       return baseItems;
   }
 };
-
 
 // Statistics functions
 export const getUserStats = () => ({

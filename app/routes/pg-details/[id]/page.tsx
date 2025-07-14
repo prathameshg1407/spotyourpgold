@@ -79,6 +79,7 @@ import "leaflet/dist/leaflet.css";
 import { useListingStore } from "@/store/listingStore";
 import SectionHeading from "@/components/SectionHeading";
 import { FeaturedCarousel } from "@/components/FeaturedCarousel";
+import VisitRequestForm from "@/components/VisitRequestForm";
 
 // Fix default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -483,6 +484,8 @@ export default function ProductPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showVisitForm, setShowVisitForm] = useState(false);
+  const [showDirectionModal, setShowDirectionModal] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: "",
@@ -696,6 +699,31 @@ export default function ProductPage() {
     window.history.back();
   };
 
+  const handleVisitClick = () => {
+    setShowVisitForm(true);
+  };
+
+  const handleVisitFormClose = () => {
+    setShowVisitForm(false);
+  };
+
+  const handleDirectionClick = () => {
+    setShowDirectionModal(true);
+  };
+
+  const handleDirectionYes = () => {
+    // User has visited before, redirect to directions
+    const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${listing?.location?.coordinates?.coordinates[1]},${listing?.location?.coordinates?.coordinates[0]}`;
+    window.open(mapUrl, "_blank");
+    setShowDirectionModal(false);
+  };
+
+  const handleDirectionNo = () => {
+    // User hasn't visited, show visit form
+    setShowDirectionModal(false);
+    setShowVisitForm(true);
+  };
+
   const handleInlineSubmit = async (e: any) => {
     e.preventDefault();
 
@@ -835,7 +863,10 @@ export default function ProductPage() {
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3 md:gap-5 ">
-                  <Button className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center">
+                  <Button
+                    onClick={handleVisitClick}
+                    className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center"
+                  >
                     <Calendar className="w-4 h-4 font-semibold hidden md:block" />
                     Visit Now
                   </Button>
@@ -1040,7 +1071,10 @@ export default function ProductPage() {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 md:gap-5 ">
-                <Button className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center">
+                <Button
+                  onClick={handleVisitClick}
+                  className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center"
+                >
                   <Calendar className="w-4 h-4 font-semibold hidden md:block" />
                   Visit Now
                 </Button>
@@ -1534,9 +1568,7 @@ export default function ProductPage() {
                     </h3>
 
                     <Button
-                      onClick={() => {
-                        window.open(mapUrl);
-                      }}
+                      onClick={handleDirectionClick}
                       className="md:px-5 text-xs md:text-sm"
                     >
                       Get Directions
@@ -1599,6 +1631,56 @@ export default function ProductPage() {
         {/* Infinite Scroll Listings */}
         <InfiniteScrollListings currentListingId={params.id as string} />
       </main>
+
+      {/* Visit Request Form Modal */}
+      {showVisitForm && (
+        <VisitRequestForm
+          listingId={params.id as string}
+          pgName={listing?.pgName || ""}
+          onSuccess={handleVisitFormClose}
+          onCancel={handleVisitFormClose}
+        />
+      )}
+
+      {/* Direction Confirmation Modal */}
+      {showDirectionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-HG-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="w-8 h-8 text-HG-500" />
+              </div>
+              <h3 className="text-xl font-bold font-poppins text-gray-900 mb-2">
+                Have you visited this property before?
+              </h3>
+              <p className="text-gray-600 font-inter mb-6">
+                This helps us provide you with the best directions and
+                information.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDirectionYes}
+                  className="flex-1 bg-HG-500 hover:bg-HG-600 text-white font-poppins font-semibold py-3 px-6 rounded-lg transition-colors"
+                >
+                  Yes, I have visited
+                </button>
+                <button
+                  onClick={handleDirectionNo}
+                  className="flex-1 border-2 border-HG-400 hover:bg-HG-50 text-HG-500 font-poppins font-semibold py-3 px-6 rounded-lg transition-colors"
+                >
+                  No, first time
+                </button>
+              </div>
+              <button
+                onClick={() => setShowDirectionModal(false)}
+                className="mt-3 text-gray-500 hover:text-gray-700 text-sm font-inter"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
