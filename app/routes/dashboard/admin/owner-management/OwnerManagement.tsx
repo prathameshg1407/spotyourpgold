@@ -628,7 +628,7 @@
 // export default OwnerManagement
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -799,16 +799,6 @@ const OwnerManagement = () => {
     fetchOwners();
   }, []);
 
-  useEffect(() => {
-    if (mode === "view" && ownerId) {
-      handleViewOwner(ownerId);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("mode");
-      url.searchParams.delete("id");
-      router.replace(url.pathname);
-    }
-  }, []);
-
   const fetchOwnerDetails = async (userId: string) => {
     setOwnerDetailsLoading(true);
     try {
@@ -825,10 +815,20 @@ const OwnerManagement = () => {
     }
   };
 
-  const handleViewOwner = async (userId: string) => {
+  const handleViewOwner = useCallback(async (userId: string) => {
     setDrawerOpen(true);
     await fetchOwnerDetails(userId);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (mode === "view" && ownerId) {
+      handleViewOwner(ownerId);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("mode");
+      url.searchParams.delete("id");
+      router.replace(url.pathname);
+    }
+  }, [mode, ownerId, handleViewOwner, router]);
 
   const handleApproval = async (id: string) => {
     setDrawerOpen(false);

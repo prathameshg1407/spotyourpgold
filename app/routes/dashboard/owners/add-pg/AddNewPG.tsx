@@ -2242,6 +2242,7 @@ import { useRouter } from "next/navigation";
 import { ErrorMessage } from "@/app/routes/auth/error-message";
 import { useFormValidation } from "./hooks/useFormValidation";
 import { useImageUpload } from "./hooks/useImageUpload";
+import { useVideoUpload } from "./hooks/useVideoUpload";
 import { Step1BasicInfo } from "./components/Step1BasicInfo";
 import { Step3Amenities } from "./components/Step3Amenities";
 import { Step4Rules } from "./components/Step4Rules";
@@ -2282,6 +2283,7 @@ export default function AddNewPG() {
     "pending" | "paid" | "failed"
   >("pending");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<PGFormData>(initialFormData); // 👈 initialFormData is a constant
 
   // const { user } = useUserStore()
@@ -2289,6 +2291,11 @@ export default function AddNewPG() {
 
   const { errors, setErrors, validateStep } = useFormValidation(formData);
   const { handleImageUpload, removeImage } = useImageUpload(
+    formData,
+    setFormData,
+    setErrors
+  );
+  const { handleVideoUpload, removeVideo } = useVideoUpload(
     formData,
     setFormData,
     setErrors
@@ -2333,6 +2340,8 @@ export default function AddNewPG() {
               city: listing.location?.city,
               state: listing.location?.state,
               pincode: listing.location?.pincode,
+              nearbyPlaces: listing.location?.nearbyPlaces || [],
+              nearbyPlacesInput: "",
               coordinates: {
                 lat: listing.location?.coordinates.coordinates[0],
                 lng: listing.location?.coordinates.coordinates[1],
@@ -2340,6 +2349,15 @@ export default function AddNewPG() {
             },
             rulesAndRegulations: listing.rulesAndRegulations,
             newRuleInput: "",
+            detailedRules: listing.detailedRules || {
+              lockInPeriod: "",
+              noticePeriod: "",
+              maintenanceCharges: "",
+              entryTiming: "",
+              exitTiming: "",
+              guestStayPolicy: "",
+              smokingAlcoholPolicy: "",
+            },
             amenities: listing.amenities,
             customAmenities: "",
             foodIncluded: listing?.rentInclusions?.foodIncluded || false,
@@ -2350,6 +2368,9 @@ export default function AddNewPG() {
             images: [],
             existingImageUrls:
               listing.images?.map((img: { url: string }) => img.url) || [],
+            videos: [],
+            existingVideoUrls:
+              listing.videos?.map((video: { url: string }) => video.url) || [],
           }));
 
           // 👇 Automatically move to payment step if `payNow=true`
@@ -2380,7 +2401,7 @@ export default function AddNewPG() {
     return () => {
       ignore = true;
     };
-  }, [mode, listingId]);
+  }, [mode, listingId, router, searchParams, setLoading]);
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
@@ -2446,6 +2467,14 @@ export default function AddNewPG() {
     });
   };
 
+  const handleRemoveExistingVideo = (index: number) => {
+    setFormData((prev: any) => {
+      const updated = [...prev.existingVideoUrls];
+      updated.splice(index, 1);
+      return { ...prev, existingVideoUrls: updated };
+    });
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting || !validateStep(currentStep)) return;
     setIsSubmitting(true);
@@ -2462,11 +2491,17 @@ export default function AddNewPG() {
         formData.images.map((file: any) => toBase64(file))
       );
 
+      const newVideosBase64 = await Promise.all(
+        formData.videos.map((file: any) => toBase64(file))
+      );
+
       const allImages = [...formData.existingImageUrls, ...newImagesBase64];
+      const allVideos = [...formData.existingVideoUrls, ...newVideosBase64];
 
       const payload = {
         ...formData,
         images: allImages,
+        videos: allVideos,
       };
 
       const res =
@@ -2475,14 +2510,13 @@ export default function AddNewPG() {
           : await axios.post("/api/owner/listPg", payload);
 
       if (res?.data?.success) {
-        setFormData((prev:any) => ({
+        setFormData((prev: any) => ({
           ...prev,
           id: res.data.data || prev.id, // Update ID if available
-      }));
+        }));
         toast.success(res.data.message || "Success!", {
           duration: 3000,
           closeButton: true,
-          
         });
 
         if (mode === "edit") {
@@ -2542,10 +2576,15 @@ export default function AddNewPG() {
           <Step5Images
             {...stepProps}
             fileInputRef={fileInputRef}
+            videoInputRef={videoInputRef}
             handleImageUpload={handleImageUpload}
+            handleVideoUpload={handleVideoUpload}
             removeImage={removeImage}
+            removeVideo={removeVideo}
             existingImageUrls={formData?.existingImageUrls}
+            existingVideoUrls={formData?.existingVideoUrls}
             handleRemoveExistingImage={handleRemoveExistingImage}
+            handleRemoveExistingVideo={handleRemoveExistingVideo}
           />
         );
       case 6:

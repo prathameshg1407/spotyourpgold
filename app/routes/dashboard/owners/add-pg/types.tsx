@@ -46,6 +46,8 @@ export interface PGFormData {
 
   images: File[];
   existingImageUrls: string[];
+  videos: File[];
+  existingVideoUrls: string[];
 
   foodIncluded: boolean;
   electricityIncluded: boolean;
@@ -75,6 +77,7 @@ export interface ValidationErrors {
   rulesAndRegulations: boolean;
   genderPreference: boolean;
   images: boolean;
+  videos: boolean;
   area: boolean;
   city: boolean;
   state: boolean;

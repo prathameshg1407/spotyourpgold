@@ -337,7 +337,7 @@ function InfiniteScrollListings({
     if (!initialLoad) {
       fetchMoreListings();
     }
-  }, []);
+  }, [fetchMoreListings, initialLoad]);
 
   if (!initialLoad && loading) {
     return (
@@ -593,7 +593,7 @@ export default function ProductPage() {
     return () => {
       ignore = true;
     };
-  }, [listing?.ownerId?._id]);
+  }, [listing?.ownerId?._id, params?.id]);
 
   useEffect(() => {
     let ignore = false; // 👈 prevent second fetch/toast

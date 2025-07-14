@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,9 +59,11 @@ const NavBar = ({
           href="/"
           className="flex items-center gap-2 text-lg md:text-2xl font-semibold font-poppins"
         >
-          <img
+          <Image
             src="/logo.png"
             alt="Logo"
+            width={64}
+            height={64}
             className="h-12 w-12 md:h-16 md:w-16 object-contain"
           />
           SYPG

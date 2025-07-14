@@ -26,14 +26,12 @@ const HomeContainer = ({
   const [total, setTotal] = useState(0);
   // const [listings, setListings] = useState<any[]>([]);
 
-  const {listings,setListings} = useListingStore();
-
+  const { listings, setListings } = useListingStore();
 
   const router = useRouter();
 
   useEffect(() => {
-
-     if (searchQuery) return;
+    if (searchQuery) return;
 
     if (!userLocation && !locationDenied) return; // wait
 
@@ -89,6 +87,7 @@ const HomeContainer = ({
     setContainerLoading,
     router,
     searchQuery,
+    setListings,
   ]);
 
   if (containerLoading.homeContainer) {
@@ -116,7 +115,6 @@ const HomeContainer = ({
             ownerName={pg?.ownerId?.fullName}
             price={pg?.minRent}
             isWishlisted={pg?.inWatchList}
-            
           />
         ))}
       </div>

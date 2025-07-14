@@ -32,6 +32,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   let uploadedImages: any[] = [];
+  let uploadedVideos: any[] = [];
 
   try {
     await connectToDB();
@@ -61,6 +62,7 @@ export async function PUT(
       electricityIncluded,
       maintenanceIncluded,
       images,
+      videos = [],
     } = await req.json();
 
     // ✅ Basic validation
@@ -133,6 +135,14 @@ export async function PUT(
       img.startsWith("https://")
     );
 
+    // ✅ Split videos into existing and new base64
+    const newBase64Videos = videos.filter((video: string) =>
+      video.startsWith("data:video")
+    );
+    const existingVideoUrls = videos.filter((video: string) =>
+      video.startsWith("https://")
+    );
+
     // ✅ Upload only new images
     uploadedImages = await Promise.all(
       newBase64Images.map(async (img: string) => {
@@ -145,23 +155,49 @@ export async function PUT(
       })
     );
 
+    // ✅ Upload only new videos
+    if (newBase64Videos.length > 0) {
+      uploadedVideos = await Promise.all(
+        newBase64Videos.map(async (video: string) => {
+          const { url, public_id } = await uploadToCloudinary(
+            video,
+            "sypg/listing-videos",
+            "sypgListingVideos"
+          );
+          return { url, public_id };
+        })
+      );
+    }
+
     // ✅ Extract public_ids from reused existing URLs
-    const reusedPublicIds = new Set(
-      existingImageUrls.map((url) => extractPublicId(url))
+    const reusedImagePublicIds = new Set(
+      existingImageUrls.map((url: string) => extractPublicId(url))
+    );
+    const reusedVideoPublicIds = new Set(
+      existingVideoUrls.map((url: string) => extractPublicId(url))
     );
 
-    // ✅ Delete only unused old images
-    await Promise.all(
-      existingListing.images.map(async (img: any) => {
-        if (!reusedPublicIds.has(img.public_id)) {
+    // ✅ Delete only unused old images and videos
+    await Promise.all([
+      ...existingListing.images.map(async (img: any) => {
+        if (!reusedImagePublicIds.has(img.public_id)) {
           try {
             await deleteFromCloudinary(img.public_id);
           } catch (err) {
             console.warn(`Failed to delete ${img.public_id}:`, err);
           }
         }
-      })
-    );
+      }),
+      ...(existingListing.videos || []).map(async (video: any) => {
+        if (!reusedVideoPublicIds.has(video.public_id)) {
+          try {
+            await deleteFromCloudinary(video.public_id);
+          } catch (err) {
+            console.warn(`Failed to delete ${video.public_id}:`, err);
+          }
+        }
+      }),
+    ]);
 
     // ✅ Combine reused and new images
     const finalImages = [
@@ -170,6 +206,15 @@ export async function PUT(
         public_id: extractPublicId(url),
       })),
       ...uploadedImages,
+    ];
+
+    // ✅ Combine reused and new videos
+    const finalVideos = [
+      ...existingVideoUrls.map((url: string) => ({
+        url,
+        public_id: extractPublicId(url),
+      })),
+      ...uploadedVideos,
     ];
 
     const newLocation = {
@@ -213,6 +258,7 @@ export async function PUT(
       },
       images: finalImages,
       primaryImage: finalImages[0]?.url,
+      videos: finalVideos,
     });
 
     await existingListing.save();
@@ -224,15 +270,22 @@ export async function PUT(
   } catch (error) {
     console.error("[updatePg_API]", error);
 
-    await Promise.all(
-      uploadedImages.map(async (img) => {
+    await Promise.all([
+      ...uploadedImages.map(async (img) => {
         try {
           await deleteFromCloudinary(img.public_id);
         } catch (err) {
           console.warn(`Failed to delete image ${img.public_id}:`, err);
         }
-      })
-    );
+      }),
+      ...uploadedVideos.map(async (video) => {
+        try {
+          await deleteFromCloudinary(video.public_id);
+        } catch (err) {
+          console.warn(`Failed to delete video ${video.public_id}:`, err);
+        }
+      }),
+    ]);
 
     return NextResponse.json({
       success: false,

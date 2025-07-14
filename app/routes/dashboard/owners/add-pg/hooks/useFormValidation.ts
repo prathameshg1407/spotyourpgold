@@ -28,16 +28,22 @@ export const useFormValidation = (formData: PGFormData) => {
               newErrors.general ||= `Room type is missing in room ${index + 1}`;
             }
             if (room.numberOfRooms <= 0) {
-              newErrors.general ||= `Number of rooms must be > 0 in room ${index + 1}`;
+              newErrors.general ||= `Number of rooms must be > 0 in room ${
+                index + 1
+              }`;
             }
             if (room.capacityPerRoom <= 0) {
               newErrors.general ||= `Capacity must be > 0 in room ${index + 1}`;
             }
             if (room.monthlyRent < 0) {
-              newErrors.general ||= `Monthly rent cannot be negative in room ${index + 1}`;
+              newErrors.general ||= `Monthly rent cannot be negative in room ${
+                index + 1
+              }`;
             }
             if (room.securityDeposit < 0) {
-              newErrors.general ||= `Security deposit cannot be negative in room ${index + 1}`;
+              newErrors.general ||= `Security deposit cannot be negative in room ${
+                index + 1
+              }`;
             }
           });
         }
@@ -95,9 +101,23 @@ export const useFormValidation = (formData: PGFormData) => {
         const totalImages =
           (formData.images?.length || 0) +
           (formData.existingImageUrls?.length || 0);
+        const totalVideos =
+          (formData.videos?.length || 0) +
+          (formData.existingVideoUrls?.length || 0);
+
         if (totalImages === 0) {
           newErrors.images = true;
           newErrors.general = "Please upload at least one image";
+        }
+
+        if (totalImages > 12) {
+          newErrors.images = true;
+          newErrors.general = "Maximum 12 images allowed";
+        }
+
+        if (totalVideos > 3) {
+          newErrors.videos = true;
+          newErrors.general = "Maximum 3 videos allowed";
         }
         break;
 

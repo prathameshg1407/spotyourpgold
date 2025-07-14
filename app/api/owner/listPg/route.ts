@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   let uploadedImages: any[] = [];
+  let uploadedVideos: any[] = [];
 
   try {
     await connectToDB();
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       electricityIncluded,
       maintenanceIncluded,
       images,
+      videos = [],
     } = await req.json();
 
     // ✅ Basic validation
@@ -107,6 +109,20 @@ export async function POST(req: Request) {
       })
     );
 
+    // ✅ Upload videos to Cloudinary (if any)
+    if (videos.length > 0) {
+      uploadedVideos = await Promise.all(
+        videos.map(async (video: string) => {
+          const { url, public_id } = await uploadToCloudinary(
+            video,
+            "sypg/listing-videos",
+            "sypgListingVideos"
+          );
+          return { url, public_id };
+        })
+      );
+    }
+
     const newLocation = {
       ...location,
       nearbyPlaces: location.nearbyPlaces || [],
@@ -149,6 +165,7 @@ export async function POST(req: Request) {
       },
       images: uploadedImages,
       primaryImage: uploadedImages[0]?.url,
+      videos: uploadedVideos,
     });
 
     return NextResponse.json({
@@ -159,16 +176,23 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[listPg_API]", error);
 
-    // ❌ Cleanup uploaded images on failure
-    await Promise.all(
-      uploadedImages.map(async (img) => {
+    // ❌ Cleanup uploaded images and videos on failure
+    await Promise.all([
+      ...uploadedImages.map(async (img) => {
         try {
           await deleteFromCloudinary(img.public_id);
         } catch (err) {
           console.warn(`Failed to delete image ${img.public_id}:`, err);
         }
-      })
-    );
+      }),
+      ...uploadedVideos.map(async (video) => {
+        try {
+          await deleteFromCloudinary(video.public_id);
+        } catch (err) {
+          console.warn(`Failed to delete video ${video.public_id}:`, err);
+        }
+      }),
+    ]);
 
     return NextResponse.json({
       success: false,

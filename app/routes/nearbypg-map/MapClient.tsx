@@ -78,7 +78,7 @@ const MapClient = () => {
     } else {
       setLocationDenied(true);
     }
-  }, [userLocation, locationDenied]);
+  }, [userLocation, locationDenied, setLocationDenied, setUserLocation]);
 
   useEffect(() => {
     if (locationDenied) {
@@ -126,7 +126,7 @@ const MapClient = () => {
     return () => {
       ignore = true;
     };
-  }, [userLocation, locationDenied]);
+  }, [userLocation, locationDenied, router, setLoading]);
 
   return (
     <>
@@ -139,8 +139,14 @@ const MapClient = () => {
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {listings?.map((pg,idx) => (
-          <Marker key={idx} position={[pg?.location?.coordinates?.coordinates[1], pg?.location?.coordinates?.coordinates[0]]}>
+        {listings?.map((pg, idx) => (
+          <Marker
+            key={idx}
+            position={[
+              pg?.location?.coordinates?.coordinates[1],
+              pg?.location?.coordinates?.coordinates[0],
+            ]}
+          >
             <Popup closeButton={true} className="custom-popup">
               <div
                 onClick={() => {
@@ -172,7 +178,9 @@ const MapClient = () => {
                     {pg?.genderPreference}
                   </div>
 
-                  <p className="text-sm text-gray-500">by {pg?.ownerId?.fullName}</p>
+                  <p className="text-sm text-gray-500">
+                    by {pg?.ownerId?.fullName}
+                  </p>
 
                   <h5 className="text-xl font-bold  text-HG-400  ">
                     {pg?.minRent?.toLocaleString()}

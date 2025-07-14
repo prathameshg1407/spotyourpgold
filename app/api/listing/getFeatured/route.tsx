@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     const query: any = {
       isActive: true,
       isApproved: true,
+      isFeatured: true, // Only show listings that are marked as featured
     };
 
     if (exclude) {
@@ -36,9 +37,9 @@ export async function GET(req: NextRequest) {
 
     let featuredListings = await Listing.find(query)
       .select(
-        "_id primaryImage location pgName ownerId roomTypes images genderPreference"
+        "_id primaryImage location pgName ownerId roomTypes images genderPreference isFeatured"
       )
-      .sort({ updatedAt: -1 })
+      .sort({ updatedAt: -1, createdAt: -1 })
       .skip((page - 1) * per_page)
       .limit(per_page)
       .populate("ownerId", "fullName")
@@ -62,8 +63,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Featured listings fetched successfully",
+      message:
+        listingsWithWatchlist.length > 0
+          ? "Featured listings fetched successfully"
+          : "No featured listings found",
       data: listingsWithWatchlist,
+      total: listingsWithWatchlist.length,
     });
   } catch (error) {
     console.error("[getFeatured_API]", error);

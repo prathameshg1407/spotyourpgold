@@ -9,21 +9,47 @@ export async function GET(req: Request) {
     await connectToDB();
 
     const { searchParams } = new URL(req.url);
+
+    // Basic search parameters
     const q = searchParams.get("q")?.trim() || "";
-    const type = searchParams.get("type")?.trim() || "";
-    const subType = searchParams.get("subType")?.trim() || "";
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
     const per_page = Math.max(
       1,
       Math.min(Number(searchParams.get("per_page") ?? 20), 100)
     );
 
-    if (!q) {
-      return NextResponse.json(
-        { success: false, message: "Query required" },
-        { status: 400 }
-      );
-    }
+    // Advanced filter parameters
+    const type = searchParams.get("type")?.trim() || "";
+    const subType = searchParams.get("subType")?.trim() || "";
+    const minPrice = searchParams.get("minPrice")
+      ? Number(searchParams.get("minPrice"))
+      : null;
+    const maxPrice = searchParams.get("maxPrice")
+      ? Number(searchParams.get("maxPrice"))
+      : null;
+    const genderPreference = searchParams.get("genderPreference")?.trim() || "";
+    const amenities =
+      searchParams.get("amenities")?.split(",").filter(Boolean) || [];
+    const roomTypes =
+      searchParams.get("roomTypes")?.split(",").filter(Boolean) || [];
+    const location = searchParams.get("location")?.trim() || "";
+    const city = searchParams.get("city")?.trim() || "";
+    const area = searchParams.get("area")?.trim() || "";
+    const nearbyPlaces =
+      searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [];
+    const visible =
+      searchParams.get("visible")?.split(",").filter(Boolean) || [];
+
+    // Location-based search (lat/lng for proximity)
+    const lat = searchParams.get("lat")
+      ? Number(searchParams.get("lat"))
+      : null;
+    const lng = searchParams.get("lng")
+      ? Number(searchParams.get("lng"))
+      : null;
+    const radius = searchParams.get("radius")
+      ? Number(searchParams.get("radius"))
+      : 10; // Default 10km radius
 
     // Extract keywords from "near" queries
     const processSearchQuery = (query: string) => {
@@ -37,8 +63,6 @@ export async function GET(req: Request) {
       return keywords || query;
     };
 
-    const processedQuery = processSearchQuery(q);
-
     const user = await authUser().catch(() => null);
 
     let userWatchlist: string[] = [];
@@ -51,47 +75,249 @@ export async function GET(req: Request) {
       }
     }
 
+    // Build query object
     const query: any = {
-      $and: [
-        {
-          $or: [
-            { pgName: { $regex: processedQuery, $options: "i" } },
-            { "location.area": { $regex: processedQuery, $options: "i" } },
-            { "location.city": { $regex: processedQuery, $options: "i" } },
-            {
-              "location.nearbyPlaces": {
-                $elemMatch: { $regex: processedQuery, $options: "i" },
-              },
-            },
-            // Remove this line: { "ownerId.fullName": { $regex: processedQuery, $options: "i" } },
-          ],
-        },
-        { isActive: true },
-        { isApproved: true },
-      ],
+      $and: [{ isActive: true }, { isApproved: true }],
     };
 
-    // Add type filter if provided
+    // Text search conditions
+    if (q) {
+      const processedQuery = processSearchQuery(q);
+      query.$and.push({
+        $or: [
+          { pgName: { $regex: processedQuery, $options: "i" } },
+          { "location.area": { $regex: processedQuery, $options: "i" } },
+          { "location.city": { $regex: processedQuery, $options: "i" } },
+          { "location.state": { $regex: processedQuery, $options: "i" } },
+          {
+            "location.nearbyPlaces": {
+              $elemMatch: { $regex: processedQuery, $options: "i" },
+            },
+          },
+        ],
+      });
+    }
+
+    // Property type filters
     if (type) {
       query.$and.push({ type: type });
     }
 
-    // Add subType filter if provided
     if (subType) {
       query.$and.push({ subType: subType });
     }
 
-    const [listings, total] = await Promise.all([
-      Listing.find(query)
-        .select("_id primaryImage location pgName ownerId monthlyRent")
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * per_page)
-        .limit(per_page)
-        .populate("ownerId", "fullName")
-        .lean(),
+    // Price range filter (check both monthlyRent field and roomTypes.monthlyRent)
+    if (minPrice !== null || maxPrice !== null) {
+      const priceConditions = [];
 
-      Listing.countDocuments(query),
+      // Direct monthlyRent field filter (for backward compatibility)
+      const directPriceFilter: any = {};
+      if (minPrice !== null) directPriceFilter.$gte = minPrice;
+      if (maxPrice !== null) directPriceFilter.$lte = maxPrice;
+      if (Object.keys(directPriceFilter).length > 0) {
+        priceConditions.push({ monthlyRent: directPriceFilter });
+      }
+
+      // Room types price filter
+      const roomPriceFilter: any = {};
+      if (minPrice !== null) roomPriceFilter.$gte = minPrice;
+      if (maxPrice !== null) roomPriceFilter.$lte = maxPrice;
+      if (Object.keys(roomPriceFilter).length > 0) {
+        priceConditions.push({ "roomTypes.monthlyRent": roomPriceFilter });
+      }
+
+      if (priceConditions.length > 0) {
+        query.$and.push({ $or: priceConditions });
+      }
+    }
+
+    // Gender preference filter
+    if (genderPreference) {
+      if (genderPreference === "both" || genderPreference === "unisex") {
+        query.$and.push({ genderPreference: "both" });
+      } else {
+        query.$and.push({
+          $or: [
+            { genderPreference: genderPreference },
+            { genderPreference: "both" },
+          ],
+        });
+      }
+    }
+
+    // Amenities filter
+    if (amenities.length > 0) {
+      query.$and.push({
+        amenities: { $in: amenities },
+      });
+    }
+
+    // Room types filter
+    if (roomTypes.length > 0) {
+      query.$and.push({
+        "roomTypes.type": { $in: roomTypes },
+      });
+    }
+
+    // Location filters
+    if (location) {
+      query.$and.push({
+        $or: [
+          { "location.area": { $regex: location, $options: "i" } },
+          { "location.city": { $regex: location, $options: "i" } },
+          { "location.state": { $regex: location, $options: "i" } },
+          {
+            "location.nearbyPlaces": {
+              $elemMatch: { $regex: location, $options: "i" },
+            },
+          },
+        ],
+      });
+    }
+
+    if (city) {
+      query.$and.push({ "location.city": { $regex: city, $options: "i" } });
+    }
+
+    if (area) {
+      query.$and.push({ "location.area": { $regex: area, $options: "i" } });
+    }
+
+    // Nearby places filter
+    if (nearbyPlaces.length > 0) {
+      query.$and.push({
+        "location.nearbyPlaces": {
+          $in: nearbyPlaces.map((place) => new RegExp(place, "i")),
+        },
+      });
+    }
+
+    // Visible/Status filters
+    if (visible.length > 0) {
+      const visibleConditions = [];
+
+      if (visible.includes("approved")) {
+        visibleConditions.push({ isApproved: true });
+      }
+      if (visible.includes("pending")) {
+        visibleConditions.push({ isApproved: false });
+      }
+      if (visible.includes("active")) {
+        visibleConditions.push({ isActive: true });
+      }
+      if (visible.includes("inactive")) {
+        visibleConditions.push({ isActive: false });
+      }
+      if (visible.includes("featured")) {
+        visibleConditions.push({ isFeatured: true });
+      }
+      if (visible.includes("non-featured")) {
+        visibleConditions.push({ isFeatured: false });
+      }
+      if (visible.includes("free")) {
+        visibleConditions.push({ planType: "free" });
+      }
+      if (visible.includes("paid")) {
+        visibleConditions.push({ planType: "paid" });
+      }
+      if (visible.includes("subscription")) {
+        visibleConditions.push({ planType: "subscription" });
+      }
+      if (visible.includes("payment-pending")) {
+        visibleConditions.push({ paymentStatus: "pending" });
+      }
+      if (visible.includes("payment-completed")) {
+        visibleConditions.push({ paymentStatus: "completed" });
+      }
+      if (visible.includes("payment-failed")) {
+        visibleConditions.push({ paymentStatus: "failed" });
+      }
+
+      if (visibleConditions.length > 0) {
+        // Remove the default isActive and isApproved filters if visible filters are applied
+        query.$and = query.$and.filter(
+          (condition: any) =>
+            !condition.hasOwnProperty("isActive") &&
+            !condition.hasOwnProperty("isApproved")
+        );
+
+        // Add the OR condition for visible filters
+        query.$and.push({ $or: visibleConditions });
+      }
+    }
+
+    // Geospatial query for proximity search
+    if (lat !== null && lng !== null) {
+      query.$and.push({
+        "location.coordinates": {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [lng, lat],
+            },
+            $maxDistance: radius * 1000, // Convert km to meters
+          },
+        },
+      });
+    }
+
+    // Execute query with aggregation to get min rent from roomTypes
+    const aggregationPipeline = [
+      { $match: query },
+      {
+        $addFields: {
+          minRent: {
+            $cond: {
+              if: { $gt: [{ $size: "$roomTypes" }, 0] },
+              then: { $min: "$roomTypes.monthlyRent" },
+              else: "$monthlyRent", // Fallback to direct monthlyRent field
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "ownerId",
+          foreignField: "_id",
+          as: "ownerInfo",
+        },
+      },
+      {
+        $addFields: {
+          "ownerId.fullName": { $arrayElemAt: ["$ownerInfo.fullName", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          primaryImage: 1,
+          location: 1,
+          pgName: 1,
+          "ownerId.fullName": 1,
+          minRent: 1,
+          type: 1,
+          subType: 1,
+          genderPreference: 1,
+          amenities: 1,
+          roomTypes: 1,
+          createdAt: 1,
+        },
+      },
+      { $sort: { createdAt: -1 as -1 } },
+      { $skip: (page - 1) * per_page },
+      { $limit: per_page },
+    ];
+
+    const countPipeline = [{ $match: query }, { $count: "total" }];
+
+    const [listings, totalResult] = await Promise.all([
+      Listing.aggregate(aggregationPipeline),
+      Listing.aggregate(countPipeline),
     ]);
+
+    const total = totalResult[0]?.total || 0;
 
     const listingsWithWatchlist = listings.map((listing: any) => ({
       ...listing,
@@ -101,14 +327,33 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       data: listingsWithWatchlist,
+      total,
       page,
       per_page,
-      total,
+      totalPages: Math.ceil(total / per_page),
+      filters: {
+        type,
+        subType,
+        minPrice,
+        maxPrice,
+        genderPreference,
+        amenities,
+        roomTypes,
+        location,
+        city,
+        area,
+        nearbyPlaces,
+        query: q,
+      },
     });
-  } catch (err) {
-    console.error("Search error:", err);
+  } catch (error: any) {
+    console.error("Search API Error:", error);
     return NextResponse.json(
-      { success: false, message: "Search failed" },
+      {
+        success: false,
+        message: "Failed to search listings",
+        error: error.message,
+      },
       { status: 500 }
     );
   }

@@ -75,6 +75,14 @@ const listingSchema = new mongoose.Schema(
     ],
     primaryImage: { type: String }, // one of the image URLs
 
+    // Videos
+    videos: [
+      {
+        url: { type: String, required: true },
+        public_id: { type: String, required: true },
+      },
+    ],
+
     // Location
     location: {
       area: { type: String, required: true },

@@ -9,7 +9,7 @@ import Review from "@/models/review";
 
 type ListingType = {
   _id: string;
-  
+
   ownerId: {
     _id: string;
     fullName: string;
@@ -50,7 +50,8 @@ export async function GET(
     const user = await authUser().catch(() => null);
 
     const listing = await Listing.findById(id)
-      .select(`
+      .select(
+        `
         ownerId
         pgName
         roomTypes
@@ -59,11 +60,14 @@ export async function GET(
         additionalDetails
         rentInclusions
         rulesAndRegulations
+        detailedRules
         images.url
+        videos.url
         primaryImage
         location
         createdAt
-      `)
+      `
+      )
       .populate("ownerId", "fullName")
       .lean();
 
@@ -119,7 +123,9 @@ export async function GET(
           additionalDetails: listing.additionalDetails,
           rentInclusions: listing.rentInclusions,
           rulesAndRegulations: listing.rulesAndRegulations,
+          detailedRules: listing.detailedRules,
           images: listing.images?.map((img) => ({ url: img.url })) || [],
+          videos: listing.videos?.map((video) => ({ url: video.url })) || [],
           primaryImage: listing.primaryImage || "",
           location: listing.location,
           createdAt: listing.createdAt,

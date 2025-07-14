@@ -157,13 +157,13 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
           <div className="text-sm text-gray-700 overflow-hidden">
             {formData.existingImageUrls?.length > 0 ||
             formData.images.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {formData.existingImageUrls?.map((img, idx) => (
                   <BlurImage
                     key={`existing-${idx}`}
                     src={img}
                     alt={`Image ${idx + 1}`}
-                    className="w-full h-32 border object-cover rounded-lg"
+                    className="w-full h-28 border object-cover rounded-lg"
                     width={400}
                     height={400}
                   />
@@ -173,7 +173,7 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
                     key={`new-${idx}`}
                     src={URL.createObjectURL(file)}
                     alt={`Image ${idx + 1}`}
-                    className="w-full h-32 border object-cover rounded-lg"
+                    className="w-full h-28 border object-cover rounded-lg"
                     width={400}
                     height={400}
                   />
@@ -184,6 +184,48 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
             )}
           </div>
         </motion.div>
+
+        {/* ✅ Videos */}
+        {(formData.existingVideoUrls?.length > 0 ||
+          formData.videos.length > 0) && (
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 10 },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { type: "spring", stiffness: 300, damping: 24 },
+              },
+            }}
+            className="space-y-2"
+          >
+            <h3 className="text-lg font-semibold text-HG-500">
+              Uploaded Videos
+            </h3>
+            <div className="text-sm text-gray-700 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {formData.existingVideoUrls?.map((video, idx) => (
+                  <video
+                    key={`existing-video-${idx}`}
+                    src={video}
+                    className="w-full h-32 border object-cover rounded-lg"
+                    controls
+                    preload="metadata"
+                  />
+                ))}
+                {formData.videos.map((file, idx) => (
+                  <video
+                    key={`new-video-${idx}`}
+                    src={URL.createObjectURL(file)}
+                    className="w-full h-32 border object-cover rounded-lg"
+                    controls
+                    preload="metadata"
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* ✅ Amenities */}
         <motion.div

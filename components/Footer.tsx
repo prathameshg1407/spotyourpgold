@@ -180,8 +180,16 @@ export default function Footer() {
                 href="#"
                 className="font-semibold text-HG-500 hover:text-HG-400 transition-colors underline decoration-dotted underline-offset-2"
               >
-                few technology
+                few technologies .
               </a>
+                <a
+                  href="https://wa.me/919182437450"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-HG-500 hover:text-HG-400 transition-colors underline decoration-dotted underline-offset-2"
+                >
+                  Contact us
+                </a>
             </div>
           </div>
         </div>

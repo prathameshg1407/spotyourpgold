@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,15 +81,7 @@ export default function VisitRequestsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { containerLoading, setContainerLoading } = useLoadingStore();
 
-  useEffect(() => {
-    fetchVisitRequests();
-  }, []);
-
-  useEffect(() => {
-    filterRequests();
-  }, [visitRequests, searchQuery, statusFilter, markedFilter]);
-
-  const fetchVisitRequests = async () => {
+  const fetchVisitRequests = useCallback(async () => {
     setContainerLoading("visitRequests", true);
     try {
       const response = await axios.get("/api/admin/visit-requests");
@@ -103,9 +95,9 @@ export default function VisitRequestsPage() {
     } finally {
       setContainerLoading("visitRequests", false);
     }
-  };
+  }, [setContainerLoading]);
 
-  const filterRequests = () => {
+  const filterRequests = useCallback(() => {
     let filtered = visitRequests;
 
     // Search filter
@@ -134,7 +126,15 @@ export default function VisitRequestsPage() {
     }
 
     setFilteredRequests(filtered);
-  };
+  }, [visitRequests, searchQuery, statusFilter, markedFilter]);
+
+  useEffect(() => {
+    fetchVisitRequests();
+  }, [fetchVisitRequests]);
+
+  useEffect(() => {
+    filterRequests();
+  }, [visitRequests, searchQuery, statusFilter, markedFilter, filterRequests]);
 
   const updateVisitRequest = async (
     id: string,

@@ -1,5 +1,6 @@
 "use client";
 import FilterButton from "@/components/FilterButton";
+import AdvancedFilter from "@/components/AdvancedFilter";
 import NavBar from "@/components/NavBar";
 import SectionHeading from "@/components/SectionHeading";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
@@ -19,6 +20,10 @@ import { useListingStore } from "@/store/listingStore";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { BlurImage } from "@/components/BlurImage";
 import OwnerListingSection from "@/components/OwnerListingSection";
+import PgCard from "@/components/PgCard";
+import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +36,30 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     useListingStore();
 
   const [availableAd, setAvailableAd] = useState("");
+
+  // State for different sections
+  const [featuredPGs, setFeaturedListings] = useState<any[]>([]);
+  const [allListings, setAllListings] = useState<any[]>([]);
+  const [nearbyListings, setNearbyListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState({
+    featured: false,
+    all: false,
+    nearby: false,
+  });
+
+  // Advanced filters hook
+  const {
+    filters,
+    setFilters,
+    updateFilter,
+    clearFilters,
+    applyFilters,
+    activeFiltersCount,
+    listings: searchResults,
+    loading: searchLoading,
+    total: searchTotal,
+    searchWithFilters,
+  } = useAdvancedFilters(20, false);
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -64,60 +93,54 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     } else {
       setLocationDenied(true);
     }
-  }, []);
+  }, [setLocationDenied, setUserLocation]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 800);
-  const { setListings } = useListingStore();
 
   const handleTypeChange = (type: string, subType: string) => {
     setSelectedType(type);
     setSelectedSubType(subType);
+    // Update advanced filters
+    updateFilter("type", type);
+    updateFilter("subType", subType);
   };
 
+  // Handle search query changes
   useEffect(() => {
-    const fetchSearchResults = async () => {
-      if (!debouncedSearch.trim()) return;
-      setContainerLoading("homeContainer", true);
+    if (debouncedSearch !== filters.query) {
+      updateFilter("query", debouncedSearch);
+    }
+  }, [debouncedSearch, filters.query, updateFilter]);
 
-      try {
-        const queryParams = new URLSearchParams({
-          q: debouncedSearch,
-          page: "1",
-          per_page: "20",
-        });
+  // Update search query when filters change
+  useEffect(() => {
+    if (filters.query !== searchQuery) {
+      setSearchQuery(filters.query);
+    }
+    if (filters.type !== selectedType) {
+      setSelectedType(filters.type);
+    }
+    if (filters.subType !== selectedSubType) {
+      setSelectedSubType(filters.subType);
+    }
+  }, [filters, searchQuery, selectedSubType, selectedType]);
 
-        if (selectedType) queryParams.append("type", selectedType);
-        if (selectedSubType) queryParams.append("subType", selectedSubType);
+  // Trigger search when filters have values
+  useEffect(() => {
+    const hasActiveSearch = filters.query || activeFiltersCount > 0;
+    if (hasActiveSearch) {
+      searchWithFilters();
+    }
+  }, [filters, activeFiltersCount, searchWithFilters]);
 
-        const res = await axios.get(
-          `/api/listing/search?${queryParams.toString()}`
-        );
-        // console.log(res);
-        if (res?.data?.success) {
-          setListings(res.data.data); // ✅ used by HomeContainer
-        } else {
-          toast.error("Search failed");
-        }
-      } catch (error) {
-        toast.error("Something went wrong");
-      } finally {
-        setContainerLoading("homeContainer", false);
-      }
-    };
-
-    fetchSearchResults();
-  }, [debouncedSearch, selectedType, selectedSubType]);
-
-  const [featuredPGs, setFeaturedListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  // Fetch Featured Properties
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
+    setLoading((prev) => ({ ...prev, featured: true }));
 
-    const fetchData = async () => {
+    const fetchFeaturedData = async () => {
       try {
-        const res = await axios.get(`/api/listing/getFeatured?per_page=10`);
+        const res = await axios.get(`/api/listing/getFeatured?per_page=5`);
         if (res?.data?.success && !ignore) {
           setFeaturedListings(res.data.data);
         } else if (!ignore) {
@@ -131,16 +154,89 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
           toast.error("Failed to fetch featured listings", { duration: 1500 });
         }
       } finally {
-        if (!ignore) setLoading(false);
+        if (!ignore) setLoading((prev) => ({ ...prev, featured: false }));
       }
     };
 
-    fetchData();
+    fetchFeaturedData();
 
     return () => {
       ignore = true;
     };
   }, []);
+
+  // Fetch All Property Listings
+  useEffect(() => {
+    let ignore = false;
+    setLoading((prev) => ({ ...prev, all: true }));
+
+    const fetchAllData = async () => {
+      try {
+        const res = await axios.get(`/api/listing?page=1&per_page=5`);
+        if (res?.data?.success && !ignore) {
+          setAllListings(res.data.data);
+        } else if (!ignore) {
+          toast.error(res?.data?.message || "Something went wrong", {
+            duration: 1500,
+          });
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error("All listings fetch error", error);
+          toast.error("Failed to fetch listings", { duration: 1500 });
+        }
+      } finally {
+        if (!ignore) setLoading((prev) => ({ ...prev, all: false }));
+      }
+    };
+
+    fetchAllData();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Fetch Nearby PGs when location is available
+  useEffect(() => {
+    if (!userLocation || locationDenied) return;
+
+    let ignore = false;
+    setLoading((prev) => ({ ...prev, nearby: true }));
+
+    const fetchNearbyData = async () => {
+      try {
+        const queryParams = new URLSearchParams({
+          page: "1",
+          per_page: "5",
+          lat: userLocation.lat.toString(),
+          lng: userLocation.lng.toString(),
+        });
+
+        const res = await axios.get(`/api/listing?${queryParams.toString()}`);
+        if (res?.data?.success && !ignore) {
+          setNearbyListings(res.data.data);
+        } else if (!ignore) {
+          toast.error(res?.data?.message || "Something went wrong", {
+            duration: 1500,
+          });
+        }
+      } catch (error) {
+        if (!ignore) {
+          console.error("Nearby listings fetch error", error);
+          toast.error("Failed to fetch nearby listings", { duration: 1500 });
+        }
+      } finally {
+        if (!ignore) setLoading((prev) => ({ ...prev, nearby: false }));
+      }
+    };
+
+    fetchNearbyData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [userLocation, locationDenied]);
 
   const column1Images = [
     { src: "/placeholder.svg?height=200&width=250", alt: "Modern house" },
@@ -169,6 +265,27 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     { src: "/placeholder.svg?height=170&width=250", alt: "Garden house" },
   ];
 
+  // Check if there's an active search
+  const hasActiveSearch = searchQuery || activeFiltersCount > 0;
+
+  // Remove a specific filter
+  const removeFilter = (key: keyof FilterState, value?: string) => {
+    if (
+      key === "amenities" ||
+      key === "roomTypes" ||
+      key === "nearbyPlaces" ||
+      key === "visible"
+    ) {
+      const currentArray = filters[key] as string[];
+      updateFilter(
+        key,
+        currentArray.filter((item) => item !== value)
+      );
+    } else {
+      updateFilter(key, "");
+    }
+  };
+
   return (
     <>
       <NavBar
@@ -179,41 +296,215 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         onTypeChange={handleTypeChange}
       />
 
-      {searchQuery && (
+      {hasActiveSearch && (
         <section className="pt-36 md:pt-40 px-4 md:px-8 md:-mb-28">
-          <SectionHeading>
-            {/* <SectionHeading rightSide={<FilterButton />}> */}
-            Searching For{" "}
-            <span className="text-HG-400 block mt-2 md:mt-0 md:inline-block ">
-              {searchQuery}...
-            </span>
-          </SectionHeading>
+          <div className="flex items-center justify-between mb-4">
+            <SectionHeading>
+              {searchQuery ? (
+                <>
+                  Searching For{" "}
+                  <span className="text-HG-400 block mt-2 md:mt-0 md:inline-block">
+                    {searchQuery}...
+                  </span>
+                </>
+              ) : (
+                "Filtered Results"
+              )}
+            </SectionHeading>
+            <AdvancedFilter
+              filters={filters}
+              onFiltersChange={setFilters}
+              onApplyFilters={applyFilters}
+              onClearFilters={clearFilters}
+              activeFiltersCount={activeFiltersCount}
+            />
+          </div>
+
+          {/* Active Filters Display */}
+          {activeFiltersCount > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm font-medium text-gray-600">
+                  Active Filters:
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-xs h-auto p-1 text-HG-500 hover:text-HG-600"
+                >
+                  Clear All
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {filters.type && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Type: {filters.type}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("type")}
+                    />
+                  </Badge>
+                )}
+                {filters.genderPreference && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Gender: {filters.genderPreference}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("genderPreference")}
+                    />
+                  </Badge>
+                )}
+                {(filters.minPrice || filters.maxPrice) && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Price: ₹{filters.minPrice || "0"} - ₹
+                    {filters.maxPrice || "∞"}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => {
+                        removeFilter("minPrice");
+                        removeFilter("maxPrice");
+                      }}
+                    />
+                  </Badge>
+                )}
+                {filters.city && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    City: {filters.city}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("city")}
+                    />
+                  </Badge>
+                )}
+                {filters.area && (
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Area: {filters.area}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("area")}
+                    />
+                  </Badge>
+                )}
+                {filters.amenities.map((amenity) => (
+                  <Badge
+                    key={amenity}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {amenity}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("amenities", amenity)}
+                    />
+                  </Badge>
+                ))}
+                {filters.roomTypes.map((roomType) => (
+                  <Badge
+                    key={roomType}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {roomType}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("roomTypes", roomType)}
+                    />
+                  </Badge>
+                ))}
+                {filters.visible.map((visible) => (
+                  <Badge
+                    key={visible}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {visible.charAt(0).toUpperCase() +
+                      visible.slice(1).replace(/-/g, " ")}
+                    <X
+                      className="w-3 h-3 cursor-pointer"
+                      onClick={() => removeFilter("visible", visible)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search Results */}
+          {searchLoading ? (
+            <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <Skeleton key={idx} />
+              ))}
+            </div>
+          ) : searchResults.length > 0 ? (
+            <>
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">
+                  Found {searchTotal} properties
+                </p>
+              </div>
+              <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                {searchResults.map((pg, idx) => (
+                  <PgCard
+                    key={pg._id || idx}
+                    id={pg._id}
+                    image={pg.primaryImage}
+                    area={pg.location?.area}
+                    pgName={pg.pgName}
+                    ownerName={pg.ownerId?.fullName}
+                    price={pg.minRent}
+                    isWishlisted={pg.inWatchList}
+                  />
+                ))}
+              </div>
+            </>
+          ) : hasActiveSearch ? (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔍</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
+                  No properties found
+                </h3>
+                <p className="text-gray-600 font-inter mb-4">
+                  Try adjusting your search criteria or filters to find more
+                  properties.
+                </p>
+                <Button
+                  onClick={clearFilters}
+                  variant="outline"
+                  className="text-HG-500 border-HG-500 hover:bg-HG-50"
+                >
+                  Clear all filters
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </section>
       )}
+
       <>
         <div className="md:px-8 px-4 mt-32 md:mt-40 space-y-10">
-          {!searchQuery && (
+          {!hasActiveSearch && (
             <>
-              {false && (
-                <div className="flex flex-col items-center font-poppins mb-10 md:mb-20">
-                  {/* <GradientText
-                    className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight font-semibold select-none"
-                    element="H1"
-                  >
-                    SPOT YOUR PG
-                  </GradientText> */}
-                  <h1 className="text-[clamp(40px,10vw,80px)] md:text-[80px] leading-tight text-HG-500  select-none font-zen">
-                    SPOT YOUR <span>PG</span>
-                  </h1>
-
-                  <TextGenerateEffect
-                    className="font-inter select-none text-center md:tracking-wider font-medium text-[clamp(12px,4vw,18px)] md:text-lg text-gray-600"
-                    words="Discover the perfect PG around you — filtered by comfort, budget, and location."
-                    shouldAnimate={!isLoading}
-                  />
-                </div>
-              )}
-
+              {/* Hero Section */}
               <div className=" w-full  md:p-8 overflow-hidden -mt-4  md:-mt-20">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   {/* Left Content - Text Only */}
@@ -247,14 +538,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                           >
-                            {/* <BlurImage
-                              src={image.src || "/placeholder.svg"}
-                              alt={image.alt}
-                              width={250}
-                              height={250}
-                              className="w-[250px] h-[250px] object-cover"
-                            /> */}
-
                             <div className="w-[250px] h-[250px] bg-gray-100 "></div>
                           </div>
                         ))}
@@ -280,14 +563,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
                           >
-                            {/* <BlurImage
-                              src={image.src || "/placeholder.svg"}
-                              alt={image.alt}
-                              width={250}
-                              height={250}
-                              className="w-[250px] h-[250px] object-cover"
-                            /> */}
-
                             <div className="w-[250px] h-[250px] bg-gray-100 "></div>
                           </div>
                         ))}
@@ -313,14 +588,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
                           >
-                            {/* <BlurImage
-                              src={image.src || "/placeholder.svg"}
-                              alt={image.alt}
-                              width={250}
-                              height={250}
-                              className="w-[250px] h-[250px] object-cover"
-                            /> */}
-
                             <div className="w-[250px] h-[250px] bg-gray-100 "></div>
                           </div>
                         ))}
@@ -382,6 +649,152 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                 </span>
               )}
 
+              {/* Advanced Filter Button */}
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
+                    Find Your Perfect PG
+                  </h2>
+                  <p className="text-gray-600 text-sm md:text-base">
+                    Use advanced filters to discover properties that match your
+                    preferences
+                  </p>
+                </div>
+                <AdvancedFilter
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  onApplyFilters={applyFilters}
+                  onClearFilters={clearFilters}
+                  activeFiltersCount={activeFiltersCount}
+                />
+              </div>
+
+              {/* Active Filters Display for Home Page */}
+              {activeFiltersCount > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-medium text-gray-600">
+                      Active Filters:
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-xs h-auto p-1 text-HG-500 hover:text-HG-600"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {filters.type && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        Type: {filters.type}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("type")}
+                        />
+                      </Badge>
+                    )}
+                    {filters.genderPreference && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        Gender: {filters.genderPreference}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("genderPreference")}
+                        />
+                      </Badge>
+                    )}
+                    {(filters.minPrice || filters.maxPrice) && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        Price: ₹{filters.minPrice || "0"} - ₹
+                        {filters.maxPrice || "∞"}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => {
+                            removeFilter("minPrice");
+                            removeFilter("maxPrice");
+                          }}
+                        />
+                      </Badge>
+                    )}
+                    {filters.city && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        City: {filters.city}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("city")}
+                        />
+                      </Badge>
+                    )}
+                    {filters.area && (
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        Area: {filters.area}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("area")}
+                        />
+                      </Badge>
+                    )}
+                    {filters.amenities.map((amenity) => (
+                      <Badge
+                        key={amenity}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {amenity}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("amenities", amenity)}
+                        />
+                      </Badge>
+                    ))}
+                    {filters.roomTypes.map((roomType) => (
+                      <Badge
+                        key={roomType}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {roomType}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("roomTypes", roomType)}
+                        />
+                      </Badge>
+                    ))}
+                    {filters.visible.map((visible) => (
+                      <Badge
+                        key={visible}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {visible.charAt(0).toUpperCase() +
+                          visible.slice(1).replace(/-/g, " ")}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => removeFilter("visible", visible)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Section 1: Featured Properties */}
               <section>
                 <SectionHeading
                   rightSide={
@@ -396,87 +809,157 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     </Link>
                   }
                 >
-                  Featured PG&apos;s
+                  Featured Properties
                 </SectionHeading>
 
-                <FeaturedCarousel loading={loading} pgs={featuredPGs} />
+                {loading.featured ? (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Skeleton key={idx} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {featuredPGs?.map((pg, idx) => (
+                      <PgCard
+                        key={idx}
+                        id={pg?._id}
+                        image={pg?.primaryImage}
+                        area={pg?.location?.area}
+                        pgName={pg?.pgName}
+                        ownerName={pg?.ownerId?.fullName}
+                        price={pg?.minRent}
+                        isWishlisted={pg?.inWatchList}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
+
+              {/* Section 2: Property Listings */}
+              <section>
+                <SectionHeading
+                  rightSide={
+                    <Link
+                      href={"/routes/all-listings"}
+                      className="flex items-center gap-2"
+                    >
+                      <p className="font-inter text-xs md:text-base text-HG-500">
+                        View All
+                      </p>
+                      <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
+                    </Link>
+                  }
+                >
+                  Property Listings
+                </SectionHeading>
+
+                {loading.all ? (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Skeleton key={idx} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {allListings?.map((pg, idx) => (
+                      <PgCard
+                        key={idx}
+                        id={pg?._id}
+                        image={pg?.primaryImage}
+                        area={pg?.location?.area}
+                        pgName={pg?.pgName}
+                        ownerName={pg?.ownerId?.fullName}
+                        price={pg?.minRent}
+                        isWishlisted={pg?.inWatchList}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Section 3: PG Near Me - Only show if location is available */}
+              {userLocation && !locationDenied && (
+                <section>
+                  <SectionHeading
+                    rightSide={
+                      <Link
+                        href="/routes/nearbypg-map"
+                        className="flex items-center gap-2"
+                      >
+                        <p className="font-inter text-xs md:text-base text-HG-500">
+                          View All
+                        </p>
+                        <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
+                      </Link>
+                    }
+                  >
+                    PG&apos;s Near You
+                  </SectionHeading>
+
+                  {loading.nearby ? (
+                    <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                      {Array.from({ length: 5 }).map((_, idx) => (
+                        <Skeleton key={idx} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                      {nearbyListings?.map((pg, idx) => (
+                        <PgCard
+                          key={idx}
+                          id={pg?._id}
+                          image={pg?.primaryImage}
+                          area={pg?.location?.area}
+                          pgName={pg?.pgName}
+                          ownerName={pg?.ownerId?.fullName}
+                          price={pg?.minRent}
+                          isWishlisted={pg?.inWatchList}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Location denied message */}
+              {locationDenied && (
+                <div className="mt-4 p-4 flex justify-between items-center border border-yellow-300 bg-yellow-50 rounded-xl text-sm text-yellow-800 font-inter ">
+                  <p>
+                    ⚠️ We couldn&apos;t access your location. Enable location
+                    access to see nearby PGs.
+                  </p>
+
+                  <Button
+                    onClick={() => {
+                      if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            setUserLocation({
+                              lat: position.coords.latitude,
+                              lng: position.coords.longitude,
+                            });
+                            setLocationDenied(false);
+                          },
+                          (err) => {
+                            console.warn("Permission still denied", err);
+                            setLocationDenied(true);
+                          }
+                        );
+                      }
+                    }}
+                    className=""
+                  >
+                    Retry Location Access
+                  </Button>
+                </div>
+              )}
             </>
           )}
-
-          <section>
-            <SectionHeading
-              rightSide={
-                userLocation &&
-                !searchQuery && (
-                  <Link
-                    href="/routes/nearbypg-map"
-                    className="flex items-center gap-2"
-                  >
-                    <p className="font-inter text-xs md:text-base text-HG-500">
-                      View On Map
-                    </p>
-                    <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
-                  </Link>
-                )
-              }
-            >
-              {!searchQuery
-                ? userLocation
-                  ? "PG's Near You"
-                  : locationDenied
-                  ? "Latest PG's"
-                  : "Finding PG's Near You..."
-                : ""}
-            </SectionHeading>
-
-            {locationDenied && (
-              <div className="mt-4 p-4 flex justify-between items-center border border-yellow-300 bg-yellow-50 rounded-xl text-sm text-yellow-800 font-inter ">
-                <p>
-                  ⚠️ We couldn&apos;t access your location. Showing latest PGs
-                  instead. You can allow location access for a better
-                  experience.
-                </p>
-
-                <Button
-                  onClick={() => {
-                    if ("geolocation" in navigator) {
-                      navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                          setUserLocation({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude,
-                          });
-                          setLocationDenied(false);
-                        },
-                        (err) => {
-                          console.warn("Permission still denied", err);
-                          setLocationDenied(true);
-                        }
-                      );
-                    }
-                  }}
-                  className=""
-                >
-                  Retry Location Access
-                </Button>
-              </div>
-            )}
-
-            <Suspense fallback={<Skeleton />}>
-              <HomeContainer
-                searchQuery={searchQuery}
-                page={page}
-                per_page={per_page}
-                userLocation={userLocation}
-                locationDenied={locationDenied}
-              />
-            </Suspense>
-          </section>
         </div>
-        
+
         {/* Owner Listing Section - Only show when not searching */}
-        {!searchQuery && <OwnerListingSection />}
+        {!hasActiveSearch && <OwnerListingSection />}
       </>
     </>
   );
