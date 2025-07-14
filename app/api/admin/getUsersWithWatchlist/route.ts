@@ -19,7 +19,7 @@ export async function GET() {
 
     // Get all users with their watchlists populated
     const users = await User.find({ role: "user" })
-      .select("_id fullName email watchlist createdAt updatedAt")
+      .select("_id fullName email phone watchlist createdAt updatedAt")
       .populate({
         path: "watchlist",
         select: "_id pgName location.city location.area primaryImage ownerId",
@@ -90,6 +90,7 @@ export async function GET() {
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
+      phone: user.phone,
       watchlistCount: user.watchlist?.length || 0,
       watchlist: user.watchlist || [],
       createdAt: user.createdAt,

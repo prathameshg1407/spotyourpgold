@@ -24,6 +24,7 @@ import {
   ChevronUp,
   Building2,
   Mail,
+  Phone,
   Loader2,
   X,
 } from "lucide-react";
@@ -49,6 +50,7 @@ interface UserWithWatchlist {
   _id: string;
   fullName: string;
   email: string;
+  phone: string;
   watchlistCount: number;
   watchlist: WatchlistItem[];
   createdAt: string;
@@ -141,7 +143,8 @@ export default function FavoritesManagement() {
     const search = searchQuery.toLowerCase();
     return (
       user.fullName.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search)
+      user.email.toLowerCase().includes(search) ||
+      user.phone.toLowerCase().includes(search)
     );
   });
 
@@ -345,7 +348,7 @@ export default function FavoritesManagement() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search users..."
+            placeholder="Search by name, email, or phone..."
             className="w-full px-10 py-2 font-poppins text-sm md:text-base rounded-lg bg-[#faf4eb] text-black focus:outline-HG-400/40"
           />
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -386,6 +389,10 @@ export default function FavoritesManagement() {
                             <div className="flex items-center gap-1">
                               <Mail className="w-4 h-4" />
                               {user.email}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-4 h-4" />
+                              {user.phone}
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />

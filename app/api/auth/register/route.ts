@@ -14,22 +14,21 @@ const generateOtp = (length = 5) =>
 export async function POST(req: Request) {
   try {
     await connectToDB();
-    const { fullName, email, password } = await req.json();
+    const { fullName, email, password, mobile } = await req.json();
 
-    if (!email || !password || !fullName)
-      return NextResponse.json(
-        { success: false, message: "Please fill all the fields. (email, password, fullName)" },
-      );
+    if (!email || !password || !fullName || !mobile)
+      return NextResponse.json({
+        success: false,
+        message:
+          "Please fill all the fields. (email, password, fullName, mobile)",
+      });
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User already exists.",
-        },
-     
-      );
+      return NextResponse.json({
+        success: false,
+        message: "User already exists.",
+      });
     }
 
     // Throttle OTP resend
@@ -55,6 +54,7 @@ export async function POST(req: Request) {
       fullName,
       email,
       password: hashedPassword,
+      mobile,
     });
 
     const otp = generateOtp();
@@ -69,8 +69,9 @@ export async function POST(req: Request) {
     return NextResponse.json(res);
   } catch (error) {
     console.error("[REGISTER_API]", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to register. (error)" },
-    );
+    return NextResponse.json({
+      success: false,
+      message: "Failed to register. (error)",
+    });
   }
 }

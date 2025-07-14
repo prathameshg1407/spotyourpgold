@@ -115,6 +115,18 @@ export const validateSignupForm = (data: SignupFormData): FormErrors => {
     return errors;
   }
 
+  if (!data.mobile.trim()) {
+    errors.mobile = true;
+    errors.general = "Mobile number is required.";
+    return errors;
+  }
+
+  if (!MOBILE_PATTERN.test(data.mobile)) {
+    errors.mobile = true;
+    errors.general = "Enter a valid 10-digit mobile number.";
+    return errors;
+  }
+
   return errors;
 };
 
@@ -138,18 +150,6 @@ export const validateLoginForm = (data: LoginFormData): FormErrors => {
   if (!EMAIL_PATTERN.test(data.email)) {
     errors.email = true;
     errors.general = "Enter a valid email.";
-    return errors;
-  }
-
-  if (!data.mobile.trim()) {
-    errors.mobile = true;
-    errors.general = "Mobile number is required.";
-    return errors;
-  }
-
-  if (!MOBILE_PATTERN.test(data.mobile)) {
-    errors.mobile = true;
-    errors.general = "Enter a valid 10-digit mobile number.";
     return errors;
   }
 

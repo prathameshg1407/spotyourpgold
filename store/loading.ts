@@ -8,7 +8,8 @@ export type ContainerKey =
   | "ownerListings"
   | "pgDetails"
   | "userFavorites"
-  | "visitRequests";
+  | "visitRequests"
+  | "ownerVisitRequests";
 
 type LoadingState = {
   isLoading: boolean;
@@ -28,6 +29,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
     pgDetails: true,
     userFavorites: true,
     visitRequests: true,
+    ownerVisitRequests: true,
   },
   setLoading: (value) => set({ isLoading: value }),
   setContainerLoading: (key, value) =>
@@ -44,6 +46,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
         pgDetails: false,
         userFavorites: false,
         visitRequests: false,
+        ownerVisitRequests: false,
       },
     }),
 }));

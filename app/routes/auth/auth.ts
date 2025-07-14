@@ -13,12 +13,12 @@ export interface SignupFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  mobile: string;
 }
 
 export interface LoginFormData {
   email: string;
   password: string;
-  mobile: string;
 }
 
 export interface ForgotPasswordData {

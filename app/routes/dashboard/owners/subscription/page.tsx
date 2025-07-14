@@ -105,7 +105,7 @@ export default function MonetizationPlanPage() {
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-bold text-gray-900 font-poppins">
-                          % of 1st month rent
+                         10% of 1st month rent
                         </span>
                         <span className="text-gray-600 font-inter">/ per booking</span>
                       </div>

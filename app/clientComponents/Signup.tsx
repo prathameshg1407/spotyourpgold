@@ -6,7 +6,7 @@ import { LoadingButton } from "@/components/loading-button";
 import { ErrorMessage } from "@/app/routes/auth/error-message";
 import { useSignupForm } from "@/hooks/use-signup-form";
 import { formatTimer } from "@/app/routes/auth/validation";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -126,6 +126,18 @@ const Signup = () => {
               placeholder="you@company.com"
               icon={Mail}
               hasError={errors.email}
+              // required
+            />
+
+            <FormInput
+              id="mobile"
+              label="Mobile Number"
+              type="tel"
+              value={formData.mobile}
+              onChange={(value) => updateFormData("mobile", value)}
+              placeholder="9876543210"
+              icon={Phone}
+              hasError={errors.mobile}
               // required
             />
 

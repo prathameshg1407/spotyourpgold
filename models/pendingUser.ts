@@ -4,9 +4,12 @@ const pendingUserSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // Hashed
+  mobile: { type: String, required: true },
   createdAt: { type: Date, default: Date.now, expires: 1800 }, // 30 minutes TTL
 });
 
-const PendingUser = mongoose.models.PendingUser || mongoose.model("PendingUser", pendingUserSchema);
+const PendingUser =
+  mongoose.models.PendingUser ||
+  mongoose.model("PendingUser", pendingUserSchema);
 
 export default PendingUser;

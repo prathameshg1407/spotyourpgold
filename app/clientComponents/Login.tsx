@@ -149,18 +149,6 @@ const Login = () => {
               // required
             />
 
-            <FormInput
-              id="mobile"
-              label="Mobile Number"
-              type="tel"
-              value={loginData.mobile}
-              onChange={(value) => updateLoginData("mobile", value)}
-              placeholder="Enter 10-digit mobile number"
-              icon={Phone}
-              hasError={errors.mobile}
-              // required
-            />
-
             <motion.div variants={itemVariants}>
               <div className="relative">
                 <FormInput

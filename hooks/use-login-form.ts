@@ -38,7 +38,6 @@ const initialErrors: FormErrors = {
 const initialLoginData: LoginFormData = {
   email: "",
   password: "",
-  mobile: "",
 };
 
 const initialForgotPasswordData: ForgotPasswordData = {
@@ -148,7 +147,6 @@ export const useLoginForm = () => {
         const res = await axios.post("/api/auth/login", {
           email: loginData.email,
           password: loginData.password,
-          mobile: loginData.mobile,
         });
 
         // Dismiss loading toast

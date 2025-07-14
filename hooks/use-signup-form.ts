@@ -29,6 +29,7 @@ const initialFormData: SignupFormData = {
   email: "",
   password: "",
   confirmPassword: "",
+  mobile: "",
 };
 
 const initialOTP: string[] = Array(OTP_LENGTH).fill("");
