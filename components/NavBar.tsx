@@ -127,7 +127,18 @@ const NavBar = ({
           />
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 md:gap-5">
+          {/* List Now Button */}
+          <Link href="/routes/owners/onboarding" className="hidden md:block">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white font-poppins font-medium transition-all duration-300"
+            >
+              List Now
+            </Button>
+          </Link>
+
           {!showMobileSearch ? (
             <div
               onClick={() => {
@@ -195,19 +206,6 @@ const NavBar = ({
                 >
                   Profile
                 </DropdownMenuItem> */}
-
-                {/* For normal users who haven't applied to be owner */}
-                {user?.role === "user" && user?.ownerStatus === "none" && (
-                  <Link href={"/routes/owners/onboarding"} prefetch={true}>
-                    <DropdownMenuItem
-                      // onClick={() => router.push("/become-owner")}
-                      className="cursor-pointer font-medium justify-between"
-                    >
-                      <p className="text-HG-500">Become an Owner</p>
-                      <IconCrown className=" text-HG-500" />
-                    </DropdownMenuItem>
-                  </Link>
-                )}
 
                 {/* If user has applied but pending */}
                 {user?.role === "user" && user?.ownerStatus === "pending" && (
@@ -283,56 +281,70 @@ const NavBar = ({
       </div>
 
       {showMobileSearch && (
-        <div className="relative w-[90%] mx-auto mt-4  md:hidden">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Location, Owner, or PG Name..."
-            className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
-          />
+        <div className="w-[90%] mx-auto mt-4 md:hidden space-y-3">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Location, Owner, or PG Name..."
+              className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
+            />
 
-          {!searchQuery && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-                />
-              </svg>
-            </div>
-          )}
+            {!searchQuery && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+                  />
+                </svg>
+              </div>
+            )}
 
-          {searchQuery && (
-            <div
-              onClick={() => {
-                setSearchQuery("");
-                setShowMobileSearch(false);
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
+            {searchQuery && (
+              <div
+                onClick={() => {
+                  setSearchQuery("");
+                  setShowMobileSearch(false);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-          )}
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile List Now Button */}
+          <div className="flex justify-center">
+            <Link href="/routes/owners/onboarding">
+              <Button
+                size="sm"
+                className="bg-HG-500 hover:bg-HG-600 text-white font-poppins font-medium transition-all duration-300"
+              >
+                List Your Property
+              </Button>
+            </Link>
+          </div>
         </div>
       )}
     </nav>

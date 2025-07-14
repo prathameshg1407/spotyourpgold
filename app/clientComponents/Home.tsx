@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useListingStore } from "@/store/listingStore";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { BlurImage } from "@/components/BlurImage";
+import OwnerListingSection from "@/components/OwnerListingSection";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -473,6 +474,9 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
             </Suspense>
           </section>
         </div>
+        
+        {/* Owner Listing Section - Only show when not searching */}
+        {!searchQuery && <OwnerListingSection />}
       </>
     </>
   );
