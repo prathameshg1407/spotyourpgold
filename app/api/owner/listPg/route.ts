@@ -43,16 +43,12 @@ export async function POST(req: Request) {
       !pgName?.trim() ||
       !Array.isArray(roomTypes) ||
       roomTypes.length === 0 ||
-      !Array.isArray(amenities) ||
-      amenities.length === 0 ||
       !location?.city ||
       !location?.state ||
       !location?.pincode ||
       !Array.isArray(images) ||
       images.length === 0 ||
-      !Array.isArray(additionalDetails) ||
-      additionalDetails.length > 10 ||
-      !Array.isArray(rulesAndRegulations) ||
+        additionalDetails.length > 10 ||
       rulesAndRegulations.length > 10
     ) {
       return NextResponse.json({
