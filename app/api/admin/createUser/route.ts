@@ -17,12 +17,20 @@ export async function POST(req: Request) {
       });
     }
 
-    const { email, password, fullName } = await req.json();
+    const { email, password, fullName, phone } = await req.json();
 
-    if (!email || !password || !fullName) {
+    if (!email || !password || !fullName || !phone) {
       return NextResponse.json({
         success: false,
-        message: "Email and password are required",
+        message: "Email, password, full name, and phone number are required",
+      });
+    }
+
+    // Validate phone number format
+    if (!/^\d{10}$/.test(phone)) {
+      return NextResponse.json({
+        success: false,
+        message: "Phone number must be 10 digits",
       });
     }
 
@@ -35,6 +43,15 @@ export async function POST(req: Request) {
       });
     }
 
+    const existingPhone = await User.findOne({ phone });
+
+    if (existingPhone) {
+      return NextResponse.json({
+        success: false,
+        message: "Phone number already exists",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
@@ -43,6 +60,7 @@ export async function POST(req: Request) {
       role: "owner",
       ownerStatus: "verified",
       fullName: fullName,
+      phone: phone,
     });
 
     return NextResponse.json({

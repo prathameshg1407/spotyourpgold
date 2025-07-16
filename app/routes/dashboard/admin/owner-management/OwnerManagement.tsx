@@ -689,6 +689,7 @@ const OwnerManagement = () => {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserFullName, setNewUserFullName] = useState("");
+  const [newUserPhone, setNewUserPhone] = useState("");
 
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
@@ -739,6 +740,16 @@ const OwnerManagement = () => {
       return;
     }
 
+    if (!newUserPhone.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(newUserPhone.trim())) {
+      toast.error("Phone number must be 10 digits");
+      return;
+    }
+
     if (!newUserPassword.trim()) {
       toast.error("Password is required");
       return;
@@ -775,6 +786,7 @@ const OwnerManagement = () => {
         fullName: newUserFullName,
         email: newUserEmail,
         password: newUserPassword,
+        phone: newUserPhone,
       });
 
       if (res?.data?.success) {
@@ -783,6 +795,7 @@ const OwnerManagement = () => {
         setNewUserEmail("");
         setNewUserPassword("");
         setNewUserFullName("");
+        setNewUserPhone("");
         fetchOwners(); // Refresh the owners list after creating a new user
         // Optionally refresh the owners list
       } else {
@@ -943,6 +956,20 @@ const OwnerManagement = () => {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="phone" className="font-poppins">
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter phone number (10 digits)"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  className="font-inter"
+                  maxLength={10}
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="password" className="font-poppins">
                   Password
                 </Label>
@@ -963,6 +990,8 @@ const OwnerManagement = () => {
                 onClick={() => {
                   setNewUserEmail("");
                   setNewUserPassword("");
+                  setNewUserFullName("");
+                  setNewUserPhone("");
                   setDialogOpen(false);
                 }}
                 className="font-poppins"
