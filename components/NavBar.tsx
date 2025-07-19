@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,47 +12,95 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUserStore } from "@/store/userStore";
-// import { logout } from "@/actions/auth";
 import { toast } from "sonner";
 import axios from "axios";
 import { IconCrown } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import PropertyTypeFilter from "./PropertyTypeFilter";
+import { Input } from "./ui/input";
+import { Search, X, Filter } from "lucide-react";
+import { useAdvancedFilters } from "@/hooks/useAdvancedFilters";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import AdvancedFilter from "./AdvancedFilter";
+import { Badge } from "./ui/badge";
+import SearchDropdown from "./SearchDropdown";
 
-const NavBar = ({
-  searchQuery,
-  setSearchQuery,
-  selectedType,
-  selectedSubType,
-  onTypeChange,
-}: {
-  searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
-  selectedType: string;
-  selectedSubType: string;
-  onTypeChange: (type: string, subType: string) => void;
-}) => {
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-
+const NavBar = () => {
   const { user, setUser } = useUserStore();
-
-  // const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // useEffect(() => {
-  //   if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+  // Use advanced filters hook
+  const {
+    filters,
+    updateFilter,
+    clearFilters,
+    activeFiltersCount,
+    searchWithFilters,
+  } = useAdvancedFilters(20, false);
 
-  //   if (searchQuery.trim().length === 0) return;
+  // Ultra-fast debounce for real-time search
+  const debouncedSearch = useDebouncedValue(searchQuery, 150);
 
-  //   debounceTimeout.current = setTimeout(() => {
-  //     router.push(`/routes/search?q=${encodeURIComponent(searchQuery.trim())}`);
-  //   }, 600); // 600ms debounce
-  // }, [searchQuery, router]);
+  // Update filters when search query changes
+  useEffect(() => {
+    if (debouncedSearch !== filters.query) {
+      updateFilter("query", debouncedSearch);
+    }
+  }, [debouncedSearch, filters.query, updateFilter]);
+
+  // Trigger search immediately when filters change
+  useEffect(() => {
+    const hasActiveSearch = filters.query || activeFiltersCount > 0;
+    if (hasActiveSearch) {
+      searchWithFilters();
+    }
+  }, [filters, activeFiltersCount, searchWithFilters]);
+
+  // Handle search input change - real-time
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    clearFilters();
+  };
+
+  // Remove specific filter
+  const removeFilter = (key: string, value?: string) => {
+    if (key === "query") {
+      setSearchQuery("");
+      updateFilter("query", "");
+    } else if (
+      key === "amenities" ||
+      key === "roomTypes" ||
+      key === "nearbyPlaces"
+    ) {
+      const currentArray = (filters as any)[key] as string[];
+      updateFilter(
+        key as any,
+        currentArray.filter((item: string) => item !== value)
+      );
+    } else {
+      updateFilter(key as any, "");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("/api/auth/logout");
+      setUser(null);
+      router.push("/");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      toast.error("Error logging out");
+    }
+  };
 
   return (
-    <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur-md bg-white/20 py-3 md:py-4 md:px-4 shadow-2xl shadow-HG-500/10   ">
-      <div className="flex flex-wrap items-center justify-between px-4">
+    <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur-md bg-white/20 py-3 md:py-4 md:px-4 shadow-2xl shadow-HG-500/10">
+      <div className="flex items-center justify-between px-4">
         {/* Logo */}
         <Link
           href="/"
@@ -69,284 +116,241 @@ const NavBar = ({
           SYPG
         </Link>
 
-        {/* Search Input and Filter */}
-        <div className="flex items-center gap-3 w-[70%] md:w-[50%] hidden md:flex">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Location, Owner, or PG Name..."
-              className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
-            />
+        {/* Search Section - Hidden on mobile */}
+        <div className="hidden md:flex flex-1 max-w-xl mx-8">
+          <SearchDropdown
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onClear={handleClearSearch}
+            onSelectProperty={(property) => {
+              // Navigate to property details page
+              router.push(`/routes/pg-details/${property._id}`);
+            }}
+            onSelectLocation={(location) => {
+              // Update filters based on location type
+              if (location.type === "city") {
+                updateFilter("city", location.name);
+              } else {
+                updateFilter("area", location.name);
+              }
+            }}
+            placeholder="Search by location, PG name, or owner name..."
+          />
 
-            {!searchQuery && (
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-                  />
-                </svg>
-              </div>
-            )}
-
-            {searchQuery && (
-              <div
-                onClick={() => {
-                  setSearchQuery("");
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Property Type Filter */}
-          <PropertyTypeFilter
-            selectedType={selectedType}
-            selectedSubType={selectedSubType}
-            onTypeChange={onTypeChange}
+          {/* Advanced Filter Button - directly opens sidebar */}
+          <AdvancedFilter
+            filters={filters}
+            onFiltersChange={(newFilters) => {
+              Object.entries(newFilters).forEach(([key, value]) => {
+                updateFilter(key as any, value);
+              });
+            }}
+            onApplyFilters={searchWithFilters}
+            onClearFilters={clearFilters}
+            activeFiltersCount={activeFiltersCount}
           />
         </div>
 
-        <div className="flex items-center gap-3 md:gap-5">
-          {/* List Now Button */}
-          <Link href="/routes/owners/onboarding" className="hidden md:block">
+        {/* Navigation Links */}
+        <div className="flex items-center gap-2 md:gap-5">
+          {/* List Now Button - Always visible */}
+          <Link href="/routes/owners/onboarding">
             <Button
               variant="outline"
               size="sm"
-              className="border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white font-poppins font-medium transition-all duration-300"
+              className="border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white font-poppins font-medium transition-all duration-300 text-xs md:text-sm px-3 md:px-4"
             >
               List Now
             </Button>
           </Link>
 
-          {!showMobileSearch ? (
-            <div
-              onClick={() => {
-                setShowMobileSearch(true);
-              }}
-              className=" cursor-pointer  text-gray-400 md:hidden "
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-                />
-              </svg>
-            </div>
-          ) : (
-            <div
-              onClick={() => {
-                setSearchQuery("");
-                setShowMobileSearch(false);
-              }}
-              className=" text-gray-400 cursor-pointer "
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-          )}
-
+          {/* User Menu */}
           {user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer">
-                  {/* <AvatarImage src={user.avatarUrl} /> */}
-                  <AvatarFallback className="text-HG-500 text-xl font-poppins">
-                    {user?.fullName?.slice(0, 1).toUpperCase() || "?"}
+              <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
+                <Avatar className="h-8 w-8 border-2 border-HG-500">
+                  <AvatarImage src="" alt="User" />
+                  <AvatarFallback className="bg-HG-500 text-white font-poppins font-medium text-sm">
+                    {user.fullName?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
+                <span className="hidden md:block text-sm font-medium font-poppins">
+                  {user.fullName}
+                </span>
+                {user.role === "admin" && (
+                  <IconCrown className="h-4 w-4 text-yellow-500" />
+                )}
               </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                className="w-[200px] mr-5 md:mr-8"
-                align="start"
-              >
-                {/* Common for all logged-in users */}
-                {/* <DropdownMenuItem
-                  // onClick={() => router.push("/profile")}
-                  className="cursor-pointer"
-                >
-                  Profile
-                </DropdownMenuItem> */}
-
-                {/* If user has applied but pending */}
-                {user?.role === "user" && user?.ownerStatus === "pending" && (
-                  <Link href={"/routes/owners/onboarding"} prefetch={true}>
-                    <DropdownMenuItem className="opacity-70 cursor-pointer">
-                      Verification Pending *
-                    </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link href="/routes/dashboard" className="cursor-pointer">
+                    Dashboard
                   </Link>
-                )}
-
-                {/* For verified owners */}
-                {user?.role === "owner" && user?.ownerStatus === "verified" && (
-                  <DropdownMenuItem
-                    onClick={() => router.push("/routes/dashboard")}
-                    className="cursor-pointer"
-                  >
-                    Owner Dashboard
-                  </DropdownMenuItem>
-                )}
-
-                {/* For admin */}
-                {user?.role === "admin" && (
-                  <DropdownMenuItem
-                    onClick={() => router.push("/routes/dashboard")}
-                    className="cursor-pointer"
-                  >
-                    Admin Panel
-                  </DropdownMenuItem>
-                )}
-
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/routes/watchlist" className="cursor-pointer">
+                    Watchlist
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-
-                {/* Log out */}
                 <DropdownMenuItem
+                  onClick={handleLogout}
                   className="cursor-pointer"
-                  onClick={async () => {
-                    const loadingToast = toast.loading("logging out...", {
-                      closeButton: true,
-                    });
-
-                    const res = await axios.post("/api/auth/logout");
-                    toast.dismiss(loadingToast);
-                    if (res && res?.data && res?.data?.success) {
-                      toast.dismiss(loadingToast);
-                      setUser(null);
-                      toast.success(
-                        res?.data?.message || "Logged out successfully.",
-                        {
-                          closeButton: true,
-                          duration: 2000,
-                        }
-                      );
-                    } else {
-                      toast.dismiss(loadingToast);
-                      toast.error(res.data?.message || "Failed to logout.", {
-                        closeButton: true,
-                        duration: 2000,
-                      });
-                    }
-                  }}
                 >
-                  Log out
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            // </div>
-            <Link href={"/routes/auth/login"} prefetch={true}>
-              <Button className="font-poppins uppercase">Log In</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/routes/auth/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-poppins text-xs md:text-sm px-3 md:px-4 bg-orange-500 text-white border-orange-500 hover:bg-orange-600 hover:border-orange-600"
+                >
+                  LOG IN
+                </Button>
+              </Link>
+              <Link href="/routes/auth/signup">
+                <Button
+                  size="sm"
+                  className="font-poppins text-xs md:text-sm px-3 md:px-4 hidden md:block"
+                >
+                  Sign Up
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>
 
-      {showMobileSearch && (
-        <div className="w-[90%] mx-auto mt-4 md:hidden space-y-3">
-          <div className="relative">
-            <input
-              type="text"
+      {/* Mobile Search Bar with Advanced Filter Button */}
+      <div className="md:hidden px-4 mt-3 pb-3">
+        <div className="flex gap-2 items-center">
+          {/* Search Bar - takes most of the space */}
+          <div className="flex-1">
+            <SearchDropdown
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Location, Owner, or PG Name..."
-              className="w-full px-8 md:px-10 py-2 focus:border-none font-poppins text-xs md:text-base focus:outline-gray-200 rounded-lg placeholder:text-center bg-gray-50 text-black text-center"
+              onChange={handleSearchChange}
+              onClear={handleClearSearch}
+              onSelectProperty={(property) => {
+                // Navigate to property details page
+                router.push(`/routes/pg-details/${property._id}`);
+              }}
+              onSelectLocation={(location) => {
+                // Update filters based on location type
+                if (location.type === "city") {
+                  updateFilter("city", location.name);
+                } else {
+                  updateFilter("area", location.name);
+                }
+              }}
+              placeholder="Search PGs..."
             />
-
-            {!searchQuery && (
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 ">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-                  />
-                </svg>
-              </div>
-            )}
-
-            {searchQuery && (
-              <div
-                onClick={() => {
-                  setSearchQuery("");
-                  setShowMobileSearch(false);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer "
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </div>
-            )}
           </div>
 
-          {/* Mobile List Now Button */}
-          <div className="flex justify-center">
-            <Link href="/routes/owners/onboarding">
-              <Button
-                size="sm"
-                className="bg-HG-500 hover:bg-HG-600 text-white font-poppins font-medium transition-all duration-300"
+          {/* Mobile Advanced Filter Button - Icon only on the right */}
+          <div className="[&>button]:p-2 [&>button]:bg-white/80 [&>button]:backdrop-blur-md [&>button]:border-white/20 [&>button]:hover:bg-white/90 [&>button]:aspect-square [&>button>span]:hidden">
+            <AdvancedFilter
+              filters={filters}
+              onFiltersChange={(newFilters) => {
+                Object.entries(newFilters).forEach(([key, value]) => {
+                  updateFilter(key as any, value);
+                });
+              }}
+              onApplyFilters={searchWithFilters}
+              onClearFilters={clearFilters}
+              activeFiltersCount={activeFiltersCount}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Active Filters Display */}
+      {activeFiltersCount > 0 && (
+        <div className="absolute top-full left-0 right-0 bg-white/90 backdrop-blur-md border-t border-white/20 px-4 py-2 shadow-sm z-30">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-700">
+              Active filters:
+            </span>
+
+            {filters.query && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Search: {filters.query}
+                <button
+                  onClick={() => removeFilter("query")}
+                  className="ml-1 hover:text-red-500"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+
+            {filters.city && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                City: {filters.city}
+                <button
+                  onClick={() => removeFilter("city")}
+                  className="ml-1 hover:text-red-500"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+
+            {filters.type && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Type: {filters.type}
+                <button
+                  onClick={() => removeFilter("type")}
+                  className="ml-1 hover:text-red-500"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+
+            {filters.amenities.map((amenity) => (
+              <Badge
+                key={amenity}
+                variant="secondary"
+                className="flex items-center gap-1"
               >
-                List Your Property
-              </Button>
-            </Link>
+                {amenity}
+                <button
+                  onClick={() => removeFilter("amenities", amenity)}
+                  className="ml-1 hover:text-red-500"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+
+            {filters.roomTypes.map((roomType) => (
+              <Badge
+                key={roomType}
+                variant="secondary"
+                className="flex items-center gap-1"
+              >
+                {roomType}
+                <button
+                  onClick={() => removeFilter("roomTypes", roomType)}
+                  className="ml-1 hover:text-red-500"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-red-500 hover:text-red-700"
+            >
+              Clear all
+            </Button>
           </div>
         </div>
       )}

@@ -20,6 +20,105 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
+// Comprehensive Listing interface matching the upgraded model
+interface ListingDetails {
+  _id?: string;
+  inWatchList: boolean;
+
+  // Basic Info
+  pgName: string;
+  type?: string;
+  subType?: string;
+  genderPreference: "male" | "female" | "both";
+
+  // Room Types
+  roomTypes: Array<{
+    type: string;
+    numberOfRooms: number;
+    availableRooms: number;
+    capacityPerRoom: number;
+    monthlyRent: number;
+    securityDeposit: number;
+  }>;
+
+  // Financial
+  monthlyRent: number;
+  minRent: number;
+  securityDeposit: number;
+  numberOfRooms: number;
+  capacityPerRoom: number;
+
+  // Amenities & Details
+  amenities: string[];
+  additionalDetails: string[];
+
+  // Rent Inclusions
+  rentInclusions: {
+    foodIncluded: boolean;
+    electricityIncluded: boolean;
+    maintenanceIncluded: boolean;
+  };
+
+  // Rules
+  rulesAndRegulations: string[];
+  detailedRules: {
+    lockInPeriod: string;
+    noticePeriod: string;
+    maintenanceCharges: string;
+    entryTiming: string;
+    exitTiming: string;
+    guestStayPolicy: string;
+    smokingAlcoholPolicy: string;
+  };
+
+  // Owner Info
+  ownerId: {
+    _id: string;
+    fullName: string;
+    address: {
+      city: string;
+      state: string;
+    };
+    createdAt: string;
+  };
+
+  // Media
+  images: Array<{
+    url: string;
+    public_id?: string;
+  }>;
+  primaryImage: string;
+  videos?: Array<{
+    url: string;
+    public_id?: string;
+  }>;
+
+  // Location
+  location: {
+    area: string;
+    city: string;
+    state: string;
+    pincode: string;
+    nearbyPlaces: string[];
+    coordinates: {
+      type: string;
+      coordinates: number[];
+    };
+  };
+
+  // Status
+  isActive: boolean;
+  isApproved: boolean;
+  isFeatured: boolean;
+
+  // Monetization
+  planType: string;
+  paymentStatus: string;
+
+  // Timestamps
+  createdAt: Date;
+}
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -79,6 +178,7 @@ import "leaflet/dist/leaflet.css";
 import { useListingStore } from "@/store/listingStore";
 import SectionHeading from "@/components/SectionHeading";
 import { FeaturedCarousel } from "@/components/FeaturedCarousel";
+import OwnerListingSection from "@/components/OwnerListingSection";
 import VisitRequestForm from "@/components/VisitRequestForm";
 
 // Fix default icon issue
@@ -492,13 +592,30 @@ export default function ProductPage() {
   });
   const [hoverRating, setHoverRating] = useState(0);
 
-  const [listing, setListing] = useState<Listing>({
+  const [listing, setListing] = useState<ListingDetails>({
     inWatchList: false,
-    rentInculsions: {
+
+    // Enhanced fields from upgraded model
+    type: "",
+    subType: "",
+
+    rentInclusions: {
       foodIncluded: false,
       electricityIncluded: false,
       maintenanceIncluded: false,
     },
+
+    // Enhanced rules structure
+    detailedRules: {
+      lockInPeriod: "",
+      noticePeriod: "",
+      maintenanceCharges: "",
+      entryTiming: "",
+      exitTiming: "",
+      guestStayPolicy: "",
+      smokingAlcoholPolicy: "",
+    },
+
     roomTypes: [],
     ownerId: {
       _id: "",
@@ -533,17 +650,30 @@ export default function ProductPage() {
     ],
     primaryImage: "",
 
-    // Location
+    // Videos (new field)
+    videos: [],
+
+    // Location with enhanced fields
     location: {
       area: "",
       city: "",
       state: "",
       pincode: "",
+      nearbyPlaces: [], // New field
       coordinates: {
         type: "",
         coordinates: [28.6139, 77.209],
       },
     },
+
+    // Status fields
+    isActive: true,
+    isApproved: true,
+    isFeatured: false,
+
+    // Monetization fields
+    planType: "free",
+    paymentStatus: "pending",
 
     // Timestamps
     createdAt: new Date(),
@@ -1197,76 +1327,79 @@ export default function ProductPage() {
                           return (
                             <div
                               key={index}
-                              className="border-2 border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm bg-white hover:shadow-lg hover:border-HG-400 transition-all duration-300"
+                              className="w-full max-w-[320px] border-4 border-HG-500 rounded-xl border-opacity-25 overflow-hidden hover:border-opacity-50 transition duration-300 ease-in group bg-white hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)] hover:scale-[1.02]"
                             >
-                              {/* Header with Icon and Type */}
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-HG-100 rounded-lg">
-                                  <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-HG-600" />
+                              <div className="p-4 font-inter bg-white flex flex-col h-full">
+                                {/* Header with Icon and Type */}
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="p-2 bg-HG-100 rounded-lg">
+                                    <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-HG-600" />
+                                  </div>
+                                  <h4 className="font-semibold text-lg text-HG-900 capitalize">
+                                    {room?.type || "Type N/A"}
+                                  </h4>
                                 </div>
-                                <h4 className="font-semibold text-lg text-gray-900 capitalize">
-                                  {room?.type || "Type N/A"}
-                                </h4>
-                              </div>
 
-                              {/* Price */}
-                              <div className="mb-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <IndianRupee className="w-4 h-4 text-yellow-600" />
-                                  <span className="text-2xl font-bold text-yellow-600">
-                                    {room?.monthlyRent?.toLocaleString() ??
-                                      "N/A"}
-                                  </span>
-                                  <span className="text-sm text-gray-500">
-                                    / month
-                                  </span>
-                                </div>
-                                <p className="text-sm text-gray-600">
-                                  Security:{" "}
-                                  <span className="text-yellow-600 font-semibold">
-                                    ₹
-                                    {room?.securityDeposit?.toLocaleString() ??
-                                      "0"}
-                                  </span>
-                                </p>
-                              </div>
-
-                              {/* Room Details */}
-                              <div className="space-y-2 text-sm">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-gray-600">
-                                    Available Rooms:
-                                  </span>
-                                  <span className="font-medium text-HG-600">
-                                    {room?.availableRooms ?? "0"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-gray-600">
-                                    Capacity per Room:
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    <UserCheck className="w-4 h-4 text-gray-500" />
-                                    <span className="font-medium">
-                                      {room?.capacityPerRoom ?? "0"}
+                                {/* Price */}
+                                <div className="mb-4">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <IndianRupee className="w-4 h-4 text-HG-400" />
+                                    <span className="text-2xl font-bold font-poppins text-HG-400">
+                                      ₹
+                                      {room?.monthlyRent?.toLocaleString() ??
+                                        "N/A"}
+                                    </span>
+                                    <span className="text-base font-medium text-gray-600">
+                                      /mo
                                     </span>
                                   </div>
+                                  <p className="text-sm text-gray-500">
+                                    Security:{" "}
+                                    <span className="text-HG-400 font-semibold">
+                                      ₹
+                                      {room?.securityDeposit?.toLocaleString() ??
+                                        "0"}
+                                    </span>
+                                  </p>
                                 </div>
-                              </div>
 
-                              {/* Availability Badge */}
-                              <div className="mt-4 pt-3 border-t border-gray-100">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    (room?.availableRooms ?? 0) > 0
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}
-                                >
-                                  {(room?.availableRooms ?? 0) > 0
-                                    ? "Available"
-                                    : "Fully Occupied"}
-                                </span>
+                                {/* Room Details */}
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">
+                                      Available Rooms:
+                                    </span>
+                                    <span className="font-medium text-HG-600">
+                                      {room?.availableRooms ?? "0"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-600">
+                                      Capacity per Room:
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <UserCheck className="w-4 h-4 text-gray-500" />
+                                      <span className="font-medium">
+                                        {room?.capacityPerRoom ?? "0"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Availability Badge */}
+                                <div className="mt-auto pt-3 border-t border-gray-100">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      (room?.availableRooms ?? 0) > 0
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                    }`}
+                                  >
+                                    {(room?.availableRooms ?? 0) > 0
+                                      ? "Available"
+                                      : "Fully Occupied"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -1337,17 +1470,32 @@ export default function ProductPage() {
                     <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                       Rent Inclusions
                     </h3>
-                    <ul className="list-disc text-gray-700 pl-5 text-sm md:text-base space-y-2">
-                      {listing?.rentInculsions?.foodIncluded && (
-                        <li>Food Included</li>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {listing?.rentInclusions?.foodIncluded && (
+                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <Utensils className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-medium text-green-700">
+                            Food Included
+                          </span>
+                        </div>
                       )}
-                      {listing?.rentInculsions?.electricityIncluded && (
-                        <li>Electricity Included</li>
+                      {listing?.rentInclusions?.electricityIncluded && (
+                        <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <Zap className="w-5 h-5 text-yellow-600" />
+                          <span className="text-sm font-medium text-yellow-700">
+                            Electricity Included
+                          </span>
+                        </div>
                       )}
-                      {listing?.rentInculsions?.maintenanceIncluded && (
-                        <li>Maintenance Included</li>
+                      {listing?.rentInclusions?.maintenanceIncluded && (
+                        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <Home className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-700">
+                            Maintenance Included
+                          </span>
+                        </div>
                       )}
-                    </ul>
+                    </div>
                   </div>
 
                   {/* ✅ Section 3: Rules and Regulations */}
@@ -1366,6 +1514,206 @@ export default function ProductPage() {
                       ))}
                     </ul>
                   </div>
+
+                  {/* ✅ Section 4: Detailed Rules & Policies */}
+                  {listing?.detailedRules && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Detailed Policies
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {listing?.detailedRules?.lockInPeriod && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="w-4 h-4 text-gray-600" />
+                              <span className="font-medium text-gray-900">
+                                Lock-in Period
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {listing.detailedRules.lockInPeriod}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.noticePeriod && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="w-4 h-4 text-gray-600" />
+                              <span className="font-medium text-gray-900">
+                                Notice Period
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {listing.detailedRules.noticePeriod}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.entryTiming && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <DoorOpen className="w-4 h-4 text-green-600" />
+                              <span className="font-medium text-gray-900">
+                                Entry Timing
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {listing.detailedRules.entryTiming}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.exitTiming && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <DoorOpen className="w-4 h-4 text-red-600" />
+                              <span className="font-medium text-gray-900">
+                                Exit Timing
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {listing.detailedRules.exitTiming}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.guestStayPolicy && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Users className="w-4 h-4 text-blue-600" />
+                              <span className="font-medium text-gray-900">
+                                Guest Policy
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 capitalize">
+                              {listing.detailedRules.guestStayPolicy.replace(
+                                "-",
+                                " "
+                              )}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.smokingAlcoholPolicy && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Shield className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium text-gray-900">
+                                Smoking & Alcohol
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 capitalize">
+                              {listing.detailedRules.smokingAlcoholPolicy.replace(
+                                "-",
+                                " "
+                              )}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing?.detailedRules?.maintenanceCharges && (
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <IndianRupee className="w-4 h-4 text-yellow-600" />
+                              <span className="font-medium text-gray-900">
+                                Maintenance Charges
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {listing.detailedRules.maintenanceCharges}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ✅ Section 5: Property Type & Category */}
+                  {(listing?.type || listing?.subType) && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Property Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {listing?.type && (
+                          <div className="flex items-center gap-3 p-4 bg-HG-50 rounded-lg border border-HG-200">
+                            <Building className="w-5 h-5 text-HG-600" />
+                            <div>
+                              <span className="text-sm text-gray-600">
+                                Property Type
+                              </span>
+                              <p className="font-medium text-gray-900 capitalize">
+                                {listing.type}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {listing?.subType && (
+                          <div className="flex items-center gap-3 p-4 bg-HG-50 rounded-lg border border-HG-200">
+                            <Home className="w-5 h-5 text-HG-600" />
+                            <div>
+                              <span className="text-sm text-gray-600">
+                                Sub Type
+                              </span>
+                              <p className="font-medium text-gray-900 capitalize">
+                                {listing.subType}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ✅ Section 6: Nearby Places */}
+                  {listing?.location?.nearbyPlaces?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Nearby Places
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {listing.location.nearbyPlaces.map((place, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200"
+                          >
+                            <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <span className="text-sm font-medium text-blue-700 truncate">
+                              {place}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ✅ Section 7: Videos (if available) */}
+                  {listing?.videos && listing.videos.length > 0 && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Property Videos
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {listing.videos.map((video, index) => (
+                          <div
+                            key={index}
+                            className="rounded-lg overflow-hidden border border-gray-200"
+                          >
+                            <video
+                              controls
+                              className="w-full h-48 object-cover"
+                              poster="/placeholder.svg?height=200&width=350&text=Video+Thumbnail"
+                            >
+                              <source src={video.url} type="video/mp4" />
+                              Your browser does not support the video tag.
+                            </video>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -1625,7 +1973,11 @@ export default function ProductPage() {
             Other PG&apos;s by {listing?.ownerId?.fullName}
           </SectionHeading>
 
-          <FeaturedCarousel loading={ownerPgsLoading} pgs={ownerPgs} />
+          <OwnerListingSection
+            listings={ownerPgs}
+            loading={ownerPgsLoading}
+            ownerName={listing?.ownerId?.fullName || "Owner"}
+          />
         </div>
 
         {/* Infinite Scroll Listings */}

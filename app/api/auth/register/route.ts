@@ -58,7 +58,10 @@ export async function POST(req: Request) {
     });
 
     const otp = generateOtp();
+    console.log("Generated OTP:", otp, "for email:", email);
+
     await Otp.create({ email, otp, purpose: "signup" });
+    console.log("OTP saved to database");
 
     const res = await sendOtpEmail({
       to: email,
@@ -66,6 +69,7 @@ export async function POST(req: Request) {
       purpose: "signup",
     });
 
+    console.log("Email service response:", res);
     return NextResponse.json(res);
   } catch (error) {
     console.error("[REGISTER_API]", error);

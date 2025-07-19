@@ -229,7 +229,7 @@ export const Card = ({
         </div>
 
         <p className="text-2xl font-bold font-poppins text-HG-400 pt-4 mt-auto">
-          ₹{card?.minRent?.toLocaleString()}
+          ₹{card?.minRent?.toLocaleString() || "0"}{" "}
           <span className="text-base font-medium text-gray-600 dark:text-gray-300">
             /mo
           </span>

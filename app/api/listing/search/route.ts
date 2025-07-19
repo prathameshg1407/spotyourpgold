@@ -80,19 +80,84 @@ export async function GET(req: Request) {
       $and: [{ isActive: true }, { isApproved: true }],
     };
 
-    // Text search conditions
+    // Check if any search criteria is provided
+    const hasSearchCriteria =
+      q ||
+      type ||
+      subType ||
+      minPrice !== null ||
+      maxPrice !== null ||
+      genderPreference ||
+      amenities.length > 0 ||
+      roomTypes.length > 0 ||
+      location ||
+      city ||
+      area ||
+      nearbyPlaces.length > 0 ||
+      visible.length > 0 ||
+      (lat !== null && lng !== null);
+
+    // If no search criteria, we still want to return all approved and active listings
+    // This ensures "View All" functionality works
+
+    // Enhanced text search across ALL fields for ultra-fast comprehensive results
     if (q) {
-      const processedQuery = processSearchQuery(q);
+      const searchTerms = q
+        .split(/\s+/)
+        .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      const searchRegex = new RegExp(searchTerms.join("|"), "i");
+
       query.$and.push({
         $or: [
-          { pgName: { $regex: processedQuery, $options: "i" } },
-          { "location.area": { $regex: processedQuery, $options: "i" } },
-          { "location.city": { $regex: processedQuery, $options: "i" } },
-          { "location.state": { $regex: processedQuery, $options: "i" } },
+          // Basic info fields (highest priority)
+          { pgName: { $regex: searchRegex } },
+          { type: { $regex: searchRegex } },
+          { subType: { $regex: searchRegex } },
+          { genderPreference: { $regex: searchRegex } },
+
+          // Location fields (high priority)
+          { "location.area": { $regex: searchRegex } },
+          { "location.city": { $regex: searchRegex } },
+          { "location.state": { $regex: searchRegex } },
+          { "location.pincode": { $regex: searchRegex } },
+          { "location.nearbyPlaces": { $elemMatch: { $regex: searchRegex } } },
+
+          // Amenities and features
+          { amenities: { $elemMatch: { $regex: searchRegex } } },
+          { additionalDetails: { $elemMatch: { $regex: searchRegex } } },
+          { rulesAndRegulations: { $elemMatch: { $regex: searchRegex } } },
+
+          // Room types
+          { "roomTypes.type": { $regex: searchRegex } },
+
+          // Enhanced rules and policies
+          { "detailedRules.lockInPeriod": { $regex: searchRegex } },
+          { "detailedRules.noticePeriod": { $regex: searchRegex } },
+          { "detailedRules.maintenanceCharges": { $regex: searchRegex } },
+          { "detailedRules.entryTiming": { $regex: searchRegex } },
+          { "detailedRules.exitTiming": { $regex: searchRegex } },
+          { "detailedRules.guestStayPolicy": { $regex: searchRegex } },
+          { "detailedRules.smokingAlcoholPolicy": { $regex: searchRegex } },
+
+          // Plan and payment fields
+          { planType: { $regex: searchRegex } },
+          { paymentStatus: { $regex: searchRegex } },
+
+          // Rent inclusions
           {
-            "location.nearbyPlaces": {
-              $elemMatch: { $regex: processedQuery, $options: "i" },
-            },
+            "rentInclusions.foodIncluded":
+              q.toLowerCase().includes("food") ||
+              q.toLowerCase().includes("meal"),
+          },
+          {
+            "rentInclusions.electricityIncluded":
+              q.toLowerCase().includes("electricity") ||
+              q.toLowerCase().includes("power"),
+          },
+          {
+            "rentInclusions.maintenanceIncluded": q
+              .toLowerCase()
+              .includes("maintenance"),
           },
         ],
       });

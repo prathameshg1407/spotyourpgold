@@ -24,6 +24,8 @@ export async function POST(req: Request) {
 
     const {
       pgName,
+      type,
+      subType,
       roomTypes,
       genderPreference,
       additionalDetails,
@@ -141,6 +143,8 @@ export async function POST(req: Request) {
     const pg = await Listing.create({
       ownerId: user?.id,
       pgName,
+      type: type || undefined,
+      subType: subType || undefined,
       roomTypes: updatedRoomTypes,
       genderPreference,
       additionalDetails,

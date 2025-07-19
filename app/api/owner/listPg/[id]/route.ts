@@ -51,6 +51,8 @@ export async function PUT(
 
     const {
       pgName,
+      type,
+      subType,
       roomTypes,
       genderPreference,
       additionalDetails,
@@ -235,6 +237,8 @@ export async function PUT(
     existingListing.set({
       ownerId: user?.id,
       pgName,
+      type: type || existingListing.type,
+      subType: subType || existingListing.subType,
       roomTypes: updatedRoomTypes,
       genderPreference,
       additionalDetails,
@@ -290,6 +294,62 @@ export async function PUT(
     return NextResponse.json({
       success: false,
       message: "Server error while updating PG.",
+    });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectToDB();
+
+    const { id } = await context.params;
+    const listingId = id;
+
+    const user = await authUser();
+
+    if (user?.role == "user") {
+      return NextResponse.json({
+        success: false,
+        message: "You are not authorized to perform this action.",
+      });
+    }
+
+    const existingListing = await Listing.findById(listingId);
+    if (!existingListing) {
+      return NextResponse.json({
+        success: false,
+        message: "Listing not found.",
+      });
+    }
+
+    // Check if user owns this listing
+    if (existingListing.ownerId.toString() !== user?.id) {
+      return NextResponse.json({
+        success: false,
+        message: "You can only update your own listings.",
+      });
+    }
+
+    const { isActive } = await req.json();
+
+    // Update only the isActive field
+    existingListing.isActive = isActive;
+    await existingListing.save();
+
+    return NextResponse.json({
+      success: true,
+      message: `Listing ${
+        isActive ? "activated" : "deactivated"
+      } successfully.`,
+    });
+  } catch (error) {
+    console.error("[updateListingStatus_API]", error);
+    return NextResponse.json({
+      success: false,
+      message: "Server error while updating listing status.",
     });
   }
 }

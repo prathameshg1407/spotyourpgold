@@ -132,7 +132,86 @@ const listingSchema = new mongoose.Schema(
   }
 );
 
+// ===== ULTRA-FAST SEARCH INDEXES =====
+
+// 1. Geospatial index for location-based queries
 listingSchema.index({ "location.coordinates": "2dsphere" });
+
+// 2. Compound index for status and featured listings (most common query)
+listingSchema.index({
+  isActive: 1,
+  isApproved: 1,
+  isFeatured: -1,
+  createdAt: -1,
+});
+
+// 3. Text index for full-text search across all text fields
+listingSchema.index(
+  {
+    pgName: "text",
+    type: "text",
+    subType: "text",
+    genderPreference: "text",
+    "location.area": "text",
+    "location.city": "text",
+    "location.state": "text",
+    "location.pincode": "text",
+    "location.nearbyPlaces": "text",
+    amenities: "text",
+    additionalDetails: "text",
+    rulesAndRegulations: "text",
+    "roomTypes.type": "text",
+    "detailedRules.lockInPeriod": "text",
+    "detailedRules.noticePeriod": "text",
+    "detailedRules.maintenanceCharges": "text",
+    "detailedRules.entryTiming": "text",
+    "detailedRules.exitTiming": "text",
+    "detailedRules.guestStayPolicy": "text",
+    "detailedRules.smokingAlcoholPolicy": "text",
+    planType: "text",
+    paymentStatus: "text",
+  },
+  {
+    weights: {
+      pgName: 10,
+      "location.area": 8,
+      "location.city": 8,
+      type: 6,
+      genderPreference: 4,
+      amenities: 3,
+      "location.nearbyPlaces": 2,
+    },
+    name: "comprehensive_search_index",
+  }
+);
+
+// 4. Individual field indexes for specific searches
+listingSchema.index({ pgName: 1 });
+listingSchema.index({ "location.city": 1 });
+listingSchema.index({ "location.area": 1 });
+listingSchema.index({ type: 1 });
+listingSchema.index({ genderPreference: 1 });
+listingSchema.index({ "roomTypes.monthlyRent": 1 });
+listingSchema.index({ amenities: 1 });
+
+// 5. Compound index for filtered searches
+listingSchema.index({
+  isActive: 1,
+  isApproved: 1,
+  type: 1,
+  genderPreference: 1,
+  "location.city": 1,
+});
+
+// 6. Index for price-based queries
+listingSchema.index({
+  isActive: 1,
+  isApproved: 1,
+  "roomTypes.monthlyRent": 1,
+});
+
+// 7. Owner-based queries
+listingSchema.index({ ownerId: 1, isActive: 1 });
 
 const Listing =
   mongoose.models.Listing || mongoose.model("Listing", listingSchema);

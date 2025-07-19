@@ -15,8 +15,9 @@ import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 
 function AllListingsContent() {
   const router = useRouter();
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // Use advanced filters hook with pagination
+  // Use advanced filters hook with pagination (autoSearch disabled for better control)
   const {
     filters,
     setFilters,
@@ -30,7 +31,7 @@ function AllListingsContent() {
     totalPages,
     currentPage,
     searchWithFilters,
-  } = useAdvancedFilters(20, true);
+  } = useAdvancedFilters(20, false); // Disable autoSearch for manual control
 
   const goBack = () => {
     router.back();
@@ -55,32 +56,29 @@ function AllListingsContent() {
     }
   };
 
-  // Fetch all listings on initial load if no filters
+  // Initial load - fetch all listings
   useEffect(() => {
-    const hasFilters = Object.values(filters).some((value) => {
-      if (Array.isArray(value)) return value.length > 0;
-      return value !== "";
-    });
-
-    if (!hasFilters) {
-      // Fetch default listings without filters
-      const fetchDefaultListings = async () => {
-        try {
-          const response = await axios.get(
-            `/api/listing?page=${currentPage}&per_page=20`
-          );
-          if (response.data.success) {
-            // Update the listings through the hook
-            searchWithFilters({});
-          }
-        } catch (error) {
-          console.error("Error fetching default listings:", error);
-        }
-      };
-
-      fetchDefaultListings();
+    if (!initialLoadDone) {
+      searchWithFilters({}, true); // Force search to show all listings
+      setInitialLoadDone(true);
     }
-  }, [currentPage, filters, searchWithFilters]);
+  }, [initialLoadDone, searchWithFilters]);
+
+  // Handle page changes
+  useEffect(() => {
+    if (initialLoadDone) {
+      const hasFilters = Object.values(filters).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== "";
+      });
+
+      if (hasFilters) {
+        searchWithFilters();
+      } else {
+        searchWithFilters({}, true); // Force search even without filters
+      }
+    }
+  }, [currentPage, filters, initialLoadDone, searchWithFilters]);
 
   return (
     <div className="min-h-screen bg-gray-50">

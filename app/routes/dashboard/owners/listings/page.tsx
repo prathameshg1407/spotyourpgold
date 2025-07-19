@@ -76,15 +76,55 @@ export default function MyListingsPage() {
     };
   }, [setContainerLoading]);
 
-  const handleStatusToggle = (id: string) => {
-    setListings((prev) =>
-      prev.map((pg) => (pg._id === id ? { ...pg, isActive: !pg.isActive } : pg))
+  const handleStatusToggle = async (id: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const loadingToast = toast.loading(
+      `${newStatus ? "Activating" : "Deactivating"} listing...`,
+      {
+        closeButton: true,
+      }
     );
+
+    try {
+      setContainerLoading("ownerListings", true);
+      const res = await axios.patch(`/api/owner/listPg/${id}`, {
+        isActive: newStatus,
+      });
+
+      if (res?.data?.success) {
+        // Update the listing status in state
+        setListings((prev) =>
+          prev.map((listing) =>
+            listing._id === id ? { ...listing, isActive: newStatus } : listing
+          )
+        );
+
+        toast.success(
+          `Listing ${newStatus ? "activated" : "deactivated"} successfully`,
+          {
+            closeButton: true,
+            duration: 2000,
+          }
+        );
+      } else {
+        toast.error(res.data?.message || "Failed to update listing status", {
+          closeButton: true,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error("Status toggle error:", error);
+      toast.error("Failed to update listing status", {
+        closeButton: true,
+        duration: 2000,
+      });
+    } finally {
+      toast.dismiss(loadingToast);
+      setContainerLoading("ownerListings", false);
+    }
   };
 
-
   const handleDelete = async (id: string) => {
-
     const loadingToast = toast.loading("Deleting PG...", {
       closeButton: true,
     });
@@ -114,13 +154,10 @@ export default function MyListingsPage() {
         closeButton: true,
         duration: 2000,
       });
-    }finally{
+    } finally {
       setContainerLoading("ownerListings", false);
     }
-
   };
-
-
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -389,12 +426,12 @@ export default function MyListingsPage() {
                       Edit
                     </Button>
 
-                    {/* <Button
+                    <Button
                       variant="outline"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleStatusToggle(pg._id);
+                        handleStatusToggle(pg._id, pg.isActive);
                       }}
                       className={`text-sm ${
                         pg.isActive
@@ -403,8 +440,8 @@ export default function MyListingsPage() {
                       }`}
                     >
                       {pg.isActive ? "Deactivate" : "Activate"}
-                    </Button> */}
-                    {/* <div className="flex items-center justify-end gap-2 pb-2">
+                    </Button>
+                    <div className="flex items-center justify-end gap-2 pb-2">
                       <Badge
                         variant="outline"
                         className={`text-xs ${
@@ -423,44 +460,39 @@ export default function MyListingsPage() {
                           Featured
                         </Badge>
                       )}
-                    </div> */}
+                    </div>
 
+                    <div className="flex items-center justify-end gap-2 pb-2">
+                      {/* Delete Button */}
+                      <Button
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDelete(pg._id);
+                        }}
+                      >
+                        <Trash className="w-3 h-3 md:w-4 md:h-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
 
-<div className="flex items-center justify-end gap-2 pb-2">
-  {/* Delete Button */}
-  <Button
-    className="bg-red-500 hover:bg-red-600"
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleDelete(pg._id);
-    }}
-  >
-    <Trash className="w-3 h-3 md:w-4 md:h-4" />
-    <span className="sr-only">Delete</span>
-  </Button>
-
-  {/* 🚀 Add Pay Now button conditionally */}
-  {pg.paymentStatus !== "completed" && (
-    <Button
-      variant="secondary"
-      className="bg-gray-500 hover:bg-gray-400 text-white"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        router.push(
-          `/routes/dashboard/owners/add-pg?mode=edit&id=${pg._id}&payNow=true`
-        );
-      }}
-    >
-      Pay Now
-    </Button>
-  )}
-</div>
-
-
-
-                    
+                      {/* 🚀 Add Pay Now button conditionally */}
+                      {pg.paymentStatus !== "completed" && (
+                        <Button
+                          variant="secondary"
+                          className="bg-gray-500 hover:bg-gray-400 text-white"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(
+                              `/routes/dashboard/owners/add-pg?mode=edit&id=${pg._id}&payNow=true`
+                            );
+                          }}
+                        >
+                          Pay Now
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>

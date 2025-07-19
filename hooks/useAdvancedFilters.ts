@@ -33,7 +33,7 @@ export interface UseAdvancedFiltersReturn {
   total: number;
   totalPages: number;
   currentPage: number;
-  searchWithFilters: (customFilters?: Partial<FilterState>) => Promise<void>;
+  searchWithFilters: (customFilters?: Partial<FilterState>, forceSearch?: boolean) => Promise<void>;
 }
 
 const initialFilters: FilterState = {
@@ -137,7 +137,7 @@ export const useAdvancedFilters = (
 
   // Search function
   const searchWithFilters = useCallback(
-    async (customFilters?: Partial<FilterState>) => {
+    async (customFilters?: Partial<FilterState>, forceSearch?: boolean) => {
       const searchFilters = customFilters
         ? { ...filters, ...customFilters }
         : filters;
@@ -148,8 +148,16 @@ export const useAdvancedFilters = (
         }
       );
 
-      // Don't search if no filters are active and not query
-      if (!hasActiveFilters && !searchFilters.query) {
+      console.log("searchWithFilters called:", {
+        searchFilters,
+        hasActiveFilters,
+        forceSearch,
+        query: searchFilters.query
+      });
+
+      // Don't search if no filters are active and not query, unless forced
+      if (!hasActiveFilters && !searchFilters.query && !forceSearch) {
+        console.log("No search - no active filters or query");
         setListings([]);
         setTotal(0);
         setTotalPages(1);
@@ -160,14 +168,18 @@ export const useAdvancedFilters = (
 
       try {
         const searchParams = buildSearchParams(searchFilters, currentPage);
+        console.log("Making search API call:", `/api/listing/search?${searchParams.toString()}`);
         const response = await axios.get(
           `/api/listing/search?${searchParams.toString()}`
         );
+
+        console.log("Search API response:", response.data);
 
         if (response.data.success) {
           setListings(response.data.data);
           setTotal(response.data.total);
           setTotalPages(response.data.totalPages);
+          console.log("Search results set:", response.data.data.length, "items");
         } else {
           toast.error(response.data.message || "Search failed");
           setListings([]);

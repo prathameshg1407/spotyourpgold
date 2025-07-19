@@ -2,11 +2,21 @@
 
 import nodemailer from "nodemailer";
 
+// Check if email configuration is properly set
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.error(
+    "Email configuration missing. Please set EMAIL_USER and EMAIL_PASS in your environment variables."
+  );
+}
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER, // e.g., your Gmail
     pass: process.env.EMAIL_PASS, // App password if using Gmail
+  },
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certificates
   },
 });
 
@@ -17,7 +27,7 @@ export const sendOtpEmail = async ({
 }: {
   to: string;
   otp: string;
-  purpose: "signup" | "reset_password" ;
+  purpose: "signup" | "reset_password";
 }) => {
   const subjectMap = {
     signup: "Complete Your Signup – OTP Verification",
@@ -39,15 +49,65 @@ export const sendOtpEmail = async ({
   `;
 
   try {
-    await transporter.sendMail({
+    // Check if email configuration is available
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error(
+        "Email configuration is missing. Please set EMAIL_USER and EMAIL_PASS environment variables."
+      );
+    }
+
+    // Verify the transporter connection
+    await transporter.verify();
+    console.log("Email transporter verified successfully");
+
+    const mailOptions = {
       from: `"Spot Your PG" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
-    });
+    };
+
+    console.log("Sending email to:", to);
+    const result = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", result.messageId);
+
     return { success: true, message: "OTP sent successfully." };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending OTP email:", error);
-    return { success: false, message: "Failed to send OTP." };
+
+    // Provide specific error messages
+    if (error.message?.includes("Email configuration is missing")) {
+      return {
+        success: false,
+        message: "Email service is not configured. Please contact support.",
+      };
+    }
+
+    if (error.code === "EAUTH" || error.responseCode === 535) {
+      return {
+        success: false,
+        message: "Email authentication failed. Please check email credentials.",
+      };
+    }
+
+    if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
+      return {
+        success: false,
+        message:
+          "Email service is temporarily unavailable. Please try again later.",
+      };
+    }
+
+    if (error.message?.includes("verify")) {
+      return {
+        success: false,
+        message: "Email service verification failed. Please check email configuration.",
+      };
+    }
+
+    return {
+      success: false,
+      message: "Failed to send OTP. Please try again or contact support.",
+    };
   }
 };

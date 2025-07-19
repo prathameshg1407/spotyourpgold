@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-      const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(req.url);
     const owner = searchParams.get("owner")?.trim() || "";
     const currListingId = searchParams.get("exclude")?.trim() || "";
 
@@ -20,17 +20,35 @@ export async function GET(req: NextRequest) {
       watchlistIds = dbUser?.watchlist?.map((id: any) => id.toString()) || [];
     }
 
-    const ownerListings = await Listing.find({ ownerId: owner, isApproved: true ,  _id: { $ne: currListingId }, })
-      .select("_id primaryImage location pgName ownerId monthlyRent")
+    let ownerListings = await Listing.find({
+      ownerId: owner,
+      isApproved: true,
+      _id: { $ne: currListingId },
+    })
+      .select(
+        "_id primaryImage location pgName ownerId roomTypes genderPreference"
+      )
       .sort({ updatedAt: -1 })
       .limit(10)
       .populate("ownerId", "fullName")
       .lean();
 
+    // Add minRent to each listing
+    ownerListings = ownerListings.map((listing: any) => ({
+      ...listing,
+      minRent: Math.min(
+        ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+          Infinity,
+        ])
+      ),
+    }));
+
     // Inject `isWatchlisted` field
     const listingsWithWatchlist = ownerListings.map((listing) => ({
       ...listing,
-      isWatchlisted: watchlistIds.includes((listing._id as string | number | { toString(): string }).toString()),
+      isWatchlisted: watchlistIds.includes(
+        (listing._id as string | number | { toString(): string }).toString()
+      ),
     }));
 
     return NextResponse.json({

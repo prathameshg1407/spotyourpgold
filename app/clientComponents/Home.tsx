@@ -19,11 +19,12 @@ import { Button } from "@/components/ui/button";
 import { useListingStore } from "@/store/listingStore";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { BlurImage } from "@/components/BlurImage";
-import OwnerListingSection from "@/components/OwnerListingSection";
+
 import PgCard from "@/components/PgCard";
 import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import DiscountSection from "@/components/DiscountSection";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,10 +108,16 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
   // Handle search query changes
   useEffect(() => {
+    console.log("Search query change:", {
+      debouncedSearch,
+      currentFilterQuery: filters.query,
+      searchQuery,
+    });
     if (debouncedSearch !== filters.query) {
+      console.log("Updating filter query to:", debouncedSearch);
       updateFilter("query", debouncedSearch);
     }
-  }, [debouncedSearch, filters.query, updateFilter]);
+  }, [debouncedSearch, filters.query, updateFilter, searchQuery]);
 
   // Update search query when filters change
   useEffect(() => {
@@ -128,7 +135,13 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   // Trigger search when filters have values
   useEffect(() => {
     const hasActiveSearch = filters.query || activeFiltersCount > 0;
+    console.log("Search trigger check:", {
+      query: filters.query,
+      activeFiltersCount,
+      hasActiveSearch,
+    });
     if (hasActiveSearch) {
+      console.log("Triggering search with filters:", filters);
       searchWithFilters();
     }
   }, [filters, activeFiltersCount, searchWithFilters]);
@@ -265,9 +278,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     { src: "/placeholder.svg?height=170&width=250", alt: "Garden house" },
   ];
 
-  // Check if there's an active search
-  const hasActiveSearch = searchQuery || activeFiltersCount > 0;
-
   // Remove a specific filter
   const removeFilter = (key: keyof FilterState, value?: string) => {
     if (
@@ -286,18 +296,16 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     }
   };
 
+  // Check if there's an active search
+  const hasActiveSearch =
+    searchQuery || filters.query || activeFiltersCount > 0;
+
   return (
     <>
-      <NavBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedType={selectedType}
-        selectedSubType={selectedSubType}
-        onTypeChange={handleTypeChange}
-      />
+      <NavBar />
 
       {hasActiveSearch && (
-        <section className="pt-36 md:pt-40 px-4 md:px-8 md:-mb-28">
+        <section className="pt-32 md:pt-40 px-4 md:px-8 md:-mb-28">
           <div className="flex items-center justify-between mb-4">
             <SectionHeading>
               {searchQuery ? (
@@ -501,11 +509,11 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
       )}
 
       <>
-        <div className="md:px-8 px-4 mt-32 md:mt-40 space-y-10">
+        <div className="md:px-8 px-4 pt-32 md:pt-32 space-y-10">
           {!hasActiveSearch && (
             <>
               {/* Hero Section */}
-              <div className=" w-full  md:p-8 overflow-hidden -mt-4  md:-mt-20">
+              <div className="w-full md:p-8 overflow-hidden mt-4 md:-mt-8">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   {/* Left Content - Text Only */}
                   <div className="space-y-6">
@@ -836,6 +844,9 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                 )}
               </section>
 
+              {/* Discount Section */}
+              <DiscountSection />
+
               {/* Section 2: Property Listings */}
               <section>
                 <SectionHeading
@@ -957,9 +968,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
             </>
           )}
         </div>
-
-        {/* Owner Listing Section - Only show when not searching */}
-        {!hasActiveSearch && <OwnerListingSection />}
       </>
     </>
   );

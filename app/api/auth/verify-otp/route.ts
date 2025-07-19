@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         fullName: pendingUser.fullName,
         email: pendingUser.email,
         password: pendingUser.password,
-        mobile: pendingUser.mobile,
+        phone: pendingUser.mobile,
         role:
           email == "rajatsharma13feb04@gmail.com" ||
           email == process.env.ADMIN_EMAIL
