@@ -13,7 +13,6 @@ import { BlurImage } from "./BlurImage";
 import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useListingStore } from "@/store/listingStore";
 
 type OwnerListingCardProps = {
   listing: {
@@ -32,13 +31,15 @@ type OwnerListingCardProps = {
     monthlyRent?: number;
     genderPreference?: string;
     inWatchList?: boolean;
+    isWatchlisted?: boolean;
   };
 };
 
 const OwnerListingCard = ({ listing }: OwnerListingCardProps) => {
-  const [wishlisted, setWishlisted] = useState(listing.inWatchList || false);
+  const [wishlisted, setWishlisted] = useState(
+    listing.isWatchlisted || listing.inWatchList || false
+  );
   const [loading, setLoading] = useState(false);
-  const { listings, setListings } = useListingStore();
   const router = useRouter();
 
   const toggleWatchlist = useCallback(async () => {
@@ -69,15 +70,7 @@ const OwnerListingCard = ({ listing }: OwnerListingCardProps) => {
       }
 
       if (res?.data?.success) {
-        setWishlisted(!wishlisted);
-
-        setListings(
-          listings.map((pg: { _id: string; inWatchList: any }) =>
-            pg._id === listing._id
-              ? { ...pg, inWatchList: !pg.inWatchList }
-              : pg
-          )
-        );
+        setWishlisted((prev) => !prev);
 
         toast.success(res.data.message || "Watchlist updated!", {
           closeButton: true,
@@ -99,7 +92,7 @@ const OwnerListingCard = ({ listing }: OwnerListingCardProps) => {
       toast.dismiss(loadingToast);
       setLoading(false);
     }
-  }, [listing._id, wishlisted, router, setListings, loading, listings]);
+  }, [listing._id, wishlisted, router, loading]);
 
   const imageUrl =
     listing.primaryImage || listing.images?.[0]?.url || "/placeholder.svg";
