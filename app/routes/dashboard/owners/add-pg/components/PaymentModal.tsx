@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle, X, Clock, UploadCloud } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import paymentQr from "@/public/payment-qr.jpg";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {paymentStatus === "pending" && !isSubmitting && !showPaymentDetails && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-1.5">
-              <div className="text-3xl font-poppins font-bold text-HG-500">₹299</div>
+              <div className="text-3xl font-poppins font-bold text-HG-500">₹500</div>
               <p className="text-[13px] text-gray-600">One-time listing fee</p>
             </div>
 
@@ -80,14 +81,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="space-y-6 py-4">
             <div className="text-center space-y-2">
               <Image
-                src="/payment-qr.svg"
+                src={paymentQr}
                 alt="QR Code"
                 width={160}
                 height={160}
                 className="mx-auto border rounded"
               />
               <p className="text-sm text-gray-600">
-                <strong>UPI ID:</strong> rajatsharma@ybl
+                <strong>UPI ID:</strong> ashrivas5606-1@okhdfcbank
               </p>
               <p className="text-sm text-gray-600">
                 <strong>Bank:</strong> HDFC Bank<br />

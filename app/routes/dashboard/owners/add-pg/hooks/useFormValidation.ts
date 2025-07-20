@@ -77,25 +77,7 @@ export const useFormValidation = (formData: PGFormData) => {
         }
         break;
 
-      case 3:
-        if (
-          !Array.isArray(formData.additionalDetails) ||
-          formData.additionalDetails.length === 0
-        ) {
-          newErrors.additionalDetails = true;
-          newErrors.general ||= "Add at least one additional detail";
-        }
-        break;
 
-      case 4:
-        if (
-          !Array.isArray(formData.rulesAndRegulations) ||
-          formData.rulesAndRegulations.length === 0
-        ) {
-          newErrors.rulesAndRegulations = true;
-          newErrors.general ||= "Please enter at least one rule and regulation";
-        }
-        break;
 
       case 5:
         const totalImages =
