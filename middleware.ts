@@ -62,7 +62,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Route patterns
-const PUBLIC_ROUTES = ["/", "/routes/auth/login", "/routes/auth/signup"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/routes/auth/login",
+  "/routes/auth/signup",
+  "/routes/owners/onboarding",
+  "/routes/all-listings",
+  "/routes/featured-listings",
+  "/routes/pg-details",
+  "/routes/contact",
+  "/routes/be-a-roomie",
+  "/routes/nearbypg-map",
+  "/routes/privacy-policy",
+  "/routes/terms-of-service",
+];
 const PROTECTED_ROUTES = ["/routes/dashboard", "/profile", "/routes/watchlist"];
 const ADMIN_ROUTES = ["/admin"];
 const OWNER_ROUTES = ["/owner"];
@@ -82,11 +95,8 @@ export async function middleware(request: NextRequest) {
   const isOwnerRoute = OWNER_ROUTES.some((route) => pathname.startsWith(route));
   const isOwnerOnboarding = pathname.startsWith(OWNER_ONBOARDING_ROUTE);
 
-  // ✅ If no token and accessing protected/admin/owner/onboarding
-  if (
-    !token &&
-    (isProtectedRoute || isAdminRoute || isOwnerRoute || isOwnerOnboarding)
-  ) {
+  // ✅ If no token and accessing protected/admin/owner routes (excluding onboarding)
+  if (!token && (isProtectedRoute || isAdminRoute || isOwnerRoute)) {
     return NextResponse.redirect(new URL("/routes/auth/login", request.url));
   }
 

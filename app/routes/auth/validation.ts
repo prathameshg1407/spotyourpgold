@@ -242,29 +242,32 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export const validateIdentity = (data: IdentityData): OnboardingErrors => {
   const errors: OnboardingErrors = {
+    // Auth errors
+    email: false,
+    password: false,
+    confirmPassword: false,
+    fullName: false,
+    authPhone: false,
+    // Identity errors
     aadhaar: false,
     phone: false,
     documents: false,
-    accountNumber: false,
     aadharFront: false,
     aadharBack: false,
-    ifscCode: false,
-    accountHolderName: false,
-    bankName: false,
-    plan: false,
-    billing: false,
-    cardNumber: false,
-    expiryDate: false,
-    cvv: false,
-    otp: false,
-    upiId: false,
-    general: "",
     address: {
       street: false,
       city: false,
       state: false,
       pincode: false,
     },
+    // Bank details errors
+    accountNumber: false,
+    ifscCode: false,
+    accountHolderName: false,
+    bankName: false,
+    upiId: false,
+    otp: false,
+    general: "",
   };
 
   const validateFile = (file: File | null, name: string): string | null => {
@@ -351,29 +354,32 @@ export const validateBankDetails = (
   data: BankDetailsData
 ): Partial<OnboardingErrors> => {
   const errors: OnboardingErrors = {
+    // Auth errors
+    email: false,
+    password: false,
+    confirmPassword: false,
+    fullName: false,
+    authPhone: false,
+    // Identity errors
     aadhaar: false,
     phone: false,
     documents: false,
-    accountNumber: false,
     aadharFront: false,
     aadharBack: false,
-    ifscCode: false,
-    accountHolderName: false,
-    bankName: false,
-    plan: false,
-    billing: false,
-    cardNumber: false,
-    expiryDate: false,
-    cvv: false,
-    otp: false,
-    upiId: false,
-    general: "",
     address: {
       street: false,
       city: false,
       state: false,
       pincode: false,
     },
+    // Bank details errors
+    accountNumber: false,
+    ifscCode: false,
+    accountHolderName: false,
+    bankName: false,
+    upiId: false,
+    otp: false,
+    general: "",
   };
 
   // Account Number

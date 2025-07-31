@@ -36,6 +36,7 @@ import {
   Hash,
   X,
   IndianRupee,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -57,10 +58,22 @@ import { useLoadingStore } from "@/store/loading";
 
 // Types
 type OnboardingStep =
+  | "auth"
   | "identity"
   // | "phone-otp"
   | "bank-details"
   | "confirmation";
+
+export interface AuthData {
+  isNewUser: boolean;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+  phone: string;
+  otp: string[];
+  showOTP: boolean;
+}
 
 export interface IdentityData {
   aadhaar: string;
@@ -85,16 +98,23 @@ export interface BankDetailsData {
 }
 
 export interface OnboardingData {
+  auth: AuthData;
   identity: IdentityData;
   bankDetails: BankDetailsData;
   phoneVerified: boolean;
 }
 
 export interface OnboardingErrors {
+  // Auth errors
+  email: boolean;
+  password: boolean;
+  confirmPassword: boolean;
+  fullName: boolean;
+  authPhone: boolean;
+  // Identity errors
   aadhaar: boolean;
   phone: boolean;
   documents: boolean;
-  accountNumber: boolean;
   aadharFront: boolean;
   aadharBack: boolean;
   address: {
@@ -103,47 +123,57 @@ export interface OnboardingErrors {
     state: boolean;
     pincode: boolean;
   };
+  // Bank details errors
+  accountNumber: boolean;
   ifscCode: boolean;
   accountHolderName: boolean;
   bankName: boolean;
-  plan: boolean;
-  billing: boolean;
-  cardNumber: boolean;
-  expiryDate: boolean;
   upiId: boolean;
-  cvv: boolean;
   otp: boolean;
   general: string;
 }
 
 // Initial states
 const initialErrors: OnboardingErrors = {
+  // Auth errors
+  email: false,
+  password: false,
+  confirmPassword: false,
+  fullName: false,
+  authPhone: false,
+  // Identity errors
   aadhaar: false,
   phone: false,
   documents: false,
-  accountNumber: false,
   aadharFront: false,
+  aadharBack: false,
   address: {
     street: false,
     city: false,
     state: false,
     pincode: false,
   },
-  aadharBack: false,
+  // Bank details errors
+  accountNumber: false,
   ifscCode: false,
   accountHolderName: false,
   bankName: false,
   upiId: false,
-  plan: false,
-  billing: false,
-  cardNumber: false,
-  expiryDate: false,
-  cvv: false,
   otp: false,
   general: "",
 };
 
 const initialOnboardingData: OnboardingData = {
+  auth: {
+    isNewUser: true,
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    phone: "",
+    otp: ["", "", "", "", ""],
+    showOTP: false,
+  },
   identity: {
     aadhaar: "",
     aadhaarFront: null,
@@ -179,10 +209,10 @@ interface StepperProps {
 }
 
 const steps = [
-  { id: 1, title: "Identity Info", subtitle: "Aadhaar, phone, documents" },
-  // { id: 2, title: "Phone OTP", subtitle: "Verify your phone" },
-  { id: 2, title: "Bank Details", subtitle: "Account information" },
-  { id: 3, title: "Confirmation", subtitle: "Review & submit" },
+  { id: 1, title: "Authentication", subtitle: "Sign up or log in" },
+  { id: 2, title: "Identity Info", subtitle: "Aadhaar, phone, documents" },
+  { id: 3, title: "Bank Details", subtitle: "Account information (optional)" },
+  { id: 4, title: "Confirmation", subtitle: "Review & submit" },
 ];
 
 function Stepper({
@@ -357,7 +387,7 @@ function Stepper({
 
 // Main Component
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("identity");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("auth");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>(
     initialOnboardingData
@@ -372,7 +402,11 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const fetchOwnerStatus = async () => {
-      if (!user) return;
+      // If no user, start with auth step
+      if (!user) {
+        setCurrentStep("auth");
+        return;
+      }
 
       setLoading(true);
 
@@ -391,6 +425,10 @@ export default function OnboardingPage() {
         }
       } catch (error) {
         console.error("Error fetching owner profile:", error);
+        // If there's an error and no user, go to auth
+        if (!user) {
+          setCurrentStep("auth");
+        }
       } finally {
         setLoading(false);
       }
@@ -449,6 +487,7 @@ export default function OnboardingPage() {
 
   const goToNextStep = useCallback(() => {
     const steps: OnboardingStep[] = [
+      "auth",
       "identity",
       // "phone-otp",
       "bank-details",
@@ -498,6 +537,7 @@ export default function OnboardingPage() {
 
   const getCurrentStepNumber = () => {
     const steps: OnboardingStep[] = [
+      "auth",
       "identity",
       // "phone-otp",
       "bank-details",
@@ -522,6 +562,147 @@ export default function OnboardingPage() {
   };
 
   // Step submissions
+  // OTP handling functions
+  const handleOTPChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...onboardingData.auth.otp];
+    newOtp[index] = value;
+    updateOnboardingData("auth", { otp: newOtp });
+
+    // Auto focus next input
+    if (value && index < 4) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOTPKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !onboardingData.auth.otp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const submitAuthStep = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    clearErrors();
+    setIsLoading(true);
+
+    try {
+      if (onboardingData.auth.isNewUser) {
+        // Handle signup
+        if (!onboardingData.auth.showOTP) {
+          // First, validate signup data
+          if (
+            !onboardingData.auth.email ||
+            !onboardingData.auth.password ||
+            !onboardingData.auth.fullName ||
+            !onboardingData.auth.phone
+          ) {
+            setErrors((prev) => ({
+              ...prev,
+              general: "Please fill all required fields",
+            }));
+            return;
+          }
+
+          if (
+            onboardingData.auth.password !== onboardingData.auth.confirmPassword
+          ) {
+            setErrors((prev) => ({
+              ...prev,
+              confirmPassword: true,
+              general: "Passwords don't match",
+            }));
+            return;
+          }
+
+          // Send signup request
+          const res = await axios.post("/api/auth/register", {
+            email: onboardingData.auth.email,
+            password: onboardingData.auth.password,
+            fullName: onboardingData.auth.fullName,
+            mobile: onboardingData.auth.phone,
+          });
+
+          if (res?.data?.success) {
+            updateOnboardingData("auth", { showOTP: true });
+            toast.success("OTP sent to your email!", { duration: 3000 });
+          } else {
+            setErrors((prev) => ({
+              ...prev,
+              general: res.data?.message || "Signup failed",
+            }));
+          }
+        } else {
+          // Verify OTP
+          const otpString = onboardingData.auth.otp.join("");
+          if (otpString.length !== 5) {
+            setErrors((prev) => ({
+              ...prev,
+              otp: true,
+              general: "Please enter complete OTP",
+            }));
+            return;
+          }
+
+          const res = await axios.post("/api/auth/verify-otp", {
+            email: onboardingData.auth.email,
+            otp: otpString,
+            purpose: "signup",
+          });
+
+          if (res?.data?.success) {
+            setUser(res.data.user);
+            toast.success("Account created successfully!", { duration: 3000 });
+            goToNextStep();
+          } else {
+            setErrors((prev) => ({
+              ...prev,
+              otp: true,
+              general: res.data?.message || "Invalid OTP",
+            }));
+          }
+        }
+      } else {
+        // Handle login
+        if (!onboardingData.auth.email || !onboardingData.auth.password) {
+          setErrors((prev) => ({
+            ...prev,
+            general: "Please enter email and password",
+          }));
+          return;
+        }
+
+        const res = await axios.post("/api/auth/login", {
+          email: onboardingData.auth.email,
+          password: onboardingData.auth.password,
+        });
+
+        if (res?.data?.success) {
+          setUser(res.data.user);
+          toast.success("Login successful!", { duration: 3000 });
+          goToNextStep();
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            general: res.data?.message || "Login failed",
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      setErrors((prev) => ({
+        ...prev,
+        general: "Authentication failed. Please try again.",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const submitIdentityStep = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -652,6 +833,50 @@ export default function OnboardingPage() {
   //     setIsLoading(false);
   //   }
   // };
+
+  const skipBankDetails = async () => {
+    setIsLoading(true);
+
+    try {
+      // Make API call to update user status to pending
+      const res = await axios.post("/api/owner/saveBankDetails", {
+        userId: user?.id,
+        // Send empty bank details to indicate skipping
+        accountNumber: "",
+        ifscCode: "",
+        accountHolderName: "",
+        bankName: "",
+        upiId: "",
+      });
+
+      if (res?.data?.success) {
+        // Update user status locally
+        if (user) {
+          const updatedUser = {
+            ...user,
+            ownerStatus: "pending",
+          };
+          setUser(updatedUser);
+        }
+
+        toast.success("Bank details skipped. You can add them later.", {
+          duration: 3000,
+        });
+        goToNextStep();
+      } else {
+        toast.error("Failed to skip bank details. Please try again.", {
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Skip bank details error:", error);
+      toast.error("Failed to skip bank details. Please try again.", {
+        duration: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const submitBankDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -877,6 +1102,218 @@ export default function OnboardingPage() {
     };
 
     switch (currentStep) {
+      case "auth":
+        return (
+          <>
+            <motion.h2
+              variants={itemVariants}
+              className="md:text-[22px] font-normal text-gray-900 mb-1 font-poppins"
+            >
+              {onboardingData.auth.isNewUser
+                ? "Create Your Account"
+                : "Welcome Back"}
+            </motion.h2>
+            <motion.p
+              variants={itemVariants}
+              className="text-xs md:text-[15px] text-gray-500 mb-8 md:mb-10 font-inter"
+            >
+              {onboardingData.auth.isNewUser
+                ? "Sign up to start your owner journey"
+                : "Sign in to continue your onboarding"}
+            </motion.p>
+
+            <ErrorMessage message={errors.general} />
+
+            {!onboardingData.auth.showOTP ? (
+              <form onSubmit={submitAuthStep}>
+                <motion.div variants={containerVariants} className="space-y-4">
+                  {/* Toggle between signup and login */}
+                  <motion.div
+                    variants={itemVariants}
+                    className="flex gap-2 p-1 bg-gray-100 rounded-lg"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateOnboardingData("auth", { isNewUser: true })
+                      }
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        onboardingData.auth.isNewUser
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Sign Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateOnboardingData("auth", { isNewUser: false })
+                      }
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        !onboardingData.auth.isNewUser
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Log In
+                    </button>
+                  </motion.div>
+
+                  {onboardingData.auth.isNewUser && (
+                    <FormInput
+                      id="fullName"
+                      label="Full Name"
+                      type="text"
+                      value={onboardingData.auth.fullName}
+                      onChange={(value) =>
+                        updateOnboardingData("auth", { fullName: value })
+                      }
+                      placeholder="John Doe"
+                      icon={User}
+                      hasError={errors.fullName}
+                    />
+                  )}
+
+                  <FormInput
+                    id="email"
+                    label="Email"
+                    type="email"
+                    value={onboardingData.auth.email}
+                    onChange={(value) =>
+                      updateOnboardingData("auth", { email: value })
+                    }
+                    placeholder="you@company.com"
+                    icon={Mail}
+                    hasError={errors.email}
+                  />
+
+                  {onboardingData.auth.isNewUser && (
+                    <FormInput
+                      id="authPhone"
+                      label="Phone Number"
+                      type="tel"
+                      value={onboardingData.auth.phone}
+                      onChange={(value) =>
+                        updateOnboardingData("auth", {
+                          phone: value.replace(/\D/g, ""),
+                        })
+                      }
+                      placeholder="9876543210"
+                      icon={Phone}
+                      hasError={errors.authPhone}
+                    />
+                  )}
+
+                  <FormInput
+                    id="password"
+                    label="Password"
+                    type="password"
+                    value={onboardingData.auth.password}
+                    onChange={(value) =>
+                      updateOnboardingData("auth", { password: value })
+                    }
+                    placeholder="••••••••"
+                    icon={Lock}
+                    hasError={errors.password}
+                  />
+
+                  {onboardingData.auth.isNewUser && (
+                    <FormInput
+                      id="confirmPassword"
+                      label="Confirm Password"
+                      type="password"
+                      value={onboardingData.auth.confirmPassword}
+                      onChange={(value) =>
+                        updateOnboardingData("auth", { confirmPassword: value })
+                      }
+                      placeholder="••••••••"
+                      icon={Lock}
+                      hasError={errors.confirmPassword}
+                    />
+                  )}
+
+                  <motion.div variants={itemVariants} className="pt-2">
+                    <LoadingButton
+                      type="submit"
+                      isLoading={isLoading}
+                      loadingText={
+                        onboardingData.auth.isNewUser
+                          ? "Creating Account"
+                          : "Signing In"
+                      }
+                    >
+                      {onboardingData.auth.isNewUser
+                        ? "Create Account"
+                        : "Sign In"}
+                    </LoadingButton>
+                  </motion.div>
+                </motion.div>
+              </form>
+            ) : (
+              <form onSubmit={submitAuthStep}>
+                <motion.div variants={containerVariants} className="space-y-6">
+                  <motion.div variants={itemVariants} className="text-center">
+                    <h3 className="text-[18px] font-medium text-gray-900 mb-2">
+                      Verify your email
+                    </h3>
+                    <p className="text-[14px] text-gray-500 mb-8">
+                      We&apos;ve sent a 5-digit code to{" "}
+                      {onboardingData.auth.email}
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    variants={itemVariants}
+                    className="flex gap-3 justify-center"
+                  >
+                    {onboardingData.auth.otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="text"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOTPChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                        className={`w-12 h-12 text-center text-lg font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-HG-500 ${
+                          errors.otp ? "border-red-400" : "border-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </motion.div>
+
+                  <motion.div variants={itemVariants}>
+                    <LoadingButton
+                      type="submit"
+                      isLoading={isLoading}
+                      loadingText="Verifying"
+                      disabled={onboardingData.auth.otp.join("").length !== 5}
+                    >
+                      Verify & Continue
+                    </LoadingButton>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="text-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateOnboardingData("auth", {
+                          showOTP: false,
+                          otp: ["", "", "", "", ""],
+                        })
+                      }
+                      className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      ← Back to signup
+                    </button>
+                  </motion.div>
+                </motion.div>
+              </form>
+            )}
+          </>
+        );
+
       case "identity":
         return (
           <>
@@ -884,13 +1321,14 @@ export default function OnboardingPage() {
               variants={itemVariants}
               className="md:text-[22px] font-normal text-gray-900 mb-1 font-poppins"
             >
-              Step 1: Let&apos;s verify your identity
+              Step 2: Let&apos;s verify your identity
             </motion.h2>
             <motion.p
               variants={itemVariants}
               className="text-xs md:text-[15px] text-gray-500 mb-8 md:mb-10 font-inter"
             >
-              Enter your phone, Aadhaar number, and upload ID documents
+              Enter your phone, Aadhaar number, and optionally upload ID
+              documents
             </motion.p>
 
             <ErrorMessage message={errors.general} />
@@ -1249,10 +1687,11 @@ export default function OnboardingPage() {
             >
               <motion.div variants={itemVariants} className="mb-8">
                 <h2 className="md:text-[22px] font-normal text-gray-900 mb-1">
-                  Step 2: Bank account details
+                  Step 3: Bank account details (Optional)
                 </h2>
                 <p className=" text-xs md:text-[15px] text-gray-500">
-                  Enter your bank account information for payments
+                  Enter your bank account information for payments, or skip to
+                  add later
                 </p>
               </motion.div>
 
@@ -1339,14 +1778,24 @@ export default function OnboardingPage() {
                   />
                 </motion.div>
 
-                <motion.div variants={itemVariants} className="pt-5">
+                <motion.div variants={itemVariants} className="pt-5 space-y-3">
                   <LoadingButton
                     type="submit"
                     isLoading={isLoading}
-                    loadingText=""
+                    loadingText="Saving Bank Details"
                   >
-                    Continue
+                    Save & Continue
                   </LoadingButton>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={skipBankDetails}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    Skip for now
+                  </Button>
                 </motion.div>
               </form>
             </motion.div>
@@ -1368,7 +1817,7 @@ export default function OnboardingPage() {
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
                 <h2 className="md:text-[22px] font-normal text-gray-900 mb-2 font-poppins">
-                  Application Submitted Successfully!
+                  Step 4: Application Submitted Successfully!
                 </h2>
                 <p className=" text-xs md:text-[15px] text-gray-500  font-poppins">
                   Your onboarding application is now under review

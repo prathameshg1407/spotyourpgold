@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: false,
         message:
-          "Please fill all the fields. (aadhaarNumber, phone, street, city, state, pincode)",
+          "Please fill all required fields. (aadhaarNumber, phone, street, city, state, pincode)",
       });
     }
 

@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 
 const documentsSchema = new mongoose.Schema(
   {
-    aadhaarFrontUrl: { type: String },
-    aadhaarBackUrl: { type: String },
-    aadhaarFrontPublicId: { type: String },
-    aadhaarBackPublicId: { type: String },
+    aadhaarFrontUrl: { type: String, required: false },
+    aadhaarBackUrl: { type: String, required: false },
+    aadhaarFrontPublicId: { type: String, required: false },
+    aadhaarBackPublicId: { type: String, required: false },
     additionalDocuments: [
       {
         url: { type: String, required: true },
