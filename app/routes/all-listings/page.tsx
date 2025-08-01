@@ -31,7 +31,7 @@ function AllListingsContent() {
     totalPages,
     currentPage,
     searchWithFilters,
-  } = useAdvancedFilters(20, false); // Disable autoSearch for manual control
+  } = useAdvancedFilters(8, false); // Disable autoSearch for manual control
 
   const goBack = () => {
     router.back();
@@ -240,7 +240,7 @@ function AllListingsContent() {
         {/* Loading State */}
         {loading && (
           <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {Array.from({ length: 20 }).map((_, idx) => (
+            {Array.from({ length: 8 }).map((_, idx) => (
               <Skeleton key={idx} />
             ))}
           </div>
