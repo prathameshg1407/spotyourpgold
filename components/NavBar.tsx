@@ -154,7 +154,13 @@ const NavBar = () => {
         {/* Navigation Links */}
         <div className="flex items-center gap-2 md:gap-5">
           {/* List Now Button - Always visible */}
-          <Link href="/routes/owners/onboarding">
+          <Link
+            href={
+              user?.role === "owner" || user?.role === "admin"
+                ? "/routes/dashboard/owners/add-pg"
+                : "/routes/owners/onboarding"
+            }
+          >
             <Button
               variant="outline"
               size="sm"
