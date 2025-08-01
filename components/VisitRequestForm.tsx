@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUserStore } from "@/store/userStore";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -45,15 +46,27 @@ export default function VisitRequestForm({
   onSuccess,
   onCancel,
 }: VisitRequestFormProps) {
+  const { user } = useUserStore();
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
+    name: user?.fullName || "",
+    phone: user?.phone || "",
     date: "",
     time: "",
     message: "",
     consent: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.fullName || "",
+        phone: user.phone || "",
+      }));
+    }
+  }, [user]);
 
   const timeSlots = [
     "Morning (10 AM - 12 PM)",
@@ -93,21 +106,6 @@ export default function VisitRequestForm({
   };
 
   const validateForm = () => {
-    if (!formData.name.trim()) {
-      toast.error("Please enter your full name");
-      return false;
-    }
-
-    if (!formData.phone.trim()) {
-      toast.error("Please enter your mobile number");
-      return false;
-    }
-
-    if (!/^[0-9]{10}$/.test(formData.phone)) {
-      toast.error("Mobile number must be exactly 10 digits");
-      return false;
-    }
-
     if (!formData.date) {
       toast.error("Please select your preferred visit date");
       return false;
@@ -135,8 +133,8 @@ export default function VisitRequestForm({
 
     try {
       const response = await axios.post("/api/visit-request", {
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
+        name: user?.fullName || formData.name.trim(),
+        phone: user?.phone || formData.phone.trim(),
         listingId,
         preferredDate: formData.date,
         preferredTime: formData.time,
@@ -149,8 +147,8 @@ export default function VisitRequestForm({
 
         // Reset form
         setFormData({
-          name: "",
-          phone: "",
+          name: user?.fullName || "",
+          phone: user?.phone || "",
           date: "",
           time: "",
           message: "",
@@ -192,51 +190,21 @@ export default function VisitRequestForm({
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <Label
-                htmlFor="name"
-                className="font-poppins flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                Full Name *
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                className="mt-1 font-inter"
-                placeholder="Enter your full name"
-              />
-            </div>
-
-            {/* Mobile Number */}
-            <div>
-              <Label
-                htmlFor="phone"
-                className="font-poppins flex items-center gap-2"
-              >
-                <Phone className="w-4 h-4" />
-                Mobile Number *
-              </Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={handleChange}
-                className="mt-1 font-inter"
-                placeholder="9876543210"
-                maxLength={10}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Enter 10-digit mobile number
-              </p>
-            </div>
+            {/* User Info Display */}
+            {user && (
+              <div className="bg-HG-50 p-4 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4 text-HG-500" />
+                  <span className="font-poppins font-medium text-gray-700">
+                    Booking for:
+                  </span>
+                </div>
+                <p className="font-inter text-gray-900 font-medium">
+                  {user.fullName}
+                </p>
+                <p className="font-inter text-gray-600 text-sm">{user.phone}</p>
+              </div>
+            )}
 
             {/* Preferred Visit Date */}
             <div>

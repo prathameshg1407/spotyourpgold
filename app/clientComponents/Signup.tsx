@@ -10,7 +10,11 @@ import { Mail, Lock, User, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-const Signup = () => {
+interface SignupProps {
+  onSuccess?: () => void;
+}
+
+const Signup = ({ onSuccess }: SignupProps = {}) => {
   const {
     formData,
     otp,
@@ -33,7 +37,7 @@ const Signup = () => {
     setTermsAccepted,
     isOTPComplete,
     isTimerExpired,
-  } = useSignupForm();
+  } = useSignupForm(onSuccess);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },

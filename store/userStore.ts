@@ -3,12 +3,14 @@ import { create } from "zustand";
 interface User {
   id: string;
   fullName: string;
+  email: string;
+  phone: string;
   role: string;
   ownerStatus: string;
 }
 
 interface UserState {
-  user: User | null ;
+  user: User | null;
   setUser: (user: User | null) => void;
 }
 

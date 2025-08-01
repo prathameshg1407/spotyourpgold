@@ -33,7 +33,10 @@ export interface UseAdvancedFiltersReturn {
   total: number;
   totalPages: number;
   currentPage: number;
-  searchWithFilters: (customFilters?: Partial<FilterState>, forceSearch?: boolean) => Promise<void>;
+  searchWithFilters: (
+    customFilters?: Partial<FilterState>,
+    forceSearch?: boolean
+  ) => Promise<void>;
 }
 
 const initialFilters: FilterState = {
@@ -152,7 +155,7 @@ export const useAdvancedFilters = (
         searchFilters,
         hasActiveFilters,
         forceSearch,
-        query: searchFilters.query
+        query: searchFilters.query,
       });
 
       // Don't search if no filters are active and not query, unless forced
@@ -168,7 +171,10 @@ export const useAdvancedFilters = (
 
       try {
         const searchParams = buildSearchParams(searchFilters, currentPage);
-        console.log("Making search API call:", `/api/listing/search?${searchParams.toString()}`);
+        console.log(
+          "Making search API call:",
+          `/api/listing/search?${searchParams.toString()}`
+        );
         const response = await axios.get(
           `/api/listing/search?${searchParams.toString()}`
         );
@@ -179,7 +185,11 @@ export const useAdvancedFilters = (
           setListings(response.data.data);
           setTotal(response.data.total);
           setTotalPages(response.data.totalPages);
-          console.log("Search results set:", response.data.data.length, "items");
+          console.log(
+            "Search results set:",
+            response.data.data.length,
+            "items"
+          );
         } else {
           toast.error(response.data.message || "Search failed");
           setListings([]);

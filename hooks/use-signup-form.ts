@@ -34,7 +34,7 @@ const initialFormData: SignupFormData = {
 
 const initialOTP: string[] = Array(OTP_LENGTH).fill("");
 
-export const useSignupForm = () => {
+export const useSignupForm = (onSuccess?: () => void) => {
   const [formData, setFormData] = useState<SignupFormData>(initialFormData);
   const [otp, setOtp] = useState<string[]>(initialOTP);
   const [showPassword, setShowPassword] = useState(false);
@@ -218,7 +218,13 @@ export const useSignupForm = () => {
 
         if (res && res?.data && res?.data?.success) {
           setUser(res?.data?.user ?? null);
-          router.replace("/");
+          
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.replace("/");
+          }
+          
           toast.success(res.data.message || "OTP Verified successfully.", {
             closeButton: true,
             duration: 2000,

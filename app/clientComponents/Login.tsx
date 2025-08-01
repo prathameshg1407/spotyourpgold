@@ -10,7 +10,11 @@ import { useLoginForm } from "@/hooks/use-login-form";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-const Login = () => {
+interface LoginProps {
+  onSuccess?: () => void;
+}
+
+const Login = ({ onSuccess }: LoginProps = {}) => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -67,7 +71,7 @@ const Login = () => {
     backToForgotPassword,
     isOTPComplete,
     isTimerExpired,
-  } = useLoginForm();
+  } = useLoginForm(onSuccess);
 
   const getTitle = () => {
     switch (currentStep) {

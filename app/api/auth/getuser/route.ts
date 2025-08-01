@@ -7,6 +7,7 @@ interface LeanUser {
   _id: string;
   fullName: string;
   email: string;
+  phone: string;
   role: string;
   ownerStatus: string;
   createdAt: Date;
@@ -20,14 +21,11 @@ export async function GET() {
 
     const auth = await authUser();
 
-
     if (!auth) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-      );
+      return NextResponse.json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
     const user = await User.findById(auth.id)
@@ -35,14 +33,11 @@ export async function GET() {
       .lean<LeanUser>();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User not found",
-        },
-      );
+      return NextResponse.json({
+        success: false,
+        message: "User not found",
+      });
     }
-
 
     return NextResponse.json({
       success: true,
@@ -53,11 +48,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[GET_USER_API]", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to get user. (error)",
-      },
-    );
+    return NextResponse.json({
+      success: false,
+      message: "Failed to get user. (error)",
+    });
   }
 }

@@ -176,10 +176,12 @@ import dynamic from "next/dynamic";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useListingStore } from "@/store/listingStore";
+import { useUserStore } from "@/store/userStore";
 import SectionHeading from "@/components/SectionHeading";
 import { FeaturedCarousel } from "@/components/FeaturedCarousel";
 import OwnerListingSection from "@/components/OwnerListingSection";
 import VisitRequestForm from "@/components/VisitRequestForm";
+import AuthModal from "@/components/AuthModal";
 
 // Fix default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -585,7 +587,7 @@ export default function ProductPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
-  const [showDirectionModal, setShowDirectionModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: "",
@@ -680,6 +682,7 @@ export default function ProductPage() {
   });
 
   const { containerLoading, setContainerLoading } = useLoadingStore();
+  const { user } = useUserStore();
 
   const params = useParams();
 
@@ -838,19 +841,18 @@ export default function ProductPage() {
   };
 
   const handleDirectionClick = () => {
-    setShowDirectionModal(true);
+    if (!user) {
+      // User is not logged in, show login modal
+      setShowLoginModal(true);
+    } else {
+      // User is logged in, show visit form directly
+      setShowVisitForm(true);
+    }
   };
 
-  const handleDirectionYes = () => {
-    // User has visited before, redirect to directions
-    const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${listing?.location?.coordinates?.coordinates[1]},${listing?.location?.coordinates?.coordinates[0]}`;
-    window.open(mapUrl, "_blank");
-    setShowDirectionModal(false);
-  };
-
-  const handleDirectionNo = () => {
-    // User hasn't visited, show visit form
-    setShowDirectionModal(false);
+  const handleLoginSuccess = () => {
+    // After successful login, close login modal and show visit form
+    setShowLoginModal(false);
     setShowVisitForm(true);
   };
 
@@ -1994,41 +1996,27 @@ export default function ProductPage() {
         />
       )}
 
-      {/* Direction Confirmation Modal */}
-      {showDirectionModal && (
+      {/* Login Modal */}
+      {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-HG-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-8 h-8 text-HG-500" />
-              </div>
-              <h3 className="text-xl font-bold font-poppins text-gray-900 mb-2">
-                Have you visited this property before?
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold font-poppins text-gray-900">
+                Authentication Required
               </h3>
-              <p className="text-gray-600 font-inter mb-6">
-                This helps us provide you with the best directions and
-                information.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleDirectionYes}
-                  className="flex-1 bg-HG-500 hover:bg-HG-600 text-white font-poppins font-semibold py-3 px-6 rounded-lg transition-colors"
-                >
-                  Yes, I have visited
-                </button>
-                <button
-                  onClick={handleDirectionNo}
-                  className="flex-1 border-2 border-HG-400 hover:bg-HG-50 text-HG-500 font-poppins font-semibold py-3 px-6 rounded-lg transition-colors"
-                >
-                  No, first time
-                </button>
-              </div>
               <button
-                onClick={() => setShowDirectionModal(false)}
-                className="mt-3 text-gray-500 hover:text-gray-700 text-sm font-inter"
+                onClick={() => setShowLoginModal(false)}
+                className="text-gray-500 hover:text-gray-700"
               >
-                Cancel
+                ✕
               </button>
+            </div>
+            <div className="p-4">
+              <p className="text-gray-600 font-inter mb-4">
+                Please login or create an account to schedule a visit to this
+                property.
+              </p>
+              <AuthModal onSuccess={handleLoginSuccess} />
             </div>
           </div>
         </div>

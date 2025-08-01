@@ -51,7 +51,7 @@ const OTP_PATTERN = /^\d*$/;
 
 const initialOTP: string[] = Array(OTP_LENGTH).fill("");
 
-export const useLoginForm = () => {
+export const useLoginForm = (onSuccess?: () => void) => {
   const [currentStep, setCurrentStep] = useState<LoginStep>("login");
   const [loginData, setLoginData] = useState<LoginFormData>(initialLoginData);
   const [forgotPasswordData, setForgotPasswordData] =
@@ -154,7 +154,12 @@ export const useLoginForm = () => {
 
         if (res && res?.data && res?.data?.success) {
           setUser(res?.data?.user ?? null);
-          router.replace("/");
+          
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.replace("/");
+          }
 
           toast.success(res.data.message || "Logged in successfully.", {
             closeButton: true,
