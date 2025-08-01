@@ -836,8 +836,41 @@ export default function ProductPage() {
     setShowVisitForm(true);
   };
 
+  // Session storage helpers for tracking visit requests
+  const getVisitRequestKey = (listingId: string) =>
+    `visit_request_${listingId}`;
+
+  const hasSubmittedVisitRequest = (listingId: string) => {
+    if (typeof window === "undefined") return false;
+    const key = getVisitRequestKey(listingId);
+    return sessionStorage.getItem(key) === "true";
+  };
+
+  const markVisitRequestSubmitted = (listingId: string) => {
+    if (typeof window === "undefined") return;
+    const key = getVisitRequestKey(listingId);
+    sessionStorage.setItem(key, "true");
+  };
+
   const handleVisitFormClose = () => {
     setShowVisitForm(false);
+  };
+
+  const handleVisitFormSuccess = () => {
+    // Mark this listing as having a submitted visit request
+    markVisitRequestSubmitted(params.id as string);
+    setShowVisitForm(false);
+  };
+
+  const openDirections = () => {
+    const { coordinates } = listing?.location || {};
+    if (coordinates?.coordinates) {
+      const [lng, lat] = coordinates.coordinates;
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      window.open(googleMapsUrl, "_blank");
+    } else {
+      toast.error("Location coordinates not available for directions");
+    }
   };
 
   const handleDirectionClick = () => {
@@ -845,15 +878,29 @@ export default function ProductPage() {
       // User is not logged in, show login modal
       setShowLoginModal(true);
     } else {
-      // User is logged in, show visit form directly
-      setShowVisitForm(true);
+      // Check if user has already submitted a visit request for this listing
+      if (hasSubmittedVisitRequest(params.id as string)) {
+        // User has already submitted a visit request, open directions directly
+        openDirections();
+      } else {
+        // User is logged in but hasn't submitted a visit request, show form
+        setShowVisitForm(true);
+      }
     }
   };
 
   const handleLoginSuccess = () => {
-    // After successful login, close login modal and show visit form
+    // After successful login, close login modal
     setShowLoginModal(false);
-    setShowVisitForm(true);
+
+    // Check if user has already submitted a visit request for this listing
+    if (hasSubmittedVisitRequest(params.id as string)) {
+      // User has already submitted a visit request, open directions directly
+      openDirections();
+    } else {
+      // Show visit form if no previous request
+      setShowVisitForm(true);
+    }
   };
 
   const handleInlineSubmit = async (e: any) => {
@@ -1919,9 +1966,15 @@ export default function ProductPage() {
 
                     <Button
                       onClick={handleDirectionClick}
-                      className="md:px-5 text-xs md:text-sm"
+                      className={`md:px-5 text-xs md:text-sm ${
+                        user && hasSubmittedVisitRequest(params.id as string)
+                          ? "bg-green-600 hover:bg-green-700"
+                          : ""
+                      }`}
                     >
-                      Get Directions
+                      {user && hasSubmittedVisitRequest(params.id as string)
+                        ? "View Directions"
+                        : "Get Directions"}
                     </Button>
                   </div>
                   <div>
@@ -1991,7 +2044,7 @@ export default function ProductPage() {
         <VisitRequestForm
           listingId={params.id as string}
           pgName={listing?.pgName || ""}
-          onSuccess={handleVisitFormClose}
+          onSuccess={handleVisitFormSuccess}
           onCancel={handleVisitFormClose}
         />
       )}

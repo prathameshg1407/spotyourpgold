@@ -106,6 +106,26 @@ export default function VisitRequestForm({
   };
 
   const validateForm = () => {
+    // Check if we have user data or form data for name and phone
+    const name = user?.fullName || formData.name.trim();
+    const phone = user?.phone || formData.phone.trim();
+
+    if (!name) {
+      toast.error("Name is required");
+      return false;
+    }
+
+    if (!phone) {
+      toast.error("Phone number is required");
+      return false;
+    }
+
+    // Validate phone format (10 digits)
+    if (!/^[0-9]{10}$/.test(phone)) {
+      toast.error("Phone number must be exactly 10 digits");
+      return false;
+    }
+
     if (!formData.date) {
       toast.error("Please select your preferred visit date");
       return false;
@@ -190,8 +210,8 @@ export default function VisitRequestForm({
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* User Info Display */}
-            {user && (
+            {/* User Info Display or Input Fields */}
+            {user && user.fullName && user.phone ? (
               <div className="bg-HG-50 p-4 rounded-lg border">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="w-4 h-4 text-HG-500" />
@@ -204,6 +224,51 @@ export default function VisitRequestForm({
                 </p>
                 <p className="font-inter text-gray-600 text-sm">{user.phone}</p>
               </div>
+            ) : (
+              <>
+                {/* Name Input */}
+                <div>
+                  <Label
+                    htmlFor="name"
+                    className="font-poppins flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Full Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="mt-1 font-inter"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                {/* Phone Input */}
+                <div>
+                  <Label
+                    htmlFor="phone"
+                    className="font-poppins flex items-center gap-2"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Phone Number *
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="mt-1 font-inter"
+                    placeholder="Enter 10-digit phone number"
+                    maxLength={10}
+                  />
+                </div>
+              </>
             )}
 
             {/* Preferred Visit Date */}
