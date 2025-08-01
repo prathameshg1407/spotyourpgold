@@ -446,7 +446,7 @@ function InfiniteScrollListings({
       <div className="mt-16">
         <SectionHeading>More PG Accommodations</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-          {[...Array(8)].map((_, index) => (
+          {[...Array(4)].map((_, index) => (
             <div
               key={index}
               className="w-full max-w-[320px] mx-auto animate-pulse"
@@ -476,7 +476,7 @@ function InfiniteScrollListings({
       <SectionHeading>More PG Accommodations</SectionHeading>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-        {listings.map((listing: any) => (
+        {listings.slice(0, 4).map((listing: any) => (
           <div key={listing._id} className="w-full max-w-[320px] mx-auto">
             <Link
               href={`/routes/pg-details/${listing._id}`}
