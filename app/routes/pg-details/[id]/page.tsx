@@ -2636,7 +2636,7 @@ export default function ProductPage() {
                           </label>
                         </div>
                         <p className="text-sm text-gray-600 mt-1 ml-6">
-                          Pay first month's rent now, security deposit on
+                          Pay first month&apos;s rent now, security deposit on
                           move-in
                         </p>
                       </div>
