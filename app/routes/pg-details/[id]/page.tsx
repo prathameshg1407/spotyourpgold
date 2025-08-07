@@ -588,6 +588,25 @@ export default function ProductPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingStep, setBookingStep] = useState(1);
+  const [selectedRoomType, setSelectedRoomType] = useState<any>(null);
+  const [bookingForm, setBookingForm] = useState({
+    moveInDate: "",
+    duration: "1",
+    fullName: "",
+    phoneNumber: "",
+    email: "",
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      pincode: "",
+    },
+    aadhaarNumber: "",
+    additionalRequirements: "",
+    termsAccepted: false,
+  });
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: "",
@@ -860,6 +879,134 @@ export default function ProductPage() {
     // Mark this listing as having a submitted visit request
     markVisitRequestSubmitted(params.id as string);
     setShowVisitForm(false);
+  };
+
+  const handleBookingClick = () => {
+    if (!user) {
+      // User is not logged in, show login modal
+      setShowLoginModal(true);
+    } else {
+      // User is logged in, show booking modal
+      setShowBookingModal(true);
+    }
+  };
+
+  const handleBookingClose = () => {
+    setShowBookingModal(false);
+    setBookingStep(1);
+    setSelectedRoomType(null);
+    setBookingForm({
+      moveInDate: "",
+      duration: "1",
+      fullName: "",
+      phoneNumber: "",
+      email: "",
+      address: {
+        street: "",
+        city: "",
+        state: "",
+        pincode: "",
+      },
+      aadhaarNumber: "",
+      additionalRequirements: "",
+      termsAccepted: false,
+    });
+  };
+
+  const handleBookingSuccess = () => {
+    setShowBookingModal(false);
+    setBookingStep(1);
+    setSelectedRoomType(null);
+    toast.success("Booking request submitted successfully!", {
+      closeButton: true,
+      duration: 3000,
+    });
+  };
+
+  const handleFormChange = (field: string, value: any) => {
+    if (field.includes(".")) {
+      const [parent, child] = field.split(".");
+      if (parent === "address") {
+        setBookingForm((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            [child]: value,
+          },
+        }));
+      }
+    } else {
+      setBookingForm((prev) => ({
+        ...prev,
+        [field as keyof typeof prev]: value,
+      }));
+    }
+  };
+
+  const validateStep1 = () => {
+    if (!selectedRoomType) {
+      toast.error("Please select a room type");
+      return false;
+    }
+    if (!bookingForm.moveInDate) {
+      toast.error("Please select a move-in date");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!bookingForm.fullName.trim()) {
+      toast.error("Please enter your full name");
+      return false;
+    }
+    if (!bookingForm.phoneNumber.trim()) {
+      toast.error("Please enter your phone number");
+      return false;
+    }
+    if (!bookingForm.email.trim()) {
+      toast.error("Please enter your email address");
+      return false;
+    }
+    if (!bookingForm.address.street.trim()) {
+      toast.error("Please enter your street address");
+      return false;
+    }
+    if (!bookingForm.address.city.trim()) {
+      toast.error("Please enter your city");
+      return false;
+    }
+    if (!bookingForm.address.state.trim()) {
+      toast.error("Please enter your state");
+      return false;
+    }
+    if (!bookingForm.address.pincode.trim()) {
+      toast.error("Please enter your pincode");
+      return false;
+    }
+    if (!bookingForm.aadhaarNumber.trim()) {
+      toast.error("Please enter your Aadhaar number");
+      return false;
+    }
+    if (bookingForm.aadhaarNumber.length !== 12) {
+      toast.error("Aadhaar number must be 12 digits");
+      return false;
+    }
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (bookingStep === 1 && validateStep1()) {
+      setBookingStep(2);
+    } else if (bookingStep === 2 && validateStep2()) {
+      setBookingStep(3);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (bookingStep > 1) {
+      setBookingStep(bookingStep - 1);
+    }
   };
 
   const openDirections = () => {
@@ -1257,7 +1404,10 @@ export default function ProductPage() {
                   <Calendar className="w-4 h-4 font-semibold hidden md:block" />
                   Visit Now
                 </Button>
-                <Button className="py-3 font-semibold hover: border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500">
+                <Button
+                  onClick={handleBookingClick}
+                  className="py-3 font-semibold hover: border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500"
+                >
                   <Phone className="w-4 h-4 hidden md:block " />
                   Book Now
                 </Button>
@@ -2070,6 +2220,533 @@ export default function ProductPage() {
                 property.
               </p>
               <AuthModal onSuccess={handleLoginSuccess} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-white rounded-2xl max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold font-poppins text-gray-900">
+                  Book Your Stay
+                </h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      bookingStep >= 1
+                        ? "bg-HG-500 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    1
+                  </div>
+                  <div
+                    className={`w-12 h-1 ${
+                      bookingStep >= 2 ? "bg-HG-500" : "bg-gray-200"
+                    }`}
+                  ></div>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      bookingStep >= 2
+                        ? "bg-HG-500 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    2
+                  </div>
+                  <div
+                    className={`w-12 h-1 ${
+                      bookingStep >= 3 ? "bg-HG-500" : "bg-gray-200"
+                    }`}
+                  ></div>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      bookingStep >= 3
+                        ? "bg-HG-500 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    3
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleBookingClose}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Property Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                    <BlurImage
+                      src={
+                        listing?.primaryImage || listing?.images[0]?.url || ""
+                      }
+                      alt={listing?.pgName}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg text-gray-900">
+                      {listing?.pgName}
+                    </h4>
+                    <p className="text-gray-600 text-sm">
+                      {listing?.location?.area}, {listing?.location?.city}
+                    </p>
+                    <p className="text-HG-600 font-bold text-lg">
+                      ₹{listing?.minRent?.toLocaleString()}/month
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 1: Room Selection & Booking Details */}
+              {bookingStep === 1 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Select Room Type
+                    </h4>
+                    <div className="space-y-3">
+                      {listing?.roomTypes?.map((roomType, index) => (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedRoomType(roomType)}
+                          className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                            selectedRoomType?.type === roomType.type
+                              ? "border-HG-500 bg-HG-50"
+                              : "border-gray-200 hover:border-HG-400"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h5 className="font-medium text-gray-900">
+                                {roomType.type}
+                              </h5>
+                              <p className="text-sm text-gray-600">
+                                {roomType.capacityPerRoom} person per room
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {roomType.availableRooms} rooms available
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-HG-600">
+                                ₹{roomType.monthlyRent?.toLocaleString()}/month
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Security: ₹
+                                {roomType.securityDeposit?.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Booking Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Move-in Date
+                        </label>
+                        <input
+                          type="date"
+                          value={bookingForm.moveInDate}
+                          onChange={(e) =>
+                            handleFormChange("moveInDate", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          min={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Duration (months)
+                        </label>
+                        <select
+                          value={bookingForm.duration}
+                          onChange={(e) =>
+                            handleFormChange("duration", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                        >
+                          <option value="1">1 Month</option>
+                          <option value="3">3 Months</option>
+                          <option value="6">6 Months</option>
+                          <option value="12">12 Months</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Personal Information */}
+              {bookingStep === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Personal Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={bookingForm.fullName}
+                          onChange={(e) =>
+                            handleFormChange("fullName", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          value={bookingForm.phoneNumber}
+                          onChange={(e) =>
+                            handleFormChange("phoneNumber", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your phone number"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          value={bookingForm.email}
+                          onChange={(e) =>
+                            handleFormChange("email", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your email address"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Address Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Street Address *
+                        </label>
+                        <input
+                          type="text"
+                          value={bookingForm.address.street}
+                          onChange={(e) =>
+                            handleFormChange("address.street", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your street address"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          City *
+                        </label>
+                        <input
+                          type="text"
+                          value={bookingForm.address.city}
+                          onChange={(e) =>
+                            handleFormChange("address.city", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your city"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          State *
+                        </label>
+                        <input
+                          type="text"
+                          value={bookingForm.address.state}
+                          onChange={(e) =>
+                            handleFormChange("address.state", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your state"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Pincode *
+                        </label>
+                        <input
+                          type="text"
+                          value={bookingForm.address.pincode}
+                          onChange={(e) =>
+                            handleFormChange("address.pincode", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                          placeholder="Enter your pincode"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Identity Verification
+                    </h4>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Aadhaar Number *
+                      </label>
+                      <input
+                        type="text"
+                        value={bookingForm.aadhaarNumber}
+                        onChange={(e) =>
+                          handleFormChange(
+                            "aadhaarNumber",
+                            e.target.value.replace(/\D/g, "").slice(0, 12)
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                        placeholder="Enter 12-digit Aadhaar number"
+                        maxLength={12}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Only numbers allowed, maximum 12 digits
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Additional Requirements
+                    </h4>
+                    <textarea
+                      value={bookingForm.additionalRequirements}
+                      onChange={(e) =>
+                        handleFormChange(
+                          "additionalRequirements",
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Any special requirements or preferences..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Payment & Confirmation */}
+              {bookingStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Booking Summary
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Room Type:</span>
+                        <span className="font-medium">
+                          {selectedRoomType?.type}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Monthly Rent:</span>
+                        <span className="font-medium">
+                          ₹{selectedRoomType?.monthlyRent?.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Duration:</span>
+                        <span className="font-medium">
+                          {bookingForm.duration} month(s)
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Move-in Date:</span>
+                        <span className="font-medium">
+                          {new Date(
+                            bookingForm.moveInDate
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Security Deposit:</span>
+                        <span className="font-medium">
+                          ₹{selectedRoomType?.securityDeposit?.toLocaleString()}
+                        </span>
+                      </div>
+                      <hr className="my-3" />
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Total Amount:</span>
+                        <span className="text-HG-600">
+                          ₹
+                          {(
+                            selectedRoomType?.monthlyRent *
+                              parseInt(bookingForm.duration) +
+                            selectedRoomType?.securityDeposit
+                          )?.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Payment Method
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="border-2 border-HG-500 bg-HG-50 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="payment"
+                            id="advance"
+                            defaultChecked
+                            className="text-HG-600 focus:ring-HG-500"
+                          />
+                          <label htmlFor="advance" className="font-medium">
+                            Pay Advance (₹
+                            {selectedRoomType?.monthlyRent?.toLocaleString()})
+                          </label>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 ml-6">
+                          Pay first month's rent now, security deposit on
+                          move-in
+                        </p>
+                      </div>
+                      <div className="border-2 border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="payment"
+                            id="full"
+                            className="text-HG-600 focus:ring-HG-500"
+                          />
+                          <label htmlFor="full" className="font-medium">
+                            Pay Full Amount (₹
+                            {(
+                              selectedRoomType?.monthlyRent *
+                                parseInt(bookingForm.duration) +
+                              selectedRoomType?.securityDeposit
+                            )?.toLocaleString()}
+                            )
+                          </label>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 ml-6">
+                          Pay complete amount including security deposit
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
+                      Terms & Conditions
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                      <p>
+                        • Security deposit is refundable upon vacating the
+                        property
+                      </p>
+                      <p>
+                        • Notice period:{" "}
+                        {listing?.detailedRules?.noticePeriod || "1 month"}
+                      </p>
+                      <p>
+                        • Lock-in period:{" "}
+                        {listing?.detailedRules?.lockInPeriod || "3 months"}
+                      </p>
+                      <p>
+                        • Entry timing:{" "}
+                        {listing?.detailedRules?.entryTiming ||
+                          "6:00 AM - 10:00 PM"}
+                      </p>
+                      <p>
+                        • Exit timing:{" "}
+                        {listing?.detailedRules?.exitTiming ||
+                          "6:00 AM - 10:00 PM"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      checked={bookingForm.termsAccepted}
+                      onChange={(e) =>
+                        handleFormChange("termsAccepted", e.target.checked)
+                      }
+                      className="mt-1 h-4 w-4 text-HG-600 focus:ring-HG-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="terms" className="text-sm text-gray-700">
+                      I agree to the terms and conditions, including the
+                      security deposit and notice period requirements.
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-4 mt-8">
+                {bookingStep > 1 && (
+                  <Button
+                    onClick={handlePrevStep}
+                    variant="outline"
+                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Previous
+                  </Button>
+                )}
+                {bookingStep < 3 ? (
+                  <Button
+                    onClick={handleNextStep}
+                    className="flex-1 bg-HG-500 hover:bg-HG-600 text-white"
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleBookingSuccess}
+                    disabled={!bookingForm.termsAccepted}
+                    className="flex-1 bg-HG-500 hover:bg-HG-600 text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Confirm Booking
+                  </Button>
+                )}
+              </div>
+
+              {/* Note */}
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                This is a booking request. The owner will contact you within 24
+                hours to confirm availability and proceed with the booking.
+              </p>
             </div>
           </div>
         </div>
