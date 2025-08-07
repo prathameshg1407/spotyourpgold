@@ -28,6 +28,25 @@ import {
   Eye,
   Phone,
   Calendar,
+  Tv,
+  Sofa,
+  Shirt,
+  Bath,
+  Home,
+  Users,
+  Coffee,
+  Gamepad2,
+  Dumbbell,
+  BookOpen,
+  Clock,
+  Lightbulb,
+  DoorOpen,
+  Building,
+  AirVent,
+  Droplets,
+  Camera,
+  Refrigerator,
+  BrushIcon,
 } from "lucide-react";
 
 interface PGListing {
@@ -47,11 +66,58 @@ interface PGListing {
 
 const amenityIcons: Record<string, any> = {
   wifi: Wifi,
+  "wi-fi": Wifi,
   parking: Car,
   meals: Utensils,
   security: Shield,
+  "24x7-security": Shield,
+  "24x7 security": Shield,
   power: Zap,
-  ac: Zap,
+  "power-backup": Zap,
+  "power backup": Zap,
+  ac: AirVent,
+  "air conditioning": AirVent,
+  geyser: Zap,
+  "water-purifier": Droplets,
+  "water purifier": Droplets,
+  tv: Tv,
+  "tv/entertainment": Tv,
+  sofa: Sofa,
+  laundry: Shirt,
+  "laundry facility": Shirt,
+  bed: Bed,
+  "mattress-wardrobe": Bed,
+  "mattress and wardrobe": Bed,
+  bathroom: Bath,
+  kitchen: Home,
+  "combined-cooking": Coffee,
+  "combined cooking area": Coffee,
+  common: Users,
+  "common-area": Users,
+  "common area": Users,
+  "common area / lounge": Users,
+  coffee: Coffee,
+  games: Gamepad2,
+  gym: Dumbbell,
+  study: BookOpen,
+  "study-desk": BookOpen,
+  "study desk": BookOpen,
+  library: BookOpen,
+  "24/7": Clock,
+  electricity: Lightbulb,
+  food: Utensils,
+  internet: Wifi,
+  cctv: Camera,
+  generator: Zap,
+  furniture: Sofa,
+  cleaning: Bath,
+  housekeeping: BrushIcon,
+  maintenance: Home,
+  refrigerator: Refrigerator,
+  "common-refrigerator": Refrigerator,
+  "common refrigerator": Refrigerator,
+  "separate-refrigerator": Refrigerator,
+  "separate refrigerator": Refrigerator,
 };
 
 export default function WishlistCompare() {
@@ -536,37 +602,35 @@ export default function WishlistCompare() {
                 selectedListing.amenities.length > 0 && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-lg mb-3">Amenities</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {selectedListing.amenities.map((amenity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 bg-white p-2 rounded"
-                        >
-                          {amenityIcons[amenity] && (
-                            <span className="text-HG-500">
-                              {React.createElement(amenityIcons[amenity], {
-                                className: "h-4 w-4",
-                              })}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                      {selectedListing.amenities.map((amenity, index) => {
+                        const IconComponent =
+                          amenityIcons[amenity.toLowerCase()] || Home;
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[60px]"
+                          >
+                            <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
+                              <IconComponent className="w-5 h-5 text-HG-600" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700 capitalize flex-grow">
+                              {amenity}
                             </span>
-                          )}
-                          <span className="capitalize text-sm">{amenity}</span>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
+              {/* <div className="flex gap-4 pt-4">
                 <Button className="flex-1 bg-HG-500 hover:bg-HG-600 text-white">
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Visit
                 </Button>
-                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Contact Owner
-                </Button>
-              </div>
+              </div> */}
             </div>
           )}
         </DialogContent>
