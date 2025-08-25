@@ -252,30 +252,27 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   }, [userLocation, locationDenied]);
 
   const column1Images = [
-    { src: "/placeholder.svg?height=200&width=250", alt: "Modern house" },
-    { src: "/placeholder.svg?height=220&width=250", alt: "Interior room" },
-    { src: "/placeholder.svg?height=180&width=250", alt: "Apartment" },
-    { src: "/placeholder.svg?height=210&width=250", alt: "Minimalist home" },
-    { src: "/placeholder.svg?height=190&width=250", alt: "Urban loft" },
+    { src: "/home/3.jpg", alt: "PG Property" },
+    { src: "/home/4.jpg", alt: "Room Interior" },
+    { src: "/home/5.jpg", alt: "Property View" },
+    { src: "/home/6.jpg", alt: "Living Space" },
+    { src: "/home/7.jpg", alt: "Modern Room" },
   ];
 
   const column2Images = [
-    { src: "/placeholder.svg?height=160&width=250", alt: "Dark modern house" },
-    { src: "/placeholder.svg?height=180&width=250", alt: "Triangular houses" },
-    { src: "/placeholder.svg?height=170&width=250", alt: "Glass building" },
-    { src: "/placeholder.svg?height=190&width=250", alt: "Duplex house" },
-    { src: "/placeholder.svg?height=175&width=250", alt: "Studio apartment" },
+    { src: "/home/8.jpg", alt: "Property Exterior" },
+    { src: "/home/9.jpg", alt: "Common Area" },
+    { src: "/home/10.jpg", alt: "Furnished Room" },
+    { src: "/home/11.jpg", alt: "Building View" },
+    { src: "/home/12.jpg", alt: "Room Setup" },
   ];
 
   const column3Images = [
-    { src: "/placeholder.svg?height=150&width=250", alt: "Concrete house" },
-    { src: "/placeholder.svg?height=200&width=250", alt: "Luxury house" },
-    { src: "/placeholder.svg?height=160&width=250", alt: "Traditional house" },
-    {
-      src: "/placeholder.svg?height=180&width=250",
-      alt: "Beachfront property",
-    },
-    { src: "/placeholder.svg?height=170&width=250", alt: "Garden house" },
+    { src: "/home/13.jpg", alt: "Property Layout" },
+    { src: "/home/14.jpg", alt: "Interior Design" },
+    { src: "/home/15.jpg", alt: "Living Area" },
+    { src: "/home/16.jpg", alt: "Property Feature" },
+    { src: "/home/17.jpg", alt: "Room View" },
   ];
 
   // Remove a specific filter
@@ -546,7 +543,13 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg flex-shrink-0"
                           >
-                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                            <BlurImage
+                              src={image.src}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            />
                           </div>
                         ))}
                       </div>
@@ -571,7 +574,13 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
                           >
-                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                            <BlurImage
+                              src={image.src}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            />
                           </div>
                         ))}
                         {/* Gray accent block */}
@@ -596,7 +605,13 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             key={index}
                             className="bg-white rounded-xl overflow-hidden shadow-lg  flex-shrink-0"
                           >
-                            <div className="w-[250px] h-[250px] bg-gray-100 "></div>
+                            <BlurImage
+                              src={image.src}
+                              alt={image.alt}
+                              width={250}
+                              height={250}
+                              className="w-[250px] h-[250px] object-cover"
+                            />
                           </div>
                         ))}
                       </div>
