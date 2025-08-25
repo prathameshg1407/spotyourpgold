@@ -96,6 +96,8 @@ export const initialErrors: ValidationErrors = {
   state: false,
   pincode: false,
   coordinates: false,
+  latitude: false,
+  longitude: false,
   general: "",
   securityDeposit: false,
   numberOfRooms: false,

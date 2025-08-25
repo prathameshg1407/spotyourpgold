@@ -55,6 +55,21 @@ export const useFormValidation = (formData: PGFormData) => {
         break;
 
       case 2:
+        // Validate coordinates (optional but if provided, must be valid)
+        const lat = formData.location.coordinates.lat;
+        const lng = formData.location.coordinates.lng;
+
+        if (lat && (isNaN(lat) || lat < -90 || lat > 90)) {
+          newErrors.latitude = true;
+          newErrors.general ||= "Latitude must be between -90 and 90";
+        }
+
+        if (lng && (isNaN(lng) || lng < -180 || lng > 180)) {
+          newErrors.longitude = true;
+          newErrors.general ||= "Longitude must be between -180 and 180";
+        }
+
+        // Address fields are always mandatory
         if (!formData.location.area.trim()) {
           newErrors.area = true;
           newErrors.general ||= "Please enter a valid address";
@@ -71,13 +86,23 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.pincode = true;
           newErrors.general ||= "Please enter a valid pincode";
         }
-        if (!formData.location.coordinates) {
+
+        // Ensure we have either valid coordinates or the form can geocode from address
+        const hasValidCoordinates =
+          lat &&
+          lng &&
+          !isNaN(lat) &&
+          !isNaN(lng) &&
+          lat >= -90 &&
+          lat <= 90 &&
+          lng >= -180 &&
+          lng <= 180;
+
+        if (!hasValidCoordinates && !formData.location.coordinates) {
           newErrors.coordinates = true;
           newErrors.general ||= "Please select a location on map";
         }
         break;
-
-
 
       case 5:
         const totalImages =

@@ -83,5 +83,7 @@ export interface ValidationErrors {
   state: boolean;
   pincode: boolean;
   coordinates: boolean;
+  latitude: boolean;
+  longitude: boolean;
   general: string;
 }

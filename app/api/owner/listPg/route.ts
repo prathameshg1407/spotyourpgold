@@ -48,15 +48,37 @@ export async function POST(req: Request) {
       !location?.city ||
       !location?.state ||
       !location?.pincode ||
+      !location?.area ||
       !Array.isArray(images) ||
       images.length === 0 ||
-        additionalDetails.length > 10 ||
+      additionalDetails.length > 10 ||
       rulesAndRegulations.length > 10
     ) {
       return NextResponse.json({
         success: false,
         message: "Missing or invalid fields.",
       });
+    }
+
+    // Validate coordinates if provided
+    if (location?.coordinates?.lat || location?.coordinates?.lng) {
+      const lat = location.coordinates.lat;
+      const lng = location.coordinates.lng;
+
+      if (
+        isNaN(lat) ||
+        lat < -90 ||
+        lat > 90 ||
+        isNaN(lng) ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        return NextResponse.json({
+          success: false,
+          message:
+            "Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
+        });
+      }
     }
 
     // ✅ Validate roomTypes

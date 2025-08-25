@@ -262,9 +262,101 @@ export default function Step2Location({
     }
   }, [getAddressFromCoords, setFormData]);
 
+  // Safely update map when coordinates change
+  useEffect(() => {
+    const lat = formData.location.coordinates.lat;
+    const lng = formData.location.coordinates.lng;
+
+    // Only update map if we have valid coordinates
+    if (
+      lat &&
+      lng &&
+      !isNaN(lat) &&
+      !isNaN(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      const timeoutId = setTimeout(() => {
+        setMapKey((prev) => prev + 1);
+      }, 500); // Debounce to avoid too frequent updates
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData.location.coordinates.lat, formData.location.coordinates.lng]);
+
   return (
     <form>
+      {/* Manual Coordinates Section */}
+      <div className="space-y-4 text-left pb-5 border-b border-gray-200 mb-5">
+        <h3 className="text-lg font-semibold text-gray-800">
+          Location Coordinates
+        </h3>
+        <p className="text-sm text-gray-600">
+          Enter exact latitude and longitude coordinates (recommended for
+          precise location)
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormInput
+            id="latitude"
+            label="Latitude"
+            type="number"
+            value={formData.location.coordinates.lat ? formData.location.coordinates.lat.toString() : ""}
+            onChange={(value) => {
+              const lat = value === "" ? 0 : parseFloat(value);
+              if (!isNaN(lat)) {
+                setFormData((prev) => ({
+                  ...prev,
+                  location: {
+                    ...prev.location,
+                    coordinates: { ...prev.location.coordinates, lat },
+                  },
+                }));
+              }
+            }}
+            placeholder="e.g. 28.6139"
+            hasError={errors.latitude}
+            icon={MapPin}
+          />
+
+          <FormInput
+            id="longitude"
+            label="Longitude"
+            type="number"
+            value={formData.location.coordinates.lng ? formData.location.coordinates.lng.toString() : ""}
+            onChange={(value) => {
+              const lng = value === "" ? 0 : parseFloat(value);
+              if (!isNaN(lng)) {
+                setFormData((prev) => ({
+                  ...prev,
+                  location: {
+                    ...prev.location,
+                    coordinates: { ...prev.location.coordinates, lng },
+                  },
+                }));
+              }
+            }}
+            placeholder="e.g. 77.2090"
+            hasError={errors.longitude}
+            icon={MapPin}
+          />
+        </div>
+
+        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+          <strong>Tip:</strong> You can enter coordinates directly here for
+          precision. Address fields below are required for listing details.
+        </div>
+      </div>
+
+      {/* Address Section */}
       <div className="space-y-4 text-left pb-5">
+        <h3 className="text-lg font-semibold text-gray-800">
+          Address Details{" "}
+          <span className="text-sm font-normal text-red-500">(Required)</span>
+        </h3>
+
         <FormInput
           id="area"
           label="Area"
@@ -446,9 +538,13 @@ export default function Step2Location({
       </div>
 
       <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2 mb-10">
-        <strong>Instructions:</strong> Click anywhere on map or drag the red
-        marker to select location. Use &quot;Find on Map&quot; to locate typed
-        address or &quot;Current Location&quot; for GPS.
+        <strong>Instructions:</strong>
+        <br />• Enter coordinates manually in the fields above for precise
+        location
+        <br />• OR click anywhere on map or drag the marker to select location
+        <br />• Use &quot;Find on Map&quot; to locate typed address or
+        &quot;Current Location&quot; for GPS
+        <br />• Coordinates will automatically sync with map interactions
       </div>
     </form>
   );
