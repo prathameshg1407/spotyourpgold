@@ -138,7 +138,7 @@ const NavBar = () => {
           />
 
           {/* Advanced Filter Button - directly opens sidebar */}
-          <AdvancedFilter
+          {/* <AdvancedFilter
             filters={filters}
             onFiltersChange={(newFilters) => {
               Object.entries(newFilters).forEach(([key, value]) => {
@@ -148,7 +148,7 @@ const NavBar = () => {
             onApplyFilters={searchWithFilters}
             onClearFilters={clearFilters}
             activeFiltersCount={activeFiltersCount}
-          />
+          /> */}
         </div>
 
         {/* Navigation Links */}
@@ -257,7 +257,7 @@ const NavBar = () => {
           </div>
 
           {/* Mobile Advanced Filter Button - Icon only on the right */}
-          <div className="[&>button]:p-2 [&>button]:bg-white/80 [&>button]:backdrop-blur-md [&>button]:border-white/20 [&>button]:hover:bg-white/90 [&>button]:aspect-square [&>button>span]:hidden">
+          {/* <div className="[&>button]:p-2 [&>button]:bg-white/80 [&>button]:backdrop-blur-md [&>button]:border-white/20 [&>button]:hover:bg-white/90 [&>button]:aspect-square [&>button>span]:hidden">
             <AdvancedFilter
               filters={filters}
               onFiltersChange={(newFilters) => {
@@ -269,7 +269,7 @@ const NavBar = () => {
               onClearFilters={clearFilters}
               activeFiltersCount={activeFiltersCount}
             />
-          </div>
+          </div> */}
         </div>
       </div>
 

@@ -1769,7 +1769,7 @@
 //                       Listing Fee Required
 //                     </h4>
 //                     <p className="text-sm text-yellow-700 mt-1">
-//                       A listing fee of ₹299 is required to publish your PG. You
+//                       A listing fee of ₹599 is required to publish your PG. You
 //                       can pay now or submit with fee pending.
 //                     </p>
 //                   </div>
@@ -1882,7 +1882,7 @@
 //             <div className="space-y-6 py-4">
 //               <div className="text-center space-y-1.5">
 //                 <div className="text-3xl font-poppins font-bold text-HG-500">
-//                   ₹299
+//                   ₹599
 //                 </div>
 //                 <p className="text-[13px] text-gray-600">
 //                   One-time listing fee
