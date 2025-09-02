@@ -2,15 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar for webkit browsers */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
 
-
-
-
-
-
-
-
-
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
 
 /* Style the zoom control container */
 .leaflet-control-zoom {
@@ -61,7 +61,6 @@
 .leaflet-control-zoom-out:hover {
   background-color: #f0f0f0;
 }
-
 
 /* Essential Leaflet styles */
 .leaflet-container {
@@ -288,7 +287,6 @@ html {
   scroll-behavior: smooth !important;
 }
 
-
 /* .text-gradient {
   background: linear-gradient(to right, #4a4e58, white, #716768);
   background-clip: text;
@@ -296,12 +294,17 @@ html {
 } */
 
 .text-gradient {
-  background: linear-gradient(to right, #ffe3ba,#f4cb8e, #f4cb8e, #ffe3ba); /* dark colors */
+  background: linear-gradient(
+    to right,
+    #ffe3ba,
+    #f4cb8e,
+    #f4cb8e,
+    #ffe3ba
+  ); /* dark colors */
   /* background: linear-gradient(to right, #fddfb2, #f2c582, #fddfb2); */
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
 
 /* Webkit-based browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
@@ -323,8 +326,6 @@ html {
   background-color: #e2aa56; /* Lighter HG */
   cursor: grab;
 }
-
-
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -404,37 +405,6 @@ html {
     @apply bg-background text-foreground;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* 
 @import "tailwindcss/base";

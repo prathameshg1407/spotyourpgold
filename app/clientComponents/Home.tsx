@@ -25,6 +25,7 @@ import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import DiscountSection from "@/components/DiscountSection";
+import CategorySection from "@/components/CategorySection";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -673,7 +674,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
               )}
 
               {/* Advanced Filter Button */}
-              <div className="flex justify-between items-center mb-8">
+              {/* <div className="flex justify-between items-center mb-8">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
                     Find Your Perfect PG
@@ -690,10 +691,10 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                   onClearFilters={clearFilters}
                   activeFiltersCount={activeFiltersCount}
                 />
-              </div>
+              </div> */}
 
               {/* Active Filters Display for Home Page */}
-              {activeFiltersCount > 0 && (
+              {/* {activeFiltersCount > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-sm font-medium text-gray-600">
@@ -815,7 +816,10 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
+
+              {/* Category Section */}
+              <CategorySection />
 
               {/* Section 1: Featured Properties */}
               <section>

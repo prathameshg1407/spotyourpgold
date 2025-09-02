@@ -48,7 +48,11 @@ export const useFormValidation = (formData: PGFormData) => {
           });
         }
 
-        if (!["male", "female", "both"].includes(formData.genderPreference)) {
+        // Gender preference is not required for commercial properties
+        if (
+          formData.type !== "commercial" &&
+          !["male", "female", "both"].includes(formData.genderPreference)
+        ) {
           newErrors.genderPreference = true;
           newErrors.general ||= "Please select a valid gender preference";
         }

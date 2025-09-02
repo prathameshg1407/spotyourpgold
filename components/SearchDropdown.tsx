@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X, MapPin, Building, Loader2 } from "lucide-react";
 import { Input } from "./ui/input";
 import { BlurImage } from "./BlurImage";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import Link from "next/link";
@@ -58,6 +59,7 @@ export default function SearchDropdown({
   showDropdown = true,
   onDropdownChange,
 }: SearchDropdownProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<{
     properties: Property[];
@@ -65,23 +67,164 @@ export default function SearchDropdown({
   }>({ properties: [], locations: [] });
   const [loading, setLoading] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [detectedLocation, setDetectedLocation] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const debouncedSearch = useDebouncedValue(value, 150); // Ultra-fast response
 
+  // Geocode location using Nominatim API (same as used in add-pg form)
+  const geocodeLocation = useCallback(async (query: string) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&limit=1&addressdetails=1`
+      );
+      const data = await response.json();
+
+      if (data && data[0]) {
+        const lat = Number.parseFloat(data[0].lat);
+        const lng = Number.parseFloat(data[0].lon);
+        const displayName = data[0].display_name;
+
+        return {
+          name: displayName,
+          lat,
+          lng,
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Geocoding failed:", error);
+      return null;
+    }
+  }, []);
+
+  // Check if query looks like a location (city, area, etc.)
+  const isLocationQuery = useCallback((query: string) => {
+    const locationKeywords = [
+      "city",
+      "area",
+      "locality",
+      "district",
+      "state",
+      "near",
+      "in",
+      "delhi",
+      "mumbai",
+      "bangalore",
+      "pune",
+      "hyderabad",
+      "chennai",
+      "kolkata",
+      "ahmedabad",
+      "jaipur",
+      "lucknow",
+      "kanpur",
+      "nagpur",
+      "indore",
+      "thane",
+      "bhopal",
+      "visakhapatnam",
+      "pimpri",
+      "patna",
+      "vadodara",
+      "ghaziabad",
+      "ludhiana",
+      "agra",
+      "nashik",
+      "faridabad",
+      "meerut",
+      "rajkot",
+      "kalyan",
+      "vasai",
+      "varanasi",
+      "srinagar",
+      "aurangabad",
+      "dhanbad",
+      "amritsar",
+      "navi mumbai",
+      "allahabad",
+      "ranchi",
+      "howrah",
+      "coimbatore",
+      "jabalpur",
+      "gwalior",
+      "vijayawada",
+      "jodhpur",
+      "madurai",
+      "raipur",
+      "kota",
+      "guwahati",
+      "chandigarh",
+    ];
+
+    const lowerQuery = query.toLowerCase();
+
+    // First check if it contains known location keywords
+    const hasLocationKeywords = locationKeywords.some((keyword) =>
+      lowerQuery.includes(keyword)
+    );
+
+    // If it has location keywords, it's definitely a location
+    if (hasLocationKeywords) return true;
+
+    // For other queries, be more selective about what we consider a location
+    // Only treat as location if it looks like an address or has location indicators
+    const addressPatterns = [
+      /\d+.*road/i,
+      /\d+.*street/i,
+      /\d+.*lane/i,
+      /\d+.*avenue/i,
+      /.*road.*\d+/i,
+      /.*street.*\d+/i,
+      /.*city$/i,
+      /.*nagar$/i,
+      /.*pur$/i,
+      /.*bad$/i,
+      /.*ganj$/i,
+    ];
+
+    return addressPatterns.some((pattern) => pattern.test(query));
+  }, []);
+
   // Fetch suggestions
   const fetchSuggestions = useCallback(
     async (query: string) => {
       if (!query || query.length < 2) {
         setSuggestions({ properties: [], locations: [] });
+        setDetectedLocation(null);
         setIsOpen(false);
         return;
       }
 
       setLoading(true);
       try {
+        // Check if this looks like a location query and geocode it
+        const isLocation = isLocationQuery(query);
+        console.log("SearchDropdown - Query analysis:", {
+          query,
+          isLocation,
+          detectedLocation,
+        });
+
+        if (isLocation) {
+          const locationData = await geocodeLocation(query);
+          console.log("SearchDropdown - Geocoding result:", locationData);
+          if (locationData) {
+            setDetectedLocation(locationData);
+          }
+        } else {
+          setDetectedLocation(null);
+        }
+
+        // Fetch regular suggestions (properties and locations)
         const response = await axios.get(
           `/api/listing/suggestions?q=${encodeURIComponent(query)}&limit=10`
         );
@@ -90,18 +233,20 @@ export default function SearchDropdown({
           setIsOpen(
             showDropdown &&
               (response.data.data.properties.length > 0 ||
-                response.data.data.locations.length > 0)
+                response.data.data.locations.length > 0 ||
+                detectedLocation !== null)
           );
         }
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
         setSuggestions({ properties: [], locations: [] });
+        setDetectedLocation(null);
         setIsOpen(false);
       } finally {
         setLoading(false);
       }
     },
-    [showDropdown]
+    [showDropdown, isLocationQuery, geocodeLocation, detectedLocation]
   );
 
   // Effect for debounced search
@@ -151,6 +296,23 @@ export default function SearchDropdown({
         e.preventDefault();
         if (focusedIndex >= 0) {
           handleItemSelect(focusedIndex);
+        } else if (value.trim()) {
+          // No item focused, navigate to all-listings with search query
+          setIsOpen(false);
+          setFocusedIndex(-1);
+          const searchUrl = detectedLocation
+            ? `/routes/all-listings?q=${encodeURIComponent(value)}&lat=${
+                detectedLocation.lat
+              }&lng=${detectedLocation.lng}`
+            : `/routes/all-listings?q=${encodeURIComponent(value)}`;
+
+          console.log("SearchDropdown - Navigation:", {
+            value,
+            detectedLocation,
+            searchUrl,
+          });
+
+          router.push(searchUrl);
         }
         break;
       case "Escape":
@@ -326,12 +488,54 @@ export default function SearchDropdown({
               </div>
             )}
 
+            {/* Detected Location */}
+            {detectedLocation && (
+              <div className="p-2 border-t border-gray-100">
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-700 text-sm">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span className="font-medium">Location detected:</span>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1 truncate">
+                    {detectedLocation.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* View All Results Link */}
             {(suggestions.properties.length > 0 ||
-              suggestions.locations.length > 0) && (
+              suggestions.locations.length > 0 ||
+              detectedLocation) && (
               <div className="p-2 border-t border-gray-100">
                 <Link
-                  href={`/routes/all-listings?q=${encodeURIComponent(value)}`}
+                  href={
+                    detectedLocation
+                      ? `/routes/all-listings?q=${encodeURIComponent(
+                          value
+                        )}&lat=${detectedLocation.lat}&lng=${
+                          detectedLocation.lng
+                        }`
+                      : `/routes/all-listings?q=${encodeURIComponent(value)}`
+                  }
                   className="w-full flex items-center justify-center gap-2 p-3 text-HG-500 hover:bg-HG-50 rounded-lg transition-colors font-medium"
                   onClick={() => {
                     setIsOpen(false);
@@ -339,7 +543,9 @@ export default function SearchDropdown({
                   }}
                 >
                   <Search className="w-4 h-4" />
-                  View all results for &ldquo;{value}&rdquo;
+                  {detectedLocation
+                    ? `View all results near "${value}"`
+                    : `View all results for "${value}"`}
                 </Link>
               </div>
             )}

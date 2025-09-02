@@ -15,6 +15,7 @@ import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 
 function AllListingsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Use advanced filters hook with pagination (autoSearch disabled for better control)
@@ -56,13 +57,38 @@ function AllListingsContent() {
     }
   };
 
-  // Initial load - fetch all listings
+  // Handle category from URL params
+  useEffect(() => {
+    const category = searchParams.get("category");
+    if (category) {
+      updateFilter("type", category);
+    }
+  }, [searchParams, updateFilter]);
+
+  // Initial load - fetch listings based on URL parameters
   useEffect(() => {
     if (!initialLoadDone) {
-      searchWithFilters({}, true); // Force search to show all listings
+      // Check if we have any filters or search parameters from URL
+      const hasFilters = Object.values(filters).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== "";
+      });
+
+      console.log("AllListings - Initial load:", {
+        filters,
+        hasFilters,
+      });
+
+      if (hasFilters) {
+        // Use URL parameters for search
+        searchWithFilters();
+      } else {
+        // No parameters, show all listings
+        searchWithFilters({}, true);
+      }
       setInitialLoadDone(true);
     }
-  }, [initialLoadDone, searchWithFilters]);
+  }, [initialLoadDone, searchWithFilters, filters]);
 
   // Handle page changes
   useEffect(() => {
@@ -108,7 +134,11 @@ function AllListingsContent() {
           {/* Advanced Filter Button */}
           <AdvancedFilter
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={(newFilters) => {
+              setFilters(newFilters);
+              // Trigger immediate search with new filters
+              searchWithFilters(newFilters, true);
+            }}
             onApplyFilters={applyFilters}
             onClearFilters={clearFilters}
             activeFiltersCount={activeFiltersCount}

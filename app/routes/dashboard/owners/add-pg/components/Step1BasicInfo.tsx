@@ -51,7 +51,12 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
                   onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
-                      type: type.id as "hostels" | "flats" | "pgs" | "rooms",
+                      type: type.id as
+                        | "hostels"
+                        | "flats"
+                        | "pgs"
+                        | "rooms"
+                        | "commercial",
                       subType: "", // Reset subtype when type changes
                     }))
                   }
@@ -250,36 +255,39 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
             + Add Room Type
           </button>
 
-          <div className="space-y-1 font-inter">
-            <Label className="text-gray-700 text-[14px] font-inter">
-              Gender Preference
-            </Label>
-            <div className="flex gap-4">
-              {["male", "female", "both"].map((gender) => (
-                <label
-                  key={gender}
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name="genderPreference"
-                    value={gender}
-                    checked={formData?.genderPreference === gender}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        genderPreference: e.target.value as
-                          | "male"
-                          | "female"
-                          | "both",
-                      }))
-                    }
-                  />
-                  <span className="capitalize">{gender}</span>
-                </label>
-              ))}
+          {/* Gender Preference - Only show for non-commercial properties */}
+          {formData?.type !== "commercial" && (
+            <div className="space-y-1 font-inter">
+              <Label className="text-gray-700 text-[14px] font-inter">
+                Gender Preference
+              </Label>
+              <div className="flex gap-4">
+                {["male", "female", "both"].map((gender) => (
+                  <label
+                    key={gender}
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="genderPreference"
+                      value={gender}
+                      checked={formData?.genderPreference === gender}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          genderPreference: e.target.value as
+                            | "male"
+                            | "female"
+                            | "both",
+                        }))
+                      }
+                    />
+                    <span className="capitalize">{gender}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </form>

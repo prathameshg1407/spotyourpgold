@@ -82,6 +82,17 @@ export const propertyTypes = [
       { id: "1rk", label: "1 RK" },
     ],
   },
+  {
+    id: "commercial",
+    label: "Commercial Properties",
+    subTypes: [
+      { id: "office-space", label: "Office Space" },
+      { id: "shop", label: "Shop/Retail" },
+      { id: "warehouse", label: "Warehouse" },
+      { id: "restaurant", label: "Restaurant" },
+      { id: "clinic", label: "Medical Clinic" },
+    ],
+  },
 ];
 
 export const initialErrors: ValidationErrors = {

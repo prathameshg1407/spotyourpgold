@@ -9,7 +9,6 @@ import {
   IconCurrencyRupee,
   IconUsers,
   IconHome,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   Sheet,
@@ -100,6 +99,9 @@ interface FilterState {
   area: string;
   nearbyPlaces: string[];
   visible: string[];
+  sortBy: string;
+  lat: string;
+  lng: string;
 }
 
 interface AdvancedFilterProps {
@@ -128,6 +130,15 @@ const genderOptions = [
   { value: "both", label: "Unisex/Co-ed" },
 ];
 
+const sortOptions = [
+  { value: "", label: "Default" },
+  { value: "price-low-high", label: "Price: Low to High" },
+  { value: "price-high-low", label: "Price: High to Low" },
+  { value: "rating-high-low", label: "Rating: High to Low" },
+  { value: "rating-low-high", label: "Rating: Low to High" },
+  { value: "location-nearby", label: "Location: Nearest First" },
+];
+
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   filters,
   onFiltersChange,
@@ -145,6 +156,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
     roomTypes: false,
     location: true,
     visible: false,
+    sortBy: true,
   });
 
   useEffect(() => {
@@ -165,7 +177,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const handleApply = () => {
     onFiltersChange(localFilters);
-    onApplyFilters();
     setIsOpen(false);
   };
 
@@ -184,6 +195,9 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       area: "",
       nearbyPlaces: [],
       visible: [],
+      sortBy: "",
+      lat: "",
+      lng: "",
     };
     setLocalFilters(clearedFilters);
     onFiltersChange(clearedFilters);
@@ -245,19 +259,53 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Quick Search */}
+          {/* Sort By */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <IconSearch className="w-4 h-4" />
-              Quick Search
-            </label>
-            <input
-              type="text"
-              placeholder="Search by PG name, location, area..."
-              value={localFilters.query}
-              onChange={(e) => updateLocalFilter("query", e.target.value)}
-              className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-HG-400"
-            />
+            <button
+              onClick={() => toggleSection("sortBy")}
+              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Sort By
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  expandedSections.sortBy ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {expandedSections.sortBy && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-3"
+                >
+                  <select
+                    value={localFilters.sortBy}
+                    onChange={(e) =>
+                      updateLocalFilter("sortBy", e.target.value)
+                    }
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {localFilters.sortBy === "location-nearby" && (
+                    <p className="text-xs text-gray-500 italic">
+                      Note: Location sorting works best when location filters
+                      are applied
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <Separator />
@@ -674,6 +722,14 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                 {localFilters.amenities.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {localFilters.amenities.length} amenities
+                  </Badge>
+                )}
+                {localFilters.sortBy && (
+                  <Badge variant="secondary" className="text-xs">
+                    {
+                      sortOptions.find((s) => s.value === localFilters.sortBy)
+                        ?.label
+                    }
                   </Badge>
                 )}
               </div>

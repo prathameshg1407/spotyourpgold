@@ -12,7 +12,7 @@ const listingSchema = new mongoose.Schema(
     pgName: { type: String, required: true, trim: true },
     type: {
       type: String,
-      enum: ["hostels", "flats", "pgs", "rooms"],
+      enum: ["hostels", "flats", "pgs", "rooms", "commercial"],
       required: false,
     },
     subType: {
@@ -32,7 +32,7 @@ const listingSchema = new mongoose.Schema(
     genderPreference: {
       type: String,
       enum: ["male", "female", "both"],
-      required: true,
+      required: false,
     },
 
     // Amenities

@@ -19,6 +19,9 @@ export interface FilterState {
   area: string;
   nearbyPlaces: string[];
   visible: string[];
+  sortBy: string;
+  lat: string;
+  lng: string;
 }
 
 export interface UseAdvancedFiltersReturn {
@@ -53,6 +56,9 @@ const initialFilters: FilterState = {
   area: "",
   nearbyPlaces: [],
   visible: [],
+  sortBy: "",
+  lat: "",
+  lng: "",
 };
 
 export const useAdvancedFilters = (
@@ -88,6 +94,9 @@ export const useAdvancedFilters = (
       nearbyPlaces:
         searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [],
       visible: searchParams.get("visible")?.split(",").filter(Boolean) || [],
+      sortBy: searchParams.get("sortBy") || "",
+      lat: searchParams.get("lat") || "",
+      lng: searchParams.get("lng") || "",
     };
 
     setFilters(urlFilters);
@@ -129,6 +138,9 @@ export const useAdvancedFilters = (
         params.set("nearbyPlaces", filterState.nearbyPlaces.join(","));
       if (filterState.visible.length > 0)
         params.set("visible", filterState.visible.join(","));
+      if (filterState.sortBy) params.set("sortBy", filterState.sortBy);
+      if (filterState.lat) params.set("lat", filterState.lat);
+      if (filterState.lng) params.set("lng", filterState.lng);
 
       params.set("page", page.toString());
       params.set("per_page", perPage.toString());
@@ -151,16 +163,27 @@ export const useAdvancedFilters = (
         }
       );
 
+      // Special handling for location-based search
+      const hasLocationSearch = searchFilters.lat && searchFilters.lng;
+
       console.log("searchWithFilters called:", {
         searchFilters,
         hasActiveFilters,
+        hasLocationSearch,
         forceSearch,
         query: searchFilters.query,
+        lat: searchFilters.lat,
+        lng: searchFilters.lng,
       });
 
-      // Don't search if no filters are active and not query, unless forced
-      if (!hasActiveFilters && !searchFilters.query && !forceSearch) {
-        console.log("No search - no active filters or query");
+      // Don't search if no filters are active and not query and no location, unless forced
+      if (
+        !hasActiveFilters &&
+        !searchFilters.query &&
+        !hasLocationSearch &&
+        !forceSearch
+      ) {
+        console.log("No search - no active filters, query, or location");
         setListings([]);
         setTotal(0);
         setTotalPages(1);

@@ -4,6 +4,37 @@ import { NextResponse } from "next/server";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
 
+// Helper function to get sort object based on sortBy parameter
+function getSortObject(
+  sortBy: string,
+  hasLocationSearch: boolean = false
+): Record<string, 1 | -1> {
+  switch (sortBy) {
+    case "price-low-high":
+      return { minRent: 1 as 1 };
+    case "price-high-low":
+      return { minRent: -1 as -1 };
+    case "rating-high-low":
+      return { rating: -1 as -1, createdAt: -1 as -1 };
+    case "rating-low-high":
+      return { rating: 1 as 1, createdAt: -1 as -1 };
+    case "location-nearby":
+      // If location search is active, MongoDB $near will handle proximity sorting
+      // Otherwise, sort by location fields alphabetically
+      if (hasLocationSearch) {
+        return { createdAt: -1 as -1 }; // Fallback sort for $near
+      } else {
+        return {
+          "location.city": 1 as 1,
+          "location.area": 1 as 1,
+          createdAt: -1 as -1,
+        };
+      }
+    default:
+      return { createdAt: -1 as -1 }; // Default: newest first
+  }
+}
+
 export async function GET(req: Request) {
   try {
     await connectToDB();
@@ -39,6 +70,7 @@ export async function GET(req: Request) {
       searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [];
     const visible =
       searchParams.get("visible")?.split(",").filter(Boolean) || [];
+    const sortBy = searchParams.get("sortBy")?.trim() || "";
 
     // Location-based search (lat/lng for proximity)
     const lat = searchParams.get("lat")
@@ -368,9 +400,10 @@ export async function GET(req: Request) {
           amenities: 1,
           roomTypes: 1,
           createdAt: 1,
+          rating: 1,
         },
       },
-      { $sort: { createdAt: -1 as -1 } },
+      { $sort: getSortObject(sortBy, lat !== null && lng !== null) },
       { $skip: (page - 1) * per_page },
       { $limit: per_page },
     ];
@@ -409,6 +442,7 @@ export async function GET(req: Request) {
         area,
         nearbyPlaces,
         query: q,
+        sortBy,
       },
     });
   } catch (error: any) {
