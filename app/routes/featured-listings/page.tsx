@@ -103,11 +103,14 @@ function FeaturedListingsContent() {
                       key={listing._id}
                       id={listing._id}
                       image={listing.primaryImage}
+                      images={listing.images?.map((img: any) => img.url) || []}
                       area={listing.location?.area}
                       pgName={listing.pgName}
                       ownerName={listing.ownerId?.fullName}
                       price={listing.minRent}
+                      genderPreference={listing.genderPreference}
                       isWishlisted={listing.isWatchlisted}
+                      type={listing.type}
                     />
                   ))}
                 </div>

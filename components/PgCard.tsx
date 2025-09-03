@@ -4,8 +4,18 @@ import {
   IconArrowUpRight,
   IconHeart,
   IconHeartFilled,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react";
-import { Users } from "lucide-react";
+import {
+  Users,
+  Building2,
+  Bed,
+  Home,
+  Building,
+  DoorOpen,
+  Store,
+} from "lucide-react";
 import Link from "next/link";
 import React, { useState, useCallback } from "react";
 import { BlurImage } from "./BlurImage";
@@ -25,6 +35,8 @@ type PgCardProps = {
   genderPreference?: string;
   link?: string;
   isWishlisted?: boolean;
+  images?: string[]; // Add images array for swipeable functionality
+  type?: string; // Add type prop (matches database field name)
 };
 
 const PgCard = ({
@@ -36,11 +48,28 @@ const PgCard = ({
   price,
   genderPreference,
   isWishlisted = false,
+  images = [],
+  type = "pgs", // Default to "pgs" (matches database enum)
 }: PgCardProps) => {
   const [wishlisted, setWishlisted] = useState(isWishlisted);
-  const [loading, setLoading] = useState(false); // ✅ prevent multiple clicks
+  const [loading, setLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { listings, setListings } = useListingStore();
   const router = useRouter();
+
+  // Combine primary image with additional images for swipeable functionality
+  const allImages = [image, ...images].filter(Boolean).slice(0, 3);
+  const hasMultipleImages = allImages.length > 1;
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex(
+      (prev) => (prev - 1 + allImages.length) % allImages.length
+    );
+  };
 
   const toggleWatchlist = useCallback(async () => {
     if (loading) return;
@@ -114,12 +143,63 @@ const PgCard = ({
         <div className="w-full h-44 overflow-hidden">
           <BlurImage
             className="object-cover w-full h-44"
-            src={image || ""}
+            src={allImages[currentImageIndex] || ""}
             width={400}
             height={176}
             alt={pgName}
           />
         </div>
+
+        {/* Gender Preference Badge - Top Right Corner */}
+        {genderPreference && (
+          <div
+            className={`absolute top-3 right-3 bg-white text-HG-400 border border-HG-400 text-xs font-bold px-2 py-1 rounded-lg shadow-lg`}
+          >
+            {genderPreference === "both"
+              ? "UNISEX"
+              : genderPreference.toUpperCase()}
+          </div>
+        )}
+
+        {/* Image Navigation Arrows - Only show if multiple images */}
+        {hasMultipleImages && (
+          <>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                prevImage();
+              }}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+            >
+              <IconChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                nextImage();
+              }}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+            >
+              <IconChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {/* Image Indicators - Only show if multiple images */}
+        {hasMultipleImages && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-10">
+            {allImages.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  index === currentImageIndex ? "bg-white" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-70 transition-opacity bg-black/40 p-3 rounded-xl backdrop-blur-2xl">
           <IconArrowUpRight className="text-white w-7 h-7" />
@@ -152,20 +232,34 @@ const PgCard = ({
             {pgName}
           </h5>
 
-          <div className="space-y-1">
-            <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-1">
-              by {ownerName}
-            </p>
-            {genderPreference && (
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="w-4 h-4 text-HG-600" />
-                <span className="text-gray-600 capitalize font-medium">
-                  {genderPreference === "both"
-                    ? "Male & Female"
-                    : genderPreference}
-                </span>
-              </div>
+          {/* Category display with proper icon */}
+          <div className="flex items-center gap-2 text-sm">
+            {type === "hostels" ? (
+              <Home className="w-4 h-4 text-HG-600" />
+            ) : type === "pgs" ? (
+              <Building2 className="w-4 h-4 text-HG-600" />
+            ) : type === "rooms" ? (
+              <DoorOpen className="w-4 h-4 text-HG-600" />
+            ) : type === "flats" ? (
+              <Building className="w-4 h-4 text-HG-600" />
+            ) : type === "commercial" ? (
+              <Store className="w-4 h-4 text-HG-600" />
+            ) : (
+              <Building2 className="w-4 h-4 text-HG-600" />
             )}
+            <span className="text-gray-600 capitalize font-medium">
+              {type === "hostels"
+                ? "HOSTELS"
+                : type === "pgs"
+                ? "PG"
+                : type === "rooms"
+                ? "ROOMS"
+                : type === "flats"
+                ? "FLATS"
+                : type === "commercial"
+                ? "COMMERCIAL"
+                : type?.toUpperCase() || "PG"}
+            </span>
           </div>
         </div>
 

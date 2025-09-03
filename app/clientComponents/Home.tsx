@@ -471,11 +471,14 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     key={pg._id || idx}
                     id={pg._id}
                     image={pg.primaryImage}
+                    images={pg.images?.map((img: any) => img.url) || []}
                     area={pg.location?.area}
                     pgName={pg.pgName}
                     ownerName={pg.ownerId?.fullName}
                     price={pg.minRent}
+                    genderPreference={pg.genderPreference}
                     isWishlisted={pg.inWatchList}
+                    type={pg.type}
                   />
                 ))}
               </div>
@@ -852,10 +855,12 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         key={idx}
                         id={pg?._id}
                         image={pg?.primaryImage}
+                        images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
                         pgName={pg?.pgName}
                         ownerName={pg?.ownerId?.fullName}
                         price={pg?.minRent}
+                        genderPreference={pg?.genderPreference}
                         isWishlisted={pg?.inWatchList}
                       />
                     ))}
@@ -897,11 +902,14 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         key={idx}
                         id={pg?._id}
                         image={pg?.primaryImage}
+                        images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
                         pgName={pg?.pgName}
                         ownerName={pg?.ownerId?.fullName}
                         price={pg?.minRent}
+                        genderPreference={pg?.genderPreference}
                         isWishlisted={pg?.inWatchList}
+                        type={pg?.type}
                       />
                     ))}
                   </div>
@@ -980,11 +988,14 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                           key={idx}
                           id={pg?._id}
                           image={pg?.primaryImage}
+                          images={pg?.images?.map((img: any) => img.url) || []}
                           area={pg?.location?.area}
                           pgName={pg?.pgName}
                           ownerName={pg?.ownerId?.fullName}
                           price={pg?.minRent}
+                          genderPreference={pg?.genderPreference}
                           isWishlisted={pg?.inWatchList}
+                          type={pg?.type}
                         />
                       ))}
                     </div>
