@@ -490,6 +490,7 @@ function InfiniteScrollListings({
             genderPreference={listing.genderPreference}
             isWishlisted={listing.inWatchList}
             type={listing.type}
+            distance={listing.distance}
           />
         ))}
       </div>

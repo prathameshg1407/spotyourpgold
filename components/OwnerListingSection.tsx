@@ -66,6 +66,7 @@ const OwnerListingSection = ({
           genderPreference={listing.genderPreference}
           isWishlisted={listing.isWatchlisted || listing.inWatchList}
           type={listing.type}
+          distance={listing.distance}
         />
       ))}
     </div>

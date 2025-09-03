@@ -111,6 +111,7 @@ function FeaturedListingsContent() {
                       genderPreference={listing.genderPreference}
                       isWishlisted={listing.isWatchlisted}
                       type={listing.type}
+                      distance={listing.distance}
                     />
                   ))}
                 </div>

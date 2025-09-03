@@ -18,18 +18,7 @@ function getSortObject(
       return { rating: -1 as -1, createdAt: -1 as -1 };
     case "rating-low-high":
       return { rating: 1 as 1, createdAt: -1 as -1 };
-    case "location-nearby":
-      // If location search is active, MongoDB $near will handle proximity sorting
-      // Otherwise, sort by location fields alphabetically
-      if (hasLocationSearch) {
-        return { createdAt: -1 as -1 }; // Fallback sort for $near
-      } else {
-        return {
-          "location.city": 1 as 1,
-          "location.area": 1 as 1,
-          createdAt: -1 as -1,
-        };
-      }
+
     default:
       return { createdAt: -1 as -1 }; // Default: newest first
   }
@@ -346,22 +335,32 @@ export async function GET(req: Request) {
 
     // Geospatial query for proximity search
     if (lat !== null && lng !== null) {
-      query.$and.push({
-        "location.coordinates": {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [lng, lat],
-            },
-            $maxDistance: radius * 1000, // Convert km to meters
-          },
-        },
-      });
+      // Use $geoNear in aggregation pipeline instead of $near in query
+      // This will be handled in the aggregation pipeline
     }
 
     // Execute query with aggregation to get min rent from roomTypes
-    const aggregationPipeline = [
-      { $match: query },
+    let aggregationPipeline = [];
+
+    // Add $geoNear stage if location search is active
+    if (lat !== null && lng !== null) {
+      aggregationPipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point" as const,
+            coordinates: [lng, lat] as [number, number],
+          },
+          distanceField: "distance",
+          spherical: true,
+          query: query,
+          distanceMultiplier: 0.001, // Convert meters to kilometers
+        },
+      });
+    } else {
+      aggregationPipeline.push({ $match: query });
+    }
+
+    aggregationPipeline.push(
       {
         $addFields: {
           minRent: {
@@ -390,6 +389,7 @@ export async function GET(req: Request) {
         $project: {
           _id: 1,
           primaryImage: 1,
+          images: 1,
           location: 1,
           pgName: 1,
           "ownerId.fullName": 1,
@@ -401,14 +401,34 @@ export async function GET(req: Request) {
           roomTypes: 1,
           createdAt: 1,
           rating: 1,
+          distance: 1,
         },
       },
       { $sort: getSortObject(sortBy, lat !== null && lng !== null) },
       { $skip: (page - 1) * per_page },
-      { $limit: per_page },
-    ];
+      { $limit: per_page }
+    );
 
-    const countPipeline = [{ $match: query }, { $count: "total" }];
+    // Build count pipeline
+    let countPipeline = [];
+    if (lat !== null && lng !== null) {
+      countPipeline = [
+        {
+          $geoNear: {
+            near: {
+              type: "Point" as const,
+              coordinates: [lng, lat] as [number, number],
+            },
+            distanceField: "distance",
+            spherical: true,
+            query: query,
+          },
+        },
+        { $count: "total" },
+      ];
+    } else {
+      countPipeline = [{ $match: query }, { $count: "total" }];
+    }
 
     const [listings, totalResult] = await Promise.all([
       Listing.aggregate(aggregationPipeline),

@@ -118,6 +118,7 @@ const HomeContainer = ({
             genderPreference={pg?.genderPreference}
             isWishlisted={pg?.inWatchList}
             type={pg?.type}
+            distance={pg?.distance}
           />
         ))}
       </div>

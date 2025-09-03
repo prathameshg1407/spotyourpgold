@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       _id: { $ne: currListingId },
     })
       .select(
-        "_id primaryImage location pgName ownerId roomTypes genderPreference"
+        "_id primaryImage images location pgName ownerId roomTypes genderPreference type"
       )
       .sort({ updatedAt: -1 })
       .limit(10)

@@ -18,6 +18,25 @@ function AllListingsContent() {
   const searchParams = useSearchParams();
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
+  // State for nearby listings (bypassing advanced filter)
+  const [nearbyListings, setNearbyListings] = useState<any[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyTotal, setNearbyTotal] = useState(0);
+  const [nearbyCurrentPage, setNearbyCurrentPage] = useState(1);
+  const [nearbyTotalPages, setNearbyTotalPages] = useState(0);
+
+  // State for user location
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+
+  // Check if this is a nearby search
+  const isNearbySearch = searchParams.get("nearby") === "true";
+  const lat = searchParams.get("lat");
+  const lng = searchParams.get("lng");
+
   // Use advanced filters hook with pagination (autoSearch disabled for better control)
   const {
     filters,
@@ -36,6 +55,71 @@ function AllListingsContent() {
 
   const goBack = () => {
     router.back();
+  };
+
+  // Get user location on component mount
+  useEffect(() => {
+    if ("geolocation" in navigator && !lat && !lng) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (err) => {
+          console.warn("Geolocation denied or unavailable", err);
+          setLocationDenied(true);
+        }
+      );
+    } else if (lat && lng) {
+      // Use location from URL parameters
+      setUserLocation({
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+      });
+    } else {
+      setLocationDenied(true);
+    }
+  }, [lat, lng]);
+
+  // Function to fetch nearby listings (bypassing advanced filter)
+  const fetchNearbyListings = async (page: number = 1) => {
+    if (!lat || !lng) return;
+
+    setNearbyLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        per_page: "12",
+        lat: lat,
+        lng: lng,
+      });
+
+      const res = await axios.get(`/api/listing?${queryParams.toString()}`);
+      if (res?.data?.success) {
+        setNearbyListings(res.data.data);
+        setNearbyTotal(res.data.total);
+        // Calculate total pages manually if not provided by API
+        const totalPages =
+          res.data.totalPages || Math.ceil(res.data.total / 12);
+        setNearbyTotalPages(totalPages);
+        setNearbyCurrentPage(page);
+      } else {
+        toast.error(res?.data?.message || "Something went wrong");
+      }
+    } catch (error) {
+      console.error("Nearby listings fetch error", error);
+      toast.error("Failed to fetch nearby listings");
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  const handleNearbyPageChange = (page: number) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set("page", page.toString());
+    router.push(`?${searchParams.toString()}`);
   };
 
   const handlePageChange = (page: number) => {
@@ -68,43 +152,90 @@ function AllListingsContent() {
   // Initial load - fetch listings based on URL parameters
   useEffect(() => {
     if (!initialLoadDone) {
-      // Check if we have any filters or search parameters from URL
-      const hasFilters = Object.values(filters).some((value) => {
-        if (Array.isArray(value)) return value.length > 0;
-        return value !== "";
-      });
-
-      console.log("AllListings - Initial load:", {
-        filters,
-        hasFilters,
-      });
-
-      if (hasFilters) {
-        // Use URL parameters for search
-        searchWithFilters();
+      if (isNearbySearch && lat && lng) {
+        // Fetch nearby listings (bypass advanced filter)
+        fetchNearbyListings(1);
       } else {
-        // No parameters, show all listings
-        searchWithFilters({}, true);
+        // Check if we have any filters or search parameters from URL
+        const hasFilters = Object.values(filters).some((value) => {
+          if (Array.isArray(value)) return value.length > 0;
+          return value !== "";
+        });
+
+        console.log("AllListings - Initial load:", {
+          filters,
+          hasFilters,
+        });
+
+        // Include user location in search if available
+        const locationParams = userLocation
+          ? {
+              lat: userLocation.lat.toString(),
+              lng: userLocation.lng.toString(),
+            }
+          : {};
+
+        if (hasFilters) {
+          // Use URL parameters for search
+          searchWithFilters(locationParams);
+        } else {
+          // No parameters, show all listings with location
+          searchWithFilters(locationParams, true);
+        }
       }
       setInitialLoadDone(true);
     }
-  }, [initialLoadDone, searchWithFilters, filters]);
+  }, [
+    initialLoadDone,
+    searchWithFilters,
+    filters,
+    isNearbySearch,
+    lat,
+    lng,
+    userLocation,
+  ]);
 
   // Handle page changes
   useEffect(() => {
     if (initialLoadDone) {
-      const hasFilters = Object.values(filters).some((value) => {
-        if (Array.isArray(value)) return value.length > 0;
-        return value !== "";
-      });
-
-      if (hasFilters) {
-        searchWithFilters();
+      if (isNearbySearch && lat && lng) {
+        // Handle nearby search page changes
+        const page = searchParams.get("page");
+        if (page) {
+          fetchNearbyListings(parseInt(page));
+        }
       } else {
-        searchWithFilters({}, true); // Force search even without filters
+        // Handle regular filter page changes
+        const hasFilters = Object.values(filters).some((value) => {
+          if (Array.isArray(value)) return value.length > 0;
+          return value !== "";
+        });
+
+        // Include user location in search if available
+        const locationParams = userLocation
+          ? {
+              lat: userLocation.lat.toString(),
+              lng: userLocation.lng.toString(),
+            }
+          : {};
+
+        if (hasFilters) {
+          searchWithFilters(locationParams);
+        } else {
+          searchWithFilters(locationParams, true); // Force search even without filters
+        }
       }
     }
-  }, [currentPage, filters, initialLoadDone, searchWithFilters]);
+  }, [
+    searchParams.get("page"),
+    initialLoadDone,
+    searchWithFilters,
+    filters,
+    isNearbySearch,
+    lat,
+    lng,
+    userLocation,
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,30 +254,45 @@ function AllListingsContent() {
             </Button>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
-                All Property Listings
+                {isNearbySearch ? "Nearby Properties" : "All Property Listings"}
               </h1>
               <p className="text-gray-600 font-inter">
-                {loading ? "Loading..." : `Showing ${total} properties`}
+                {isNearbySearch
+                  ? nearbyLoading
+                    ? "Loading..."
+                    : `Showing ${nearbyTotal} properties near your location`
+                  : loading
+                  ? "Loading..."
+                  : `Showing ${total} properties`}
               </p>
             </div>
           </div>
 
-          {/* Advanced Filter Button */}
-          <AdvancedFilter
-            filters={filters}
-            onFiltersChange={(newFilters) => {
-              setFilters(newFilters);
-              // Trigger immediate search with new filters
-              searchWithFilters(newFilters, true);
-            }}
-            onApplyFilters={applyFilters}
-            onClearFilters={clearFilters}
-            activeFiltersCount={activeFiltersCount}
-          />
+          {/* Advanced Filter Button - Only show for regular listings */}
+          {!isNearbySearch && (
+            <AdvancedFilter
+              filters={filters}
+              onFiltersChange={(newFilters) => {
+                setFilters(newFilters);
+                // Include user location in search if available
+                const locationParams = userLocation
+                  ? {
+                      lat: userLocation.lat.toString(),
+                      lng: userLocation.lng.toString(),
+                    }
+                  : {};
+                // Trigger immediate search with new filters
+                searchWithFilters({ ...newFilters, ...locationParams }, true);
+              }}
+              onApplyFilters={applyFilters}
+              onClearFilters={clearFilters}
+              activeFiltersCount={activeFiltersCount}
+            />
+          )}
         </div>
 
-        {/* Active Filters Display */}
-        {activeFiltersCount > 0 && (
+        {/* Active Filters Display - Only show for regular listings */}
+        {!isNearbySearch && activeFiltersCount > 0 && (
           <div className="mb-8 p-4 bg-white rounded-lg border">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-700">
@@ -268,7 +414,7 @@ function AllListingsContent() {
         )}
 
         {/* Loading State */}
-        {loading && (
+        {(loading || nearbyLoading) && (
           <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, idx) => (
               <Skeleton key={idx} />
@@ -276,8 +422,40 @@ function AllListingsContent() {
           </div>
         )}
 
-        {/* Listings Grid */}
-        {!loading && listings.length > 0 && (
+        {/* Nearby Listings Grid (bypassing advanced filter) */}
+        {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
+          <>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 font-poppins">
+                Nearby Properties Sorted by Distance
+              </h2>
+              <p className="text-gray-600 font-inter">
+                Showing {nearbyTotal} properties near your location
+              </p>
+            </div>
+            <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {nearbyListings.map((pg, idx) => (
+                <PgCard
+                  key={pg._id || idx}
+                  id={pg._id}
+                  image={pg.primaryImage}
+                  images={pg.images?.map((img: any) => img.url) || []}
+                  area={pg.location?.area}
+                  pgName={pg.pgName}
+                  ownerName={pg.ownerId?.fullName}
+                  price={pg.minRent}
+                  genderPreference={pg.genderPreference}
+                  isWishlisted={pg.inWatchList}
+                  type={pg.type}
+                  distance={pg.distance}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Regular Listings Grid (with advanced filter) */}
+        {!isNearbySearch && !loading && listings.length > 0 && (
           <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {listings.map((pg, idx) => (
               <PgCard
@@ -292,43 +470,107 @@ function AllListingsContent() {
                 genderPreference={pg.genderPreference}
                 isWishlisted={pg.inWatchList}
                 type={pg.type}
+                distance={pg.distance}
               />
             ))}
           </div>
         )}
 
         {/* Empty State */}
-        {!loading && listings.length === 0 && (
-          <div className="text-center py-16">
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🏠</span>
+        {!loading &&
+          !nearbyLoading &&
+          ((isNearbySearch && nearbyListings.length === 0) ||
+            (!isNearbySearch && listings.length === 0)) && (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🏠</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
+                  {isNearbySearch
+                    ? "No properties found near your location"
+                    : activeFiltersCount > 0
+                    ? "No properties match your filters"
+                    : "No listings found"}
+                </h3>
+                <p className="text-gray-600 font-inter mb-4">
+                  {isNearbySearch
+                    ? "Try expanding your search area or check back later."
+                    : activeFiltersCount > 0
+                    ? "Try adjusting your search criteria or removing some filters."
+                    : "There are no property listings available at the moment."}
+                </p>
+                {!isNearbySearch && activeFiltersCount > 0 && (
+                  <Button
+                    onClick={clearFilters}
+                    variant="outline"
+                    className="text-HG-500 border-HG-500 hover:bg-HG-50"
+                  >
+                    Clear all filters
+                  </Button>
+                )}
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
-                {activeFiltersCount > 0
-                  ? "No properties match your filters"
-                  : "No listings found"}
-              </h3>
-              <p className="text-gray-600 font-inter mb-4">
-                {activeFiltersCount > 0
-                  ? "Try adjusting your search criteria or removing some filters."
-                  : "There are no property listings available at the moment."}
-              </p>
-              {activeFiltersCount > 0 && (
-                <Button
-                  onClick={clearFilters}
-                  variant="outline"
-                  className="text-HG-500 border-HG-500 hover:bg-HG-50"
-                >
-                  Clear all filters
-                </Button>
-              )}
             </div>
+          )}
+
+        {/* Pagination for Nearby Listings */}
+        {isNearbySearch && !nearbyLoading && nearbyTotalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-12">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleNearbyPageChange(nearbyCurrentPage - 1)}
+              disabled={nearbyCurrentPage <= 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(5, nearbyTotalPages) }, (_, i) => {
+                let pageNum;
+                if (nearbyTotalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (nearbyCurrentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (nearbyCurrentPage >= nearbyTotalPages - 2) {
+                  pageNum = nearbyTotalPages - 4 + i;
+                } else {
+                  pageNum = nearbyCurrentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={
+                      nearbyCurrentPage === pageNum ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => handleNearbyPageChange(pageNum)}
+                    className="w-10 h-10 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleNearbyPageChange(nearbyCurrentPage + 1)}
+              disabled={nearbyCurrentPage >= nearbyTotalPages}
+              className="flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         )}
 
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
+        {/* Pagination for Regular Listings */}
+        {!isNearbySearch && !loading && totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 mt-12">
             <Button
               variant="outline"
@@ -381,8 +623,18 @@ function AllListingsContent() {
           </div>
         )}
 
-        {/* Page Info */}
-        {!loading && listings.length > 0 && (
+        {/* Page Info for Nearby Listings */}
+        {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-600 font-inter">
+              Page {nearbyCurrentPage} of {nearbyTotalPages} • {nearbyTotal}{" "}
+              total properties near your location
+            </p>
+          </div>
+        )}
+
+        {/* Page Info for Regular Listings */}
+        {!isNearbySearch && !loading && listings.length > 0 && (
           <div className="text-center mt-8">
             <p className="text-sm text-gray-600 font-inter">
               Page {currentPage} of {totalPages} • {total} total properties

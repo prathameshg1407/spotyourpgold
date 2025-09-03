@@ -233,7 +233,6 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
-            maxDistance: 100000,
             distanceMultiplier: 0.001,
           },
         },
@@ -242,11 +241,13 @@ export async function GET(req: NextRequest) {
             _id: 1,
             pgName: 1,
             primaryImage: 1,
+            images: 1,
             location: 1,
             roomTypes: 1,
             ownerId: 1,
             distance: 1,
             genderPreference: 1,
+            type: 1,
             minRent: { $min: "$roomTypes.monthlyRent" }, // ✅ minRent from array
           },
         },
@@ -263,7 +264,6 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
-            maxDistance: 100000,
           },
         },
         { $count: "total" },
@@ -274,7 +274,7 @@ export async function GET(req: NextRequest) {
       [listings, total] = await Promise.all([
         Listing.find(baseQuery)
           .select(
-            "_id primaryImage location pgName ownerId roomTypes genderPreference"
+            "_id primaryImage images location pgName ownerId roomTypes genderPreference type"
           )
           .sort({ createdAt: -1 })
           .skip((page - 1) * per_page)
@@ -288,7 +288,9 @@ export async function GET(req: NextRequest) {
       listings = listings.map((listing: any) => ({
         ...listing,
         minRent: Math.min(
-          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
+          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+            Infinity,
+          ])
         ),
       }));
     }
@@ -330,12 +332,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("[GET_LISTINGS_ERROR]", err);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch listings",
-        data: [],
-        total: 0,
-      }    );
+    return NextResponse.json({
+      success: false,
+      message: "Failed to fetch listings",
+      data: [],
+      total: 0,
+    });
   }
 }

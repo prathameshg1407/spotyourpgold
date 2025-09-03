@@ -15,6 +15,7 @@ import {
   Building,
   DoorOpen,
   Store,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useCallback } from "react";
@@ -37,6 +38,7 @@ type PgCardProps = {
   isWishlisted?: boolean;
   images?: string[]; // Add images array for swipeable functionality
   type?: string; // Add type prop (matches database field name)
+  distance?: number; // Add distance prop for nearby listings
 };
 
 const PgCard = ({
@@ -50,25 +52,61 @@ const PgCard = ({
   isWishlisted = false,
   images = [],
   type = "pgs", // Default to "pgs" (matches database enum)
+  distance,
 }: PgCardProps) => {
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [loading, setLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
   const { listings, setListings } = useListingStore();
   const router = useRouter();
 
-  // Combine primary image with additional images for swipeable functionality
-  const allImages = [image, ...images].filter(Boolean).slice(0, 3);
+  // Combine primary image with additional images for swipeable functionality (max 3)
+  // Filter out duplicates and ensure we have unique images
+  const allImages = [image, ...images]
+    .filter(Boolean)
+    .filter((img, index, arr) => arr.indexOf(img) === index) // Remove duplicates
+    .slice(0, 3);
   const hasMultipleImages = allImages.length > 1;
 
-  const nextImage = () => {
+  const nextImage = useCallback(() => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  };
+  }, [allImages.length]);
 
-  const prevImage = () => {
+  const prevImage = useCallback(() => {
     setCurrentImageIndex(
       (prev) => (prev - 1 + allImages.length) % allImages.length
     );
+  }, [allImages.length]);
+
+  // Touch handlers for mobile swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      nextImage();
+    }
+    if (isRightSwipe) {
+      prevImage();
+    }
   };
 
   const toggleWatchlist = useCallback(async () => {
@@ -140,7 +178,12 @@ const PgCard = ({
       flex flex-col h-full"
     >
       <div className="flex relative items-center justify-center rounded-b-2xl">
-        <div className="w-full h-44 overflow-hidden">
+        <div
+          className="w-full h-44 overflow-hidden"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <BlurImage
             className="object-cover w-full h-44"
             src={allImages[currentImageIndex] || ""}
@@ -161,7 +204,7 @@ const PgCard = ({
           </div>
         )}
 
-        {/* Image Navigation Arrows - Only show if multiple images */}
+        {/* Image Navigation Arrows - Show on PC, hide on mobile */}
         {hasMultipleImages && (
           <>
             <button
@@ -170,7 +213,7 @@ const PgCard = ({
                 e.stopPropagation();
                 prevImage();
               }}
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-10 hidden md:block"
             >
               <IconChevronLeft className="w-4 h-4" />
             </button>
@@ -180,16 +223,16 @@ const PgCard = ({
                 e.stopPropagation();
                 nextImage();
               }}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full opacity-0 md:group-hover:opacity-100 transition-all duration-200 z-10 hidden md:block"
             >
               <IconChevronRight className="w-4 h-4" />
             </button>
           </>
         )}
 
-        {/* Image Indicators - Only show if multiple images */}
+        {/* Image Indicators - Show on PC, hide on mobile */}
         {hasMultipleImages && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-10">
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-10 hidden md:flex">
             {allImages.map((_, index) => (
               <div
                 key={index}
@@ -201,9 +244,12 @@ const PgCard = ({
           </div>
         )}
 
-        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-70 transition-opacity bg-black/40 p-3 rounded-xl backdrop-blur-2xl">
-          <IconArrowUpRight className="text-white w-7 h-7" />
-        </div>
+        {/* Image Counter - Show on mobile */}
+        {hasMultipleImages && (
+          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full md:hidden">
+            {currentImageIndex + 1}/{allImages.length}
+          </div>
+        )}
       </div>
 
       <div className="p-4 font-inter relative bg-white flex-grow flex flex-col">
@@ -263,12 +309,24 @@ const PgCard = ({
           </div>
         </div>
 
-        <p className="text-2xl font-bold font-poppins text-HG-400 pt-4 mt-auto">
-          ₹{price?.toLocaleString()}{" "}
-          <span className="text-base font-medium text-gray-600 dark:text-gray-300">
-            /mo
-          </span>
-        </p>
+        <div className="flex items-center justify-between pt-4 mt-auto">
+          <p className="text-2xl font-bold font-poppins text-HG-400">
+            ₹{price?.toLocaleString()}{" "}
+            <span className="text-base font-medium text-gray-600 dark:text-gray-300">
+              /mo
+            </span>
+          </p>
+          {distance !== undefined && (
+            <div className="flex items-center gap-1 text-xs text-HG-500 font-medium bg-HG-50 px-2 py-1 rounded-full">
+              <MapPin className="w-3 h-3" />
+              <span>
+                {distance < 1
+                  ? `${(distance * 1000).toFixed(0)}m`
+                  : `${distance.toFixed(1)}km`}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );

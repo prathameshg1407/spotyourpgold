@@ -136,7 +136,6 @@ const sortOptions = [
   { value: "price-high-low", label: "Price: High to Low" },
   { value: "rating-high-low", label: "Rating: High to Low" },
   { value: "rating-low-high", label: "Rating: Low to High" },
-  { value: "location-nearby", label: "Location: Nearest First" },
 ];
 
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
