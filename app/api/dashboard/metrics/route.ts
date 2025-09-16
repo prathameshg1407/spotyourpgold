@@ -6,6 +6,7 @@ import Listing from "@/models/listing";
 import Review from "@/models/review";
 import VisitRequest from "@/models/visitRequest";
 import OwnerProfile from "@/models/ownerProfile";
+import Booking from "@/models/booking";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
       metrics = await getOwnerMetrics(userId);
     } else if (role === "admin") {
       metrics = await getAdminMetrics();
+    } else if (role === "user" && userId) {
+      metrics = await getUserMetrics(userId);
     } else {
       return NextResponse.json(
         { success: false, message: "Invalid role or missing userId" },
@@ -42,7 +45,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Dashboard metrics error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      {
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -153,29 +160,51 @@ async function getOwnerMetrics(userId: string) {
     });
 
     // Get wishlist count for owner's listings
-    const wishlistCount = await User.aggregate([
-      {
-        $unwind: "$watchlist",
-      },
-      {
-        $lookup: {
-          from: "listings",
-          localField: "watchlist",
-          foreignField: "_id",
-          as: "listing",
+    let totalWishlist = 0;
+    try {
+      const wishlistCount = await User.aggregate([
+        {
+          $unwind: "$watchlist",
         },
-      },
-      {
-        $match: {
-          "listing.ownerId": new mongoose.Types.ObjectId(userId),
+        {
+          $lookup: {
+            from: "listings",
+            localField: "watchlist",
+            foreignField: "_id",
+            as: "listing",
+          },
         },
-      },
-      {
-        $count: "totalWishlist",
-      },
-    ]);
+        {
+          $match: {
+            "listing.ownerId": new mongoose.Types.ObjectId(userId),
+          },
+        },
+        {
+          $count: "totalWishlist",
+        },
+      ]);
 
-    const totalWishlist = wishlistCount[0]?.totalWishlist || 0;
+      totalWishlist = wishlistCount[0]?.totalWishlist || 0;
+    } catch (error) {
+      console.error("Error calculating wishlist count:", error);
+      // Fallback: count manually
+      const users = await User.find({ watchlist: { $exists: true, $ne: [] } });
+      const ownerListingIds = await Listing.find({
+        ownerId: new mongoose.Types.ObjectId(userId),
+      }).distinct("_id");
+
+      for (const user of users) {
+        for (const watchlistItem of user.watchlist) {
+          if (
+            ownerListingIds.some(
+              (id) => id.toString() === watchlistItem.toString()
+            )
+          ) {
+            totalWishlist++;
+          }
+        }
+      }
+    }
 
     return {
       totalListings: listingStats.totalListings,
@@ -276,6 +305,39 @@ async function getAdminMetrics() {
     };
   } catch (error) {
     console.error("Admin metrics error:", error);
+    throw error;
+  }
+}
+
+async function getUserMetrics(userId: string) {
+  try {
+    // Get user's watchlist count
+    const user = await User.findById(userId).populate("watchlist");
+    const watchlistCount = user?.watchlist?.length || 0;
+
+    // Get user's reviews count
+    const reviewsCount = await Review.countDocuments({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    // Get user's visit requests count
+    const visitRequestsCount = await VisitRequest.countDocuments({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    // Get user's bookings count
+    const bookingsCount = await Booking.countDocuments({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    return {
+      totalWatchlist: watchlistCount,
+      totalReviews: reviewsCount,
+      totalVisitRequests: visitRequestsCount,
+      totalBookings: bookingsCount,
+    };
+  } catch (error) {
+    console.error("User metrics error:", error);
     throw error;
   }
 }

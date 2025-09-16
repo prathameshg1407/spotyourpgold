@@ -873,14 +873,48 @@ export default function ProductPage() {
     });
   };
 
-  const handleBookingSuccess = () => {
-    setShowBookingModal(false);
-    setBookingStep(1);
-    setSelectedRoomType(null);
-    toast.success("Booking request submitted successfully!", {
-      closeButton: true,
-      duration: 3000,
-    });
+  const handleBookingSuccess = async () => {
+    if (!user) {
+      toast.error("Please log in to submit booking");
+      return;
+    }
+
+    if (!selectedRoomType) {
+      toast.error("Please select a room type");
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/booking", {
+        userId: user.id,
+        listingId: params.id,
+        roomType: selectedRoomType.type,
+        moveInDate: bookingForm.moveInDate,
+        duration: bookingForm.duration,
+        fullName: bookingForm.fullName,
+        phoneNumber: bookingForm.phoneNumber,
+        email: bookingForm.email,
+        address: bookingForm.address,
+        aadhaarNumber: bookingForm.aadhaarNumber,
+        additionalRequirements: bookingForm.additionalRequirements,
+        termsAccepted: bookingForm.termsAccepted,
+      });
+
+      if (response.data.success) {
+        setShowBookingModal(false);
+        setBookingStep(1);
+        setSelectedRoomType(null);
+        toast.success("Booking request submitted successfully!", {
+          closeButton: true,
+          duration: 3000,
+        });
+      } else {
+        toast.error(response.data.message || "Failed to submit booking");
+      }
+    } catch (error) {
+      console.error("Booking submission error:", error);
+      toast.error("Failed to submit booking. Please try again.");
+    }
   };
 
   const handleFormChange = (field: string, value: any) => {
@@ -944,12 +978,12 @@ export default function ProductPage() {
       toast.error("Please enter your pincode");
       return false;
     }
-    if (!bookingForm.aadhaarNumber.trim()) {
-      toast.error("Please enter your Aadhaar number");
-      return false;
-    }
-    if (bookingForm.aadhaarNumber.length !== 12) {
-      toast.error("Aadhaar number must be 12 digits");
+    // Aadhaar number is now optional
+    if (
+      bookingForm.aadhaarNumber.trim() &&
+      bookingForm.aadhaarNumber.length !== 12
+    ) {
+      toast.error("Aadhaar number must be 12 digits if provided");
       return false;
     }
     return true;
@@ -2557,7 +2591,7 @@ export default function ProductPage() {
                     </h4>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Aadhaar Number *
+                        Aadhaar Number (Optional)
                       </label>
                       <input
                         type="text"
@@ -2569,7 +2603,7 @@ export default function ProductPage() {
                           )
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                        placeholder="Enter 12-digit Aadhaar number"
+                        placeholder="Enter 12-digit Aadhaar number (optional)"
                         maxLength={12}
                       />
                       <p className="text-xs text-gray-500 mt-1">

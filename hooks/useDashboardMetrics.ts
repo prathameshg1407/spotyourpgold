@@ -24,7 +24,14 @@ interface AdminMetrics {
   monthlyRevenue: number;
 }
 
-type DashboardMetrics = OwnerMetrics | AdminMetrics;
+interface UserMetrics {
+  totalWatchlist: number;
+  totalReviews: number;
+  totalVisitRequests: number;
+  totalBookings: number;
+}
+
+type DashboardMetrics = OwnerMetrics | AdminMetrics | UserMetrics;
 
 export const useDashboardMetrics = (role: string, userId?: string) => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -42,7 +49,9 @@ export const useDashboardMetrics = (role: string, userId?: string) => {
           params.append("userId", userId);
         }
 
-        const response = await axios.get(`/api/dashboard/metrics?${params}`);
+        const url = `/api/dashboard/metrics?${params}`;
+
+        const response = await axios.get(url);
 
         if (response.data.success) {
           setMetrics(response.data.data);
