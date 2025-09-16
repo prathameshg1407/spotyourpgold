@@ -240,11 +240,14 @@ export const getUserStats = () => ({
 
 export const getOwnerStats = () => ({
   totalListings: 3,
-  activeBookings: 15,
-  monthlyRevenue: 45000,
-  occupancyRate: 85,
+  activeListings: 2,
+  featuredListings: 1,
+  totalRevenue: 0,
+  monthlyRevenue: 0,
   totalReviews: 24,
   averageRating: 4.2,
+  pendingVisitRequests: 5,
+  totalWishlist: 12,
 });
 
 export const getAdminStats = () => ({

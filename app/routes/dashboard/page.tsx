@@ -45,24 +45,30 @@ import { FormInput } from "../auth/form-input";
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 
 export default function DashboardPage() {
   // const user =
   const { user } = useUserStore();
   const userRole = user?.role as UserRole;
 
-  // Get role-specific stats
-  // const userStats = getUserStats()
-  const ownerStats = getOwnerStats();
-  const adminStats = getAdminStats();
+  // Get real-time metrics from API
+  const { metrics, loading, error } = useDashboardMetrics(
+    userRole || "",
+    user?.id
+  );
 
+  // Fallback to mock data if API fails
+  const ownerStats =
+    metrics && userRole === "owner" ? (metrics as any) : getOwnerStats();
+  const adminStats =
+    metrics && userRole === "admin" ? (metrics as any) : getAdminStats();
 
   const [adminAd, setAdminAd] = useState("");
 
   const handleAdSubmit = async (e: any) => {
     e.preventDefault();
     e.stopPropagation();
-
 
     const res = await axios.post("/api/admin/ad", {
       title: adminAd,
@@ -74,7 +80,6 @@ export default function DashboardPage() {
       toast.error("Failed to submit ad");
     }
   };
-
 
   // const renderUserDashboard = () => (
   //   <div className="space-y-6">
@@ -194,9 +199,19 @@ export default function DashboardPage() {
   //   </div>
   // )
 
-
   const renderOwnerDashboard = () => (
     <div className="space-y-6 pt-4 pb-14">
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-HG-500"></div>
+          <span className="ml-2 text-muted-foreground">Loading metrics...</span>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 text-sm">Error loading metrics: {error}</p>
+        </div>
+      )}
       <div className="grid gap-4 md:gap-8 md:grid-cols-3 ">
         <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white">
           <div className="flex items-center justify-between">
@@ -240,17 +255,17 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-black font-inter">
-                Occupancy Rate
+                Total Revenue
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                {ownerStats.occupancyRate}%
+                ₹{ownerStats.totalRevenue?.toLocaleString() || 0}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
-                Current occupancy
+                All time earnings
               </p>
             </div>
             <div className="p-2 rounded-full bg-golden/10 text-HG-500">
-              <BarChart3 className="md:h-8 md:w-8" />
+              <TrendingUp className="md:h-8 md:w-8" />
             </div>
           </div>
         </Card>
@@ -259,13 +274,13 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-black font-inter">
-                Active Bookings
+                Visit Requests
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                {ownerStats.activeBookings}
+                {ownerStats.pendingVisitRequests}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
-                Current tenants
+                Pending requests
               </p>
             </div>
             <div className="p-2 rounded-full bg-golden/10 text-HG-500">
@@ -297,17 +312,17 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-black font-inter">
-                Pro Status
+                Wishlist Count
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                Active
+                {ownerStats.totalWishlist}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
-                Premium features enabled
+                People saved your listings
               </p>
             </div>
             <div className="p-2 rounded-full bg-golden/10 text-HG-500">
-              <Crown className="md:h-8 md:w-8" />
+              <Heart className="md:h-8 md:w-8" />
             </div>
           </div>
         </Card>
@@ -394,6 +409,17 @@ export default function DashboardPage() {
 
   const renderAdminDashboard = () => (
     <div className="space-y-6 pt-4 pb-14">
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-HG-500"></div>
+          <span className="ml-2 text-muted-foreground">Loading metrics...</span>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 text-sm">Error loading metrics: {error}</p>
+        </div>
+      )}
       {/* Stat Cards */}
       <div className="grid gap-4 md:gap-8 md:grid-cols-3">
         {/* Total Users */}
