@@ -16,6 +16,10 @@ import {
   DoorOpen,
   Store,
   MapPin,
+  Wifi,
+  Utensils,
+  Shirt,
+  Droplets,
 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useCallback } from "react";
@@ -31,6 +35,7 @@ type PgCardProps = {
   image: string;
   area: string;
   pgName: string;
+  primaryLine?: string; // Add primary line prop
   ownerName: string;
   price: number;
   genderPreference?: string;
@@ -39,6 +44,12 @@ type PgCardProps = {
   images?: string[]; // Add images array for swipeable functionality
   type?: string; // Add type prop (matches database field name)
   distance?: number; // Add distance prop for nearby listings
+  amenities?: string[]; // Add amenities array
+  rentInclusions?: {
+    foodIncluded?: boolean;
+    electricityIncluded?: boolean;
+    maintenanceIncluded?: boolean;
+  }; // Add rent inclusions object
 };
 
 const PgCard = ({
@@ -46,6 +57,7 @@ const PgCard = ({
   image,
   area,
   pgName,
+  primaryLine,
   ownerName,
   price,
   genderPreference,
@@ -53,6 +65,8 @@ const PgCard = ({
   images = [],
   type = "pgs", // Default to "pgs" (matches database enum)
   distance,
+  amenities = [],
+  rentInclusions = {},
 }: PgCardProps) => {
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [loading, setLoading] = useState(false);
@@ -65,6 +79,48 @@ const PgCard = ({
 
   const { listings, setListings } = useListingStore();
   const router = useRouter();
+
+  // Amenity checking logic
+  const hasFood =
+    rentInclusions?.foodIncluded ||
+    amenities.includes("meals") ||
+    amenities.includes("food");
+  const hasWifi = amenities.includes("wifi") || amenities.includes("wi-fi");
+  const hasFurnished =
+    amenities.includes("mattress-wardrobe") || amenities.includes("furnished");
+  const hasLaundry =
+    amenities.includes("laundry") || amenities.includes("laundry-facility");
+  const hasROWater =
+    amenities.includes("water-purifier") || amenities.includes("ro-water");
+
+  // Amenity icons data
+  const amenityIcons = [
+    {
+      condition: hasFood,
+      icon: Utensils,
+      label: "Food Included",
+    },
+    {
+      condition: hasWifi,
+      icon: Wifi,
+      label: "Wi-Fi",
+    },
+    {
+      condition: hasFurnished,
+      icon: Bed,
+      label: "Furnished",
+    },
+    {
+      condition: hasLaundry,
+      icon: Shirt,
+      label: "Laundry",
+    },
+    {
+      condition: hasROWater,
+      icon: Droplets,
+      label: "RO Water",
+    },
+  ].filter((amenity) => amenity.condition);
 
   // Combine primary image with additional images for swipeable functionality (max 3)
   // Filter out duplicates and ensure we have unique images
@@ -232,7 +288,7 @@ const PgCard = ({
 
         {/* Image Indicators - Show on PC, hide on mobile */}
         {hasMultipleImages && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-10 hidden md:flex">
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 gap-1 z-10 hidden md:flex">
             {allImages.map((_, index) => (
               <div
                 key={index}
@@ -270,7 +326,7 @@ const PgCard = ({
         </button>
 
         <div className="flex-grow">
-          <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-2 leading-tight mb-1">
+          <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-1 leading-tight mb-1 truncate">
             {area}
           </p>
 
@@ -307,6 +363,35 @@ const PgCard = ({
                 : type?.toUpperCase() || "PG"}
             </span>
           </div>
+
+          {/* Amenity Icons Row */}
+          {amenityIcons.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2">
+              {amenityIcons.slice(0, 5).map((amenity, index) => {
+                const IconComponent = amenity.icon;
+
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center p-1.5 bg-white border border-HG-400 rounded-lg transition-all duration-200 hover:scale-110 hover:shadow-md group cursor-pointer"
+                    title={amenity.label}
+                  >
+                    <IconComponent
+                      className="w-4 h-4 text-HG-400"
+                      strokeWidth={2.5}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Primary Line */}
+          {primaryLine && (
+            <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-1 leading-tight mb-1 truncate">
+              {primaryLine}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-4 mt-auto">

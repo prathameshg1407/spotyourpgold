@@ -501,6 +501,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     images={pg.images?.map((img: any) => img.url) || []}
                     area={pg.location?.area}
                     pgName={pg.pgName}
+                    primaryLine={pg.primaryLine}
                     ownerName={pg.ownerId?.fullName}
                     price={pg.minRent}
                     genderPreference={pg.genderPreference}
@@ -892,6 +893,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         isWishlisted={pg?.inWatchList}
                         type={pg?.type}
                         distance={pg?.distance}
+                        amenities={pg?.amenities || []}
+                        rentInclusions={pg?.rentInclusions || {}}
                       />
                     ))}
                   </div>
@@ -941,6 +944,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         isWishlisted={pg?.inWatchList}
                         type={pg?.type}
                         distance={pg?.distance}
+                        amenities={pg?.amenities || []}
+                        rentInclusions={pg?.rentInclusions || {}}
                       />
                     ))}
                   </div>
@@ -1049,6 +1054,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                           isWishlisted={pg?.inWatchList}
                           type={pg?.type}
                           distance={pg?.distance}
+                          amenities={pg?.amenities || []}
+                          rentInclusions={pg?.rentInclusions || {}}
                         />
                       ))}
                     </div>

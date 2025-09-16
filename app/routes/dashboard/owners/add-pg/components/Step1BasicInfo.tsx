@@ -38,6 +38,23 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
           icon={Building}
         />
 
+        <FormInput
+          id="primaryLine"
+          label="Primary Line (Optional)"
+          type="text"
+          value={formData?.primaryLine}
+          onChange={(value) =>
+            setFormData((prev) => ({
+              ...prev,
+              primaryLine: value.slice(0, 35), // Limit to 35 characters
+            }))
+          }
+          placeholder="Enter primary line (max 35 characters)"
+          hasError={errors?.primaryLine}
+          icon={Building}
+          maxLength={35}
+        />
+
         {/* Property Type Selection */}
         <div className="space-y-4">
           <div className="space-y-1 font-inter">

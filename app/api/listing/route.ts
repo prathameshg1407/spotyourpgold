@@ -240,6 +240,7 @@ export async function GET(req: NextRequest) {
           $project: {
             _id: 1,
             pgName: 1,
+            primaryLine: 1,
             primaryImage: 1,
             images: 1,
             location: 1,
@@ -248,6 +249,9 @@ export async function GET(req: NextRequest) {
             distance: 1,
             genderPreference: 1,
             type: 1,
+            amenities: 1,
+            rentInclusions: 1,
+            mealTimings: 1,
             minRent: { $min: "$roomTypes.monthlyRent" }, // ✅ minRent from array
           },
         },
@@ -274,7 +278,7 @@ export async function GET(req: NextRequest) {
       [listings, total] = await Promise.all([
         Listing.find(baseQuery)
           .select(
-            "_id primaryImage images location pgName ownerId roomTypes genderPreference type"
+            "_id primaryImage images location pgName primaryLine ownerId roomTypes genderPreference type amenities rentInclusions mealTimings"
           )
           .sort({ createdAt: -1 })
           .skip((page - 1) * per_page)

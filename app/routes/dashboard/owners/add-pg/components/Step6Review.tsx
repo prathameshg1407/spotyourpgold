@@ -305,6 +305,52 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
                 <span className="text-gray-400">None selected</span>
               )}
           </div>
+
+          {/* Meal Timings */}
+          {formData.foodIncluded && (
+            <div className="mt-3">
+              <h4 className="text-sm font-medium text-gray-600 mb-2">
+                Meal Timings:
+              </h4>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                {Object.entries(formData.mealTimings).map(
+                  ([timing, timingData]) => {
+                    if (!timingData.enabled) return null;
+                    const timingLabels = {
+                      morning: "Morning",
+                      noon: "Noon",
+                      evening: "Evening",
+                      night: "Night",
+                    };
+                    const formatTime = (time: string) => {
+                      const [hours, minutes] = time.split(":");
+                      const hour = parseInt(hours);
+                      const ampm = hour >= 12 ? "PM" : "AM";
+                      const displayHour = hour % 12 || 12;
+                      return `${displayHour}:${minutes} ${ampm}`;
+                    };
+                    return (
+                      <span
+                        key={timing}
+                        className="px-2 sm:px-3 py-1 bg-HG-100 text-HG-700 rounded-full text-xs font-medium break-words"
+                      >
+                        {timingLabels[timing as keyof typeof timingLabels]} (
+                        {formatTime(timingData.from)} -{" "}
+                        {formatTime(timingData.to)})
+                      </span>
+                    );
+                  }
+                )}
+                {Object.values(formData.mealTimings).every(
+                  (timing) => !timing.enabled
+                ) && (
+                  <span className="text-gray-400 text-xs">
+                    No meal timings selected
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* ✅ Rules */}

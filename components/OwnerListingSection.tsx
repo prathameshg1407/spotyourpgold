@@ -57,6 +57,7 @@ const OwnerListingSection = ({
           images={listing.images?.map((img: any) => img.url) || []}
           area={listing.location?.area || listing.location?.city}
           pgName={listing.pgName}
+          primaryLine={listing.primaryLine}
           ownerName={listing.ownerId?.fullName}
           price={
             listing.minRent && listing.minRent !== Infinity
@@ -67,6 +68,8 @@ const OwnerListingSection = ({
           isWishlisted={listing.isWatchlisted || listing.inWatchList}
           type={listing.type}
           distance={listing.distance}
+          amenities={listing.amenities || []}
+          rentInclusions={listing.rentInclusions || {}}
         />
       ))}
     </div>

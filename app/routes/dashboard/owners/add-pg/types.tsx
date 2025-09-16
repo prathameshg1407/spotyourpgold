@@ -2,6 +2,7 @@ import type React from "react";
 export interface PGFormData {
   id: string; // Unique identifier for the listing, can be empty for new listings
   pgName: string;
+  primaryLine: string; // Optional 35 char max primary line
   type: "hostels" | "flats" | "pgs" | "rooms" | "commercial" | "";
   subType: string;
 
@@ -53,6 +54,14 @@ export interface PGFormData {
   electricityIncluded: boolean;
   maintenanceIncluded: boolean;
 
+  // Meal timings (optional, only when foodIncluded is true)
+  mealTimings: {
+    morning: { enabled: boolean; from: string; to: string };
+    noon: { enabled: boolean; from: string; to: string };
+    evening: { enabled: boolean; from: string; to: string };
+    night: { enabled: boolean; from: string; to: string };
+  };
+
   // New fields for payment
   planType?: "free" | "paid" | "subscription";
   paymentStatus?: "pending" | "completed" | "failed";
@@ -69,6 +78,7 @@ export interface StepProps {
 
 export interface ValidationErrors {
   pgName: boolean;
+  primaryLine: boolean;
   monthlyRent: boolean;
   securityDeposit: boolean;
   numberOfRooms: boolean;

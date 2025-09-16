@@ -10,6 +10,7 @@ const listingSchema = new mongoose.Schema(
 
     // Basic Info
     pgName: { type: String, required: true, trim: true },
+    primaryLine: { type: String, required: false, trim: true, maxlength: 35 },
     type: {
       type: String,
       enum: ["hostels", "flats", "pgs", "rooms", "commercial"],
@@ -42,6 +43,30 @@ const listingSchema = new mongoose.Schema(
       foodIncluded: { type: Boolean, default: false },
       electricityIncluded: { type: Boolean, default: false },
       maintenanceIncluded: { type: Boolean, default: false },
+    },
+
+    // Meal timings (optional, only when foodIncluded is true)
+    mealTimings: {
+      morning: {
+        enabled: { type: Boolean, default: false },
+        from: { type: String, default: "07:00" },
+        to: { type: String, default: "09:00" },
+      },
+      noon: {
+        enabled: { type: Boolean, default: false },
+        from: { type: String, default: "12:00" },
+        to: { type: String, default: "14:00" },
+      },
+      evening: {
+        enabled: { type: Boolean, default: false },
+        from: { type: String, default: "18:00" },
+        to: { type: String, default: "20:00" },
+      },
+      night: {
+        enabled: { type: Boolean, default: false },
+        from: { type: String, default: "21:00" },
+        to: { type: String, default: "23:00" },
+      },
     },
 
     // Rules

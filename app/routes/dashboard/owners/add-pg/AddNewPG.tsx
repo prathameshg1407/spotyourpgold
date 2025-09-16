@@ -2365,6 +2365,12 @@ export default function AddNewPG() {
               listing?.rentInclusions?.electricityIncluded || false,
             maintenanceIncluded:
               listing?.rentInclusions?.maintenanceIncluded || false,
+            mealTimings: listing?.mealTimings || {
+              morning: { enabled: false, from: "07:00", to: "09:00" },
+              noon: { enabled: false, from: "12:00", to: "14:00" },
+              evening: { enabled: false, from: "18:00", to: "20:00" },
+              night: { enabled: false, from: "21:00", to: "23:00" },
+            },
             images: [],
             existingImageUrls:
               listing.images?.map((img: { url: string }) => img.url) || [],

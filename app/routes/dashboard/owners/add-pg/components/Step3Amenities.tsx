@@ -267,6 +267,126 @@ export const Step3Amenities: React.FC<StepProps> = ({
               </label>
             ))}
           </div>
+
+          {/* Meal Timings - Only show when Food/Meals is selected */}
+          {formData.foodIncluded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+            >
+              <Label className="text-gray-700 text-[14px] font-inter mb-3 block">
+                Meal Timings (Optional)
+              </Label>
+              <div className="space-y-3 sm:space-y-4">
+                {[
+                  { key: "morning", label: "Morning" },
+                  { key: "noon", label: "Noon" },
+                  { key: "evening", label: "Evening" },
+                  { key: "night", label: "Night" },
+                ].map((meal) => (
+                  <div
+                    key={meal.key}
+                    className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-white"
+                  >
+                    <label className="flex items-center gap-3 text-sm cursor-pointer font-inter mb-3">
+                      <input
+                        type="checkbox"
+                        checked={
+                          formData.mealTimings[
+                            meal.key as keyof typeof formData.mealTimings
+                          ].enabled
+                        }
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            mealTimings: {
+                              ...prev.mealTimings,
+                              [meal.key]: {
+                                ...prev.mealTimings[
+                                  meal.key as keyof typeof prev.mealTimings
+                                ],
+                                enabled: e.target.checked,
+                              },
+                            },
+                          }))
+                        }
+                        className="accent-HG-400/40 w-4 h-4 rounded-sm border-gray-300 flex-shrink-0"
+                      />
+                      <div className="font-medium text-gray-800">
+                        {meal.label}
+                      </div>
+                    </label>
+
+                    {formData.mealTimings[
+                      meal.key as keyof typeof formData.mealTimings
+                    ].enabled && (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 ml-0 sm:ml-7">
+                        <div className="flex items-center gap-2 flex-1">
+                          <label className="text-xs text-gray-600 whitespace-nowrap">
+                            From:
+                          </label>
+                          <input
+                            type="time"
+                            value={
+                              formData.mealTimings[
+                                meal.key as keyof typeof formData.mealTimings
+                              ].from
+                            }
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                mealTimings: {
+                                  ...prev.mealTimings,
+                                  [meal.key]: {
+                                    ...prev.mealTimings[
+                                      meal.key as keyof typeof prev.mealTimings
+                                    ],
+                                    from: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-HG-400 focus:outline-none w-full sm:w-auto"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 flex-1">
+                          <label className="text-xs text-gray-600 whitespace-nowrap">
+                            To:
+                          </label>
+                          <input
+                            type="time"
+                            value={
+                              formData.mealTimings[
+                                meal.key as keyof typeof formData.mealTimings
+                              ].to
+                            }
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                mealTimings: {
+                                  ...prev.mealTimings,
+                                  [meal.key]: {
+                                    ...prev.mealTimings[
+                                      meal.key as keyof typeof prev.mealTimings
+                                    ],
+                                    to: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-HG-400 focus:outline-none w-full sm:w-auto"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </form>

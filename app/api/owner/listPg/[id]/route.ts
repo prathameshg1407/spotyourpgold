@@ -51,6 +51,7 @@ export async function PUT(
 
     const {
       pgName,
+      primaryLine,
       type,
       subType,
       roomTypes,
@@ -63,6 +64,7 @@ export async function PUT(
       foodIncluded,
       electricityIncluded,
       maintenanceIncluded,
+      mealTimings,
       images,
       videos = [],
     } = await req.json();
@@ -237,6 +239,7 @@ export async function PUT(
     existingListing.set({
       ownerId: user?.id,
       pgName,
+      primaryLine: primaryLine || existingListing.primaryLine,
       type: type || existingListing.type,
       subType: subType || existingListing.subType,
       roomTypes: updatedRoomTypes,
@@ -260,6 +263,13 @@ export async function PUT(
         electricityIncluded,
         maintenanceIncluded,
       },
+      mealTimings: mealTimings ||
+        existingListing.mealTimings || {
+          morning: { enabled: false, from: "07:00", to: "09:00" },
+          noon: { enabled: false, from: "12:00", to: "14:00" },
+          evening: { enabled: false, from: "18:00", to: "20:00" },
+          night: { enabled: false, from: "21:00", to: "23:00" },
+        },
       images: finalImages,
       primaryImage: finalImages[0]?.url,
       videos: finalVideos,

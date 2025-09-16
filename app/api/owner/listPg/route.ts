@@ -24,6 +24,7 @@ export async function POST(req: Request) {
 
     const {
       pgName,
+      primaryLine,
       type,
       subType,
       roomTypes,
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
       foodIncluded,
       electricityIncluded,
       maintenanceIncluded,
+      mealTimings,
       images,
       videos = [],
     } = await req.json();
@@ -161,6 +163,7 @@ export async function POST(req: Request) {
     const pg = await Listing.create({
       ownerId: user?.id,
       pgName,
+      primaryLine: primaryLine || undefined,
       type: type || undefined,
       subType: subType || undefined,
       roomTypes: updatedRoomTypes,
@@ -184,6 +187,12 @@ export async function POST(req: Request) {
         foodIncluded,
         electricityIncluded,
         maintenanceIncluded,
+      },
+      mealTimings: mealTimings || {
+        morning: { enabled: false, from: "07:00", to: "09:00" },
+        noon: { enabled: false, from: "12:00", to: "14:00" },
+        evening: { enabled: false, from: "18:00", to: "20:00" },
+        night: { enabled: false, from: "21:00", to: "23:00" },
       },
       images: uploadedImages,
       primaryImage: uploadedImages[0]?.url,

@@ -97,6 +97,7 @@ export const propertyTypes = [
 
 export const initialErrors: ValidationErrors = {
   pgName: false,
+  primaryLine: false,
   monthlyRent: false,
   additionalDetails: false,
   rulesAndRegulations: false,
@@ -119,6 +120,7 @@ export const initialErrors: ValidationErrors = {
 export const initialFormData: PGFormData = {
   id: "",
   pgName: "",
+  primaryLine: "",
   type: "",
   subType: "",
   roomTypes: [
@@ -164,6 +166,12 @@ export const initialFormData: PGFormData = {
   foodIncluded: false,
   electricityIncluded: false,
   maintenanceIncluded: false,
+  mealTimings: {
+    morning: { enabled: false, from: "07:00", to: "09:00" },
+    noon: { enabled: false, from: "12:00", to: "14:00" },
+    evening: { enabled: false, from: "18:00", to: "20:00" },
+    night: { enabled: false, from: "21:00", to: "23:00" },
+  },
   // New fields for payment
   planType: "free",
   paymentStatus: "pending",
