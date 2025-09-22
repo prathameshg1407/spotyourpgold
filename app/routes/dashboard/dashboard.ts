@@ -139,10 +139,21 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "user":
       return [
         ...baseItems,
-        { name: "My Bookings", href: "/bookings", icon: "Calendar" },
-        { name: "My Reviews", href: "/reviews", icon: "Star" },
-        { name: "Favorites", href: "/favorites", icon: "Heart" },
-        { name: "Profile", href: "/profile", icon: "User" },
+        {
+          name: "My Reviews",
+          href: "/routes/dashboard/user/reviews",
+          icon: "Star",
+        },
+        {
+          name: "Favorites",
+          href: "/routes/dashboard/user/favorites",
+          icon: "Heart",
+        },
+        {
+          name: "Profile",
+          href: "/routes/dashboard/user/profile",
+          icon: "User",
+        },
       ];
 
     case "owner":
@@ -175,6 +186,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "Subscription",
           href: "/routes/dashboard/owners/subscription",
           icon: "Crown",
+        },
+        {
+          name: "Profile",
+          href: "/routes/dashboard/owners/profile",
+          icon: "User",
         },
         // { name: "Payments", href: "/payments", icon: "CreditCard" },
       ];
