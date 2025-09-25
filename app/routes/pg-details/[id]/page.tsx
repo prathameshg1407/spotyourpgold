@@ -544,6 +544,8 @@ function InfiniteScrollListings({
 export default function ProductPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
@@ -753,6 +755,33 @@ export default function ProductPage() {
     setCurrentImageIndex(
       (prev) => (prev - 1 + listing?.images?.length) % listing?.images?.length
     );
+  };
+
+  // Touch handlers for mobile swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && listing?.images?.length > 1) {
+      nextImage();
+    }
+    if (isRightSwipe && listing?.images?.length > 1) {
+      previousImage();
+    }
   };
 
   const toggleWatchlist = async () => {
@@ -1292,7 +1321,12 @@ export default function ProductPage() {
           {/* Product Images */}
           <div className="space-y-8">
             {/* Main Image - Smaller on mobile */}
-            <div className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg">
+            <div
+              className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
               <BlurImage
                 openInNewTab={true}
                 className="object-cover w-full cursor-pointer"
@@ -1329,6 +1363,13 @@ export default function ProductPage() {
               <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
                 {currentImageIndex + 1} / {listing.images.length}
               </div>
+
+              {/* Swipe Hint for Mobile */}
+              {listing.images.length > 1 && (
+                <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium md:hidden">
+                  ← Swipe →
+                </div>
+              )}
             </div>
 
             <div className="grid md:hidden grid-cols-5 gap-3 max-w-sm sm:max-w-none mx-auto">

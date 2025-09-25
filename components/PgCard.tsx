@@ -6,6 +6,7 @@ import {
   IconHeartFilled,
   IconChevronLeft,
   IconChevronRight,
+  IconShare,
 } from "@tabler/icons-react";
 import {
   Users,
@@ -223,6 +224,51 @@ const PgCard = ({
     }
   }, [id, wishlisted, router, setListings, loading, listings]);
 
+  const handleShare = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const shareUrl = `${window.location.origin}/routes/pg-details/${id}`;
+      const shareText = `Check out this amazing ${
+        type === "pgs" ? "PG" : type?.toUpperCase() || "property"
+      }: ${pgName} in ${area}`;
+
+      try {
+        if (navigator.share) {
+          // Use native share API if available (mobile)
+          await navigator.share({
+            title: `${pgName} - ${area}`,
+            text: shareText,
+            url: shareUrl,
+          });
+        } else {
+          // Fallback: copy to clipboard
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success("Link copied to clipboard!", {
+            closeButton: true,
+            duration: 2000,
+          });
+        }
+      } catch (error) {
+        // Fallback: copy to clipboard
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success("Link copied to clipboard!", {
+            closeButton: true,
+            duration: 2000,
+          });
+        } catch (clipboardError) {
+          toast.error("Unable to share. Please copy the URL manually.", {
+            closeButton: true,
+            duration: 2000,
+          });
+        }
+      }
+    },
+    [id, type, pgName, area]
+  );
+
   return (
     <Link
       href={"/routes/pg-details/" + id}
@@ -248,6 +294,15 @@ const PgCard = ({
             alt={pgName}
           />
         </div>
+
+        {/* Share Icon - Top Left Corner */}
+        <button
+          onClick={handleShare}
+          className="absolute top-3 left-3 bg-white/90 hover:bg-white text-HG-500 hover:text-HG-600 p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-20 group"
+          title="Share this listing"
+        >
+          <IconShare className="w-4 h-4 group-hover:scale-110 transition-transform" />
+        </button>
 
         {/* Gender Preference Badge - Top Right Corner */}
         {genderPreference && (

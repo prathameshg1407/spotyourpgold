@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import axios from "axios";
+import PgCard from "@/components/PgCard";
 import {
   Check,
   Trash2,
@@ -54,11 +55,27 @@ interface PGListing {
   pgName: string;
   city: string;
   minRent?: number;
+  primaryImage?: string;
+  images?: { url: string }[];
+  location?: {
+    area?: string;
+    city?: string;
+  };
+  primaryLine?: string;
+  genderPreference?: string;
+  type?: string;
+  distance?: number;
+  inWatchList?: boolean;
   ownerId: {
     _id: string;
     fullName: string;
   };
   amenities?: string[];
+  rentInclusions?: {
+    foodIncluded?: boolean;
+    electricityIncluded?: boolean;
+    maintenanceIncluded?: boolean;
+  };
   rating?: number;
   roomType?: string[];
   minSecurity?: number;
@@ -390,58 +407,54 @@ export default function WishlistCompare() {
           <p className="text-gray-500 text-lg">No items in wishlist.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
           {listings.map((item) => (
-            <Card
-              key={item._id}
-              className={`transition-all duration-200 hover:shadow-md ${
-                selected.includes(item._id)
-                  ? "border-HG-500 bg-HG-400/10 shadow-md"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {item.pgName}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <User className="h-4 w-4" />
-                      <span>Owner: {item.ownerId?.fullName || "N/A"}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 ml-6">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(item._id)}
-                      onChange={() => toggleSelect(item._id)}
-                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-HG-500 text-HG-600 hover:bg-HG-50 hover:border-HG-600 bg-transparent"
-                      onClick={() => handleViewDetails(item)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-transparent"
-                      onClick={() => handleRemove(item._id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div key={item._id} className="relative">
+              <PgCard
+                id={item._id}
+                image={item.primaryImage || item.images?.[0]?.url || ""}
+                images={item.images?.map((img: any) => img.url) || []}
+                area={item.location?.area || item.city}
+                pgName={item.pgName}
+                primaryLine={item.primaryLine}
+                ownerName={item.ownerId?.fullName}
+                price={item.minRent || 0}
+                genderPreference={item.genderPreference}
+                isWishlisted={item.inWatchList}
+                type={item.type}
+                distance={item.distance}
+                amenities={item.amenities || []}
+                rentInclusions={item.rentInclusions || {}}
+              />
+
+              {/* Overlay with action buttons */}
+              <div className="absolute top-2 left-2 flex gap-2 z-20">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(item._id)}
+                  onChange={() => toggleSelect(item._id)}
+                  className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 bg-white shadow-md"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-HG-500 text-HG-600 hover:bg-HG-50 hover:border-HG-600 bg-white shadow-md"
+                  onClick={() => handleViewDetails(item)}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  Details
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-white shadow-md"
+                  onClick={() => handleRemove(item._id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}

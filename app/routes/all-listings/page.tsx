@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
 import PgCard from "@/components/PgCard";
@@ -144,10 +146,39 @@ function AllListingsContent() {
   // Handle category from URL params
   useEffect(() => {
     const category = searchParams.get("category");
-    if (category) {
+    if (category && category !== filters.type) {
       updateFilter("type", category);
     }
-  }, [searchParams, updateFilter]);
+  }, [searchParams, updateFilter, filters.type]);
+
+  // Trigger search when filters change (especially for category)
+  useEffect(() => {
+    if (initialLoadDone && !isNearbySearch) {
+      const hasFilters = Object.values(filters).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        return value !== "";
+      });
+
+      const locationParams = userLocation
+        ? {
+            lat: userLocation.lat.toString(),
+            lng: userLocation.lng.toString(),
+          }
+        : {};
+
+      if (hasFilters) {
+        searchWithFilters(locationParams);
+      } else {
+        searchWithFilters(locationParams, true);
+      }
+    }
+  }, [
+    filters,
+    initialLoadDone,
+    isNearbySearch,
+    userLocation,
+    searchWithFilters,
+  ]);
 
   // Initial load - fetch listings based on URL parameters
   useEffect(() => {
@@ -155,86 +186,27 @@ function AllListingsContent() {
       if (isNearbySearch && lat && lng) {
         // Fetch nearby listings (bypass advanced filter)
         fetchNearbyListings(1);
-      } else {
-        // Check if we have any filters or search parameters from URL
-        const hasFilters = Object.values(filters).some((value) => {
-          if (Array.isArray(value)) return value.length > 0;
-          return value !== "";
-        });
-
-        console.log("AllListings - Initial load:", {
-          filters,
-          hasFilters,
-        });
-
-        // Include user location in search if available
-        const locationParams = userLocation
-          ? {
-              lat: userLocation.lat.toString(),
-              lng: userLocation.lng.toString(),
-            }
-          : {};
-
-        if (hasFilters) {
-          // Use URL parameters for search
-          searchWithFilters(locationParams);
-        } else {
-          // No parameters, show all listings with location
-          searchWithFilters(locationParams, true);
-        }
       }
       setInitialLoadDone(true);
     }
-  }, [
-    initialLoadDone,
-    searchWithFilters,
-    filters,
-    isNearbySearch,
-    lat,
-    lng,
-    userLocation,
-  ]);
+  }, [initialLoadDone, isNearbySearch, lat, lng, fetchNearbyListings]);
 
   // Handle page changes
   useEffect(() => {
-    if (initialLoadDone) {
-      if (isNearbySearch && lat && lng) {
-        // Handle nearby search page changes
-        const page = searchParams.get("page");
-        if (page) {
-          fetchNearbyListings(parseInt(page));
-        }
-      } else {
-        // Handle regular filter page changes
-        const hasFilters = Object.values(filters).some((value) => {
-          if (Array.isArray(value)) return value.length > 0;
-          return value !== "";
-        });
-
-        // Include user location in search if available
-        const locationParams = userLocation
-          ? {
-              lat: userLocation.lat.toString(),
-              lng: userLocation.lng.toString(),
-            }
-          : {};
-
-        if (hasFilters) {
-          searchWithFilters(locationParams);
-        } else {
-          searchWithFilters(locationParams, true); // Force search even without filters
-        }
+    if (initialLoadDone && isNearbySearch && lat && lng) {
+      // Handle nearby search page changes only
+      const page = searchParams.get("page");
+      if (page) {
+        fetchNearbyListings(parseInt(page));
       }
     }
   }, [
     searchParams.get("page"),
     initialLoadDone,
-    searchWithFilters,
-    filters,
     isNearbySearch,
     lat,
     lng,
-    userLocation,
+    fetchNearbyListings,
   ]);
 
   return (
@@ -243,6 +215,23 @@ function AllListingsContent() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-lg md:text-xl font-semibold font-poppins hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src="/logo.png"
+                alt="SYPG Logo"
+                width={48}
+                height={48}
+                className="h-10 w-10 md:h-12 md:w-12 object-contain"
+              />
+              <span className="hidden sm:block text-HG-500">SYPG</span>
+            </Link>
+
+            <div className="hidden md:block w-px h-8 bg-gray-300"></div>
+
             <Button
               variant="outline"
               size="sm"
@@ -252,11 +241,12 @@ function AllListingsContent() {
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
+
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
+              <h1 className="text-xl md:text-3xl font-bold text-gray-900 font-poppins">
                 {isNearbySearch ? "Nearby Properties" : "All Property Listings"}
               </h1>
-              <p className="text-gray-600 font-inter">
+              <p className="text-gray-600 font-inter text-sm md:text-base">
                 {isNearbySearch
                   ? nearbyLoading
                     ? "Loading..."
@@ -468,12 +458,15 @@ function AllListingsContent() {
                 images={pg.images?.map((img: any) => img.url) || []}
                 area={pg.location?.area}
                 pgName={pg.pgName}
+                primaryLine={pg.primaryLine}
                 ownerName={pg.ownerId?.fullName}
                 price={pg.minRent}
                 genderPreference={pg.genderPreference}
                 isWishlisted={pg.inWatchList}
                 type={pg.type}
                 distance={pg.distance}
+                amenities={pg.amenities || []}
+                rentInclusions={pg.rentInclusions || {}}
               />
             ))}
           </div>
