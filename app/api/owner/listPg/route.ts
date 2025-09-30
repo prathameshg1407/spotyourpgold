@@ -42,6 +42,12 @@ export async function POST(req: Request) {
       videos = [],
     } = await req.json();
 
+    // Debug log for primaryLine
+    if (process.env.NODE_ENV === "development") {
+      console.log("API Debug - Received Primary Line:", primaryLine);
+      console.log("API Debug - Primary Line Type:", typeof primaryLine);
+    }
+
     // ✅ Basic validation
     if (
       !pgName?.trim() ||

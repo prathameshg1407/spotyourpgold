@@ -69,6 +69,12 @@ const PgCard = ({
   amenities = [],
   rentInclusions = {},
 }: PgCardProps) => {
+  // Debug log for primaryLine
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      `PgCard Debug - ID: ${id}, PG Name: ${pgName}, Primary Line: "${primaryLine}"`
+    );
+  }
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [loading, setLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -442,8 +448,8 @@ const PgCard = ({
           )}
 
           {/* Primary Line */}
-          {primaryLine && (
-            <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-1 leading-tight mb-1 truncate">
+          {primaryLine && primaryLine.trim() && (
+            <p className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded mb-2 truncate">
               {primaryLine}
             </p>
           )}

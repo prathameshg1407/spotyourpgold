@@ -209,7 +209,8 @@ export default function UserFavoritesPage() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <MapPin className="h-4 w-4" />
                   <span>
-                    {listing.location.area}, {listing.location.city}
+                    {listing.location?.area || "Unknown"},{" "}
+                    {listing.location?.city || "Unknown"}
                   </span>
                 </div>
               </CardHeader>
@@ -222,17 +223,21 @@ export default function UserFavoritesPage() {
                       Available Rooms
                     </h4>
                     <div className="space-y-1">
-                      {listing.roomTypes.slice(0, 2).map((room, index) => (
+                      {listing.roomTypes?.slice(0, 2).map((room, index) => (
                         <div
                           key={index}
                           className="flex justify-between text-sm"
                         >
                           <span className="text-gray-600">{room.type}</span>
                           <span className="font-medium text-HG-500">
-                            ₹{room.monthlyRent.toLocaleString()}/month
+                            ₹{room.monthlyRent?.toLocaleString() || 0}/month
                           </span>
                         </div>
-                      ))}
+                      )) || (
+                        <div className="text-sm text-gray-500">
+                          No room information available
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -262,14 +267,14 @@ export default function UserFavoritesPage() {
                   )}
 
                   {/* Rating */}
-                  {listing.averageRating > 0 && (
+                  {listing.averageRating && listing.averageRating > 0 && (
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
                         {renderStars(listing.averageRating)}
                       </div>
                       <span className="text-sm text-gray-600">
                         {listing.averageRating.toFixed(1)} (
-                        {listing.totalReviews} reviews)
+                        {listing.totalReviews || 0} reviews)
                       </span>
                     </div>
                   )}
@@ -278,7 +283,7 @@ export default function UserFavoritesPage() {
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600 capitalize">
-                      {listing.genderPreference} only
+                      {listing.genderPreference || "both"} only
                     </span>
                   </div>
 

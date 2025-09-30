@@ -10,56 +10,68 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { userId, fullName, phone } = body;
 
-    // Validate required fields
-    if (!userId || !fullName || !phone) {
+    if (!userId) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields" },
+        { success: false, message: "User ID is required" },
         { status: 400 }
       );
     }
 
-    // Validate phone number format
-    if (!/^[0-9]{10}$/.test(phone)) {
-      return NextResponse.json(
-        { success: false, message: "Phone number must be 10 digits" },
-        { status: 400 }
-      );
-    }
-
-    // Check if phone number is already taken by another user
-    const existingUser = await User.findOne({
-      phone,
-      _id: { $ne: new mongoose.Types.ObjectId(userId) },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, message: "Phone number is already in use" },
-        { status: 400 }
-      );
-    }
-
-    // Update user profile
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        fullName: fullName.trim(),
-        phone: phone.trim(),
-      },
-      { new: true, select: "-password" }
-    );
-
-    if (!updatedUser) {
+    // Get existing user
+    const existingUser = await User.findById(userId).select("-password");
+    if (!existingUser) {
       return NextResponse.json(
         { success: false, message: "User not found" },
         { status: 404 }
       );
     }
 
+    // Prepare update data
+    const updateData: any = {};
+
+    if (fullName && fullName.trim()) {
+      updateData.fullName = fullName.trim();
+    }
+
+    if (phone && phone.trim()) {
+      // Validate phone number format
+      if (!/^[0-9]{10}$/.test(phone.trim())) {
+        return NextResponse.json(
+          { success: false, message: "Phone number must be 10 digits" },
+          { status: 400 }
+        );
+      }
+
+      // Check if phone number is already taken by another user
+      const trimmedPhone = phone.trim();
+      const phoneExists = await User.findOne({
+        phone: trimmedPhone,
+        _id: { $ne: new mongoose.Types.ObjectId(userId) },
+      });
+
+      if (phoneExists) {
+        return NextResponse.json(
+          { success: false, message: "Phone number is already in use" },
+          { status: 400 }
+        );
+      }
+
+      updateData.phone = phone.trim();
+    }
+
+    // Update user profile if there's data to update
+    if (Object.keys(updateData).length > 0) {
+      await User.findByIdAndUpdate(userId, updateData);
+    } else {
+      return NextResponse.json(
+        { success: false, message: "No data provided to update" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: "Profile updated successfully",
-      user: updatedUser,
     });
   } catch (error) {
     console.error("Update profile error:", error);

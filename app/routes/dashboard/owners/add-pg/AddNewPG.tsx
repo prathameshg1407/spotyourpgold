@@ -2324,11 +2324,18 @@ export default function AddNewPG() {
         if (res?.data?.success && res.data.data && !ignore) {
           const listing = res.data.data.listing;
 
-          // console.log(listing);
+          // Debug log for edit form loading
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              "Edit Form Debug - Loaded listing primaryLine:",
+              listing?.primaryLine
+            );
+          }
 
           setFormData((prev: any) => ({
             ...prev,
             pgName: listing?.pgName,
+            primaryLine: listing?.primaryLine || "",
             type: listing?.type || "",
             subType: listing?.subType || "",
             roomTypes: listing?.roomTypes || [],
@@ -2509,6 +2516,15 @@ export default function AddNewPG() {
         images: allImages,
         videos: allVideos,
       };
+
+      // Debug log for primaryLine
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "Form Submission Debug - Primary Line:",
+          payload.primaryLine
+        );
+        console.log("Full Payload Keys:", Object.keys(payload));
+      }
 
       const res =
         mode === "edit"

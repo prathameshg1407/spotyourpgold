@@ -239,7 +239,8 @@ export async function PUT(
     existingListing.set({
       ownerId: user?.id,
       pgName,
-      primaryLine: primaryLine || existingListing.primaryLine,
+      primaryLine:
+        primaryLine !== undefined ? primaryLine : existingListing.primaryLine,
       type: type || existingListing.type,
       subType: subType || existingListing.subType,
       roomTypes: updatedRoomTypes,

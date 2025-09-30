@@ -17,6 +17,11 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.general ||= "Please enter a name for the property";
         }
 
+        if (formData.primaryLine && formData.primaryLine.length > 35) {
+          newErrors.primaryLine = true;
+          newErrors.general ||= "Primary line must be 35 characters or less";
+        }
+
         if (
           !Array.isArray(formData.roomTypes) ||
           formData.roomTypes.length === 0

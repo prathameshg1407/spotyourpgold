@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
+import OwnerProfile from "@/models/ownerProfile";
 
 interface LeanUser {
   _id: string;
@@ -39,11 +40,18 @@ export async function GET() {
       });
     }
 
+    // Get owner profile if user is an owner
+    let ownerProfile = null;
+    if (user.role === "owner") {
+      ownerProfile = await OwnerProfile.findOne({ userId: user._id }).lean();
+    }
+
     return NextResponse.json({
       success: true,
       user: {
         ...user,
         id: user._id.toString(),
+        ownerProfile,
       },
     });
   } catch (error) {

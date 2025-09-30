@@ -273,6 +273,21 @@ export async function GET(req: NextRequest) {
         { $count: "total" },
       ]);
       total = totalResult[0]?.total || 0;
+
+      // Debug log for primaryLine in listings
+      if (process.env.NODE_ENV === "development" && listings.length > 0) {
+        console.log(
+          "API Debug - Sample listing primaryLine:",
+          listings[0].primaryLine
+        );
+        listings.forEach((listing, index) => {
+          if (listing.primaryLine) {
+            console.log(
+              `Listing ${index} - ${listing.pgName}: "${listing.primaryLine}"`
+            );
+          }
+        });
+      }
     } else {
       // Fallback to createdAt ordering
       [listings, total] = await Promise.all([

@@ -40,12 +40,15 @@ export default function UserProfilePage() {
   const { user, setUser } = useUserStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState({
+    personal: false,
+  });
   const [editForm, setEditForm] = useState({
     fullName: "",
     phone: "",
   });
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -73,34 +76,42 @@ export default function UserProfilePage() {
     }
   };
 
-  const handleEdit = () => {
-    setEditing(true);
+  const handleEdit = (section: "personal") => {
+    setEditing((prev) => ({ ...prev, [section]: true }));
   };
 
-  const handleCancel = () => {
-    setEditing(false);
+  const handleCancel = (section: "personal") => {
+    setEditing((prev) => ({ ...prev, [section]: false }));
     setEditForm({
       fullName: profile?.fullName || "",
       phone: profile?.phone || "",
     });
   };
 
-  const handleSave = async () => {
-    if (!editForm.fullName.trim() || !editForm.phone.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  const handleSave = async (section: "personal") => {
+    setSaving(section);
 
     try {
-      const response = await axios.put(`/api/auth/update-profile`, {
-        userId: user?.id,
-        fullName: editForm.fullName,
-        phone: editForm.phone,
-      });
+      if (!editForm.fullName.trim()) {
+        toast.error("Full name is required");
+        return;
+      }
+
+      const payload: any = { userId: user?.id };
+
+      if (editForm.fullName.trim()) {
+        payload.fullName = editForm.fullName.trim();
+      }
+
+      if (editForm.phone.trim()) {
+        payload.phone = editForm.phone.trim();
+      }
+
+      const response = await axios.put(`/api/auth/update-profile`, payload);
 
       if (response.data.success) {
-        toast.success("Profile updated successfully");
-        setEditing(false);
+        toast.success("Personal information updated successfully");
+        setEditing((prev) => ({ ...prev, [section]: false }));
         fetchUserProfile();
         // Update the user store
         if (user) {
@@ -116,6 +127,8 @@ export default function UserProfilePage() {
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -191,11 +204,11 @@ export default function UserProfilePage() {
               <CardTitle className="text-HG-500">
                 Personal Information
               </CardTitle>
-              {!editing ? (
+              {!editing.personal ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleEdit}
+                  onClick={() => handleEdit("personal")}
                   className="border-HG-500 text-HG-500 hover:bg-HG-50"
                 >
                   <Edit className="h-4 w-4 mr-2" />
@@ -205,16 +218,17 @@ export default function UserProfilePage() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={handleSave}
+                    onClick={() => handleSave("personal")}
+                    disabled={saving === "personal"}
                     className="bg-HG-500 hover:bg-HG-600 text-white"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    Save
+                    {saving === "personal" ? "Saving..." : "Save"}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleCancel}
+                    onClick={() => handleCancel("personal")}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <X className="h-4 w-4 mr-2" />
@@ -227,7 +241,7 @@ export default function UserProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              {editing ? (
+              {editing.personal ? (
                 <Input
                   id="fullName"
                   value={editForm.fullName}
@@ -255,7 +269,7 @@ export default function UserProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              {editing ? (
+              {editing.personal ? (
                 <Input
                   id="phone"
                   value={editForm.phone}

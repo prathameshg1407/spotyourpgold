@@ -84,9 +84,14 @@ export default function OwnerProfilePage() {
   const { user, setUser } = useUserStore();
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState({
+    personal: false,
+    owner: false,
+    payment: false,
+  });
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     fullName: "",
     phone: "",
@@ -150,12 +155,12 @@ export default function OwnerProfilePage() {
     }
   };
 
-  const handleEdit = () => {
-    setEditing(true);
+  const handleEdit = (section: "personal" | "owner" | "payment") => {
+    setEditing((prev) => ({ ...prev, [section]: true }));
   };
 
-  const handleCancel = () => {
-    setEditing(false);
+  const handleCancel = (section: "personal" | "owner" | "payment") => {
+    setEditing((prev) => ({ ...prev, [section]: false }));
     setEditForm({
       fullName: profile?.fullName || "",
       phone: profile?.ownerProfile?.phone || profile?.phone || "",
@@ -179,32 +184,46 @@ export default function OwnerProfilePage() {
     });
   };
 
-  const handleSave = async () => {
-    if (
-      !editForm.fullName.trim() ||
-      !editForm.phone.trim() ||
-      !editForm.aadhaarNumber.trim()
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  const handleSave = async (section: "personal" | "owner" | "payment") => {
+    setSaving(section);
 
     try {
-      const response = await axios.put(`/api/owner/update-profile`, {
-        userId: user?.id,
-        fullName: editForm.fullName,
-        phone: editForm.phone,
-        aadhaarNumber: editForm.aadhaarNumber,
-        address: editForm.address,
-        paymentDetails: editForm.paymentDetails,
-      });
+      const payload: any = { userId: user?.id };
+
+      if (section === "personal") {
+        if (!editForm.fullName.trim()) {
+          toast.error("Full name is required");
+          return;
+        }
+        payload.fullName = editForm.fullName;
+        payload.phone = editForm.phone;
+      }
+
+      if (section === "owner") {
+        if (!editForm.aadhaarNumber.trim()) {
+          toast.error("Aadhaar number is required");
+          return;
+        }
+        payload.aadhaarNumber = editForm.aadhaarNumber;
+        payload.address = editForm.address;
+      }
+
+      if (section === "payment") {
+        payload.paymentDetails = editForm.paymentDetails;
+      }
+
+      const response = await axios.put(`/api/owner/update-profile`, payload);
 
       if (response.data.success) {
-        toast.success("Profile updated successfully");
-        setEditing(false);
+        toast.success(
+          `${
+            section.charAt(0).toUpperCase() + section.slice(1)
+          } information updated successfully`
+        );
+        setEditing((prev) => ({ ...prev, [section]: false }));
         fetchOwnerProfile();
-        // Update the user store
-        if (user) {
+
+        if (section === "personal" && user) {
           setUser({
             ...user,
             fullName: editForm.fullName,
@@ -217,6 +236,8 @@ export default function OwnerProfilePage() {
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -369,11 +390,11 @@ export default function OwnerProfilePage() {
               <CardTitle className="text-HG-500">
                 Personal Information
               </CardTitle>
-              {!editing ? (
+              {!editing.personal ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleEdit}
+                  onClick={() => handleEdit("personal")}
                   className="border-HG-500 text-HG-500 hover:bg-HG-50"
                 >
                   <Edit className="h-4 w-4 mr-2" />
@@ -383,16 +404,17 @@ export default function OwnerProfilePage() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={handleSave}
+                    onClick={() => handleSave("personal")}
+                    disabled={saving === "personal"}
                     className="bg-HG-500 hover:bg-HG-600 text-white"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    Save
+                    {saving === "personal" ? "Saving..." : "Save"}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleCancel}
+                    onClick={() => handleCancel("personal")}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <X className="h-4 w-4 mr-2" />
@@ -405,7 +427,7 @@ export default function OwnerProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
-              {editing ? (
+              {editing.personal ? (
                 <Input
                   id="fullName"
                   value={editForm.fullName}
@@ -433,7 +455,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              {editing ? (
+              {editing.personal ? (
                 <Input
                   id="phone"
                   value={editForm.phone}
@@ -463,12 +485,46 @@ export default function OwnerProfilePage() {
         {/* Owner Information */}
         <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
           <CardHeader>
-            <CardTitle className="text-HG-500">Owner Information</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-HG-500">Owner Information</CardTitle>
+              {!editing.owner ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit("owner")}
+                  className="border-HG-500 text-HG-500 hover:bg-HG-50"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSave("owner")}
+                    disabled={saving === "owner"}
+                    className="bg-HG-500 hover:bg-HG-600 text-white"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving === "owner" ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCancel("owner")}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="aadhaarNumber">Aadhaar Number</Label>
-              {editing ? (
+              {editing.owner ? (
                 <Input
                   id="aadhaarNumber"
                   value={editForm.aadhaarNumber}
@@ -490,7 +546,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2">
               <Label>Address</Label>
-              {editing ? (
+              {editing.owner ? (
                 <div className="space-y-2">
                   <Input
                     value={editForm.address.street}
@@ -765,16 +821,52 @@ export default function OwnerProfilePage() {
       {/* Payment Details Section */}
       <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
         <CardHeader>
-          <CardTitle className="text-HG-500">Payment Details</CardTitle>
-          <CardDescription>
-            Manage your bank account and payment information
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-HG-500">Payment Details</CardTitle>
+              <CardDescription>
+                Manage your bank account and payment information
+              </CardDescription>
+            </div>
+            {!editing.payment ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit("payment")}
+                className="border-HG-500 text-HG-500 hover:bg-HG-50"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleSave("payment")}
+                  disabled={saving === "payment"}
+                  className="bg-HG-500 hover:bg-HG-600 text-white"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving === "payment" ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCancel("payment")}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="accountNumber">Account Number</Label>
-              {editing ? (
+              {editing.payment ? (
                 <Input
                   id="accountNumber"
                   value={editForm.paymentDetails.accountNumber}
@@ -803,7 +895,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="ifscCode">IFSC Code</Label>
-              {editing ? (
+              {editing.payment ? (
                 <Input
                   id="ifscCode"
                   value={editForm.paymentDetails.ifscCode}
@@ -832,7 +924,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="accountHolderName">Account Holder Name</Label>
-              {editing ? (
+              {editing.payment ? (
                 <Input
                   id="accountHolderName"
                   value={editForm.paymentDetails.accountHolderName}
@@ -861,7 +953,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2">
               <Label htmlFor="bankName">Bank Name</Label>
-              {editing ? (
+              {editing.payment ? (
                 <Input
                   id="bankName"
                   value={editForm.paymentDetails.bankName}
@@ -890,7 +982,7 @@ export default function OwnerProfilePage() {
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="upiId">UPI ID</Label>
-              {editing ? (
+              {editing.payment ? (
                 <Input
                   id="upiId"
                   value={editForm.paymentDetails.upiId}

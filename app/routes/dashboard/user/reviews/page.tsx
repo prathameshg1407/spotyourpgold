@@ -10,7 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Edit, Trash2, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, Edit, Trash2, Calendar, Save, X } from "lucide-react";
 import { useUserStore } from "@/store/userStore";
 import axios from "axios";
 import { toast } from "sonner";
@@ -31,6 +39,17 @@ export default function UserReviewsPage() {
   const { user } = useUserStore();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [editForm, setEditForm] = useState({
+    rating: 0,
+    comment: "",
+  });
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -44,6 +63,8 @@ export default function UserReviewsPage() {
       const response = await axios.get(`/api/reviews?userId=${user?.id}`);
       if (response.data.success) {
         setReviews(response.data.data);
+      } else {
+        toast.error(response.data.message || "Failed to fetch reviews");
       }
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -53,21 +74,90 @@ export default function UserReviewsPage() {
     }
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (!confirm("Are you sure you want to delete this review?")) return;
+  const handleDeleteReview = (review: Review) => {
+    setReviewToDelete(review);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteReview = async () => {
+    if (!reviewToDelete) return;
 
     try {
-      const response = await axios.delete(`/api/reviews/${reviewId}`);
+      setIsDeleting(true);
+      const response = await axios.delete(`/api/reviews/${reviewToDelete._id}`);
       if (response.data.success) {
         toast.success("Review deleted successfully");
         fetchUserReviews();
+        setIsDeleteModalOpen(false);
+        setReviewToDelete(null);
       } else {
         toast.error("Failed to delete review");
       }
     } catch (error) {
       console.error("Error deleting review:", error);
       toast.error("Failed to delete review");
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDeleteReview = () => {
+    setIsDeleteModalOpen(false);
+    setReviewToDelete(null);
+  };
+
+  const handleEditReview = (review: Review) => {
+    setEditingReview(review);
+    setEditForm({
+      rating: review.rating || 0,
+      comment: review.comment || "",
+    });
+    setHoverRating(0);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateReview = async () => {
+    if (!editingReview) return;
+
+    if (editForm.rating < 1 || editForm.rating > 5) {
+      toast.error("Please select a rating between 1 and 5 stars");
+      return;
+    }
+
+    if (!editForm.comment.trim()) {
+      toast.error("Please write a comment");
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      const response = await axios.put(`/api/reviews/${editingReview._id}`, {
+        rating: editForm.rating,
+        comment: editForm.comment.trim(),
+      });
+
+      if (response.data.success) {
+        toast.success("Review updated successfully");
+        fetchUserReviews();
+        setIsEditModalOpen(false);
+        setEditingReview(null);
+        setEditForm({ rating: 0, comment: "" });
+      } else {
+        toast.error(response.data.message || "Failed to update review");
+      }
+    } catch (error) {
+      console.error("Error updating review:", error);
+      toast.error("Failed to update review");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalOpen(false);
+    setEditingReview(null);
+    setEditForm({ rating: 0, comment: "" });
+    setHoverRating(0);
   };
 
   const renderStars = (rating: number) => {
@@ -77,6 +167,25 @@ export default function UserReviewsPage() {
         className={`h-4 w-4 ${
           i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
         }`}
+      />
+    ));
+  };
+
+  const renderInteractiveStars = (
+    rating: number,
+    onRatingChange: (rating: number) => void
+  ) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-6 w-6 cursor-pointer transition-colors ${
+          i < (hoverRating || rating)
+            ? "text-yellow-400 fill-yellow-400"
+            : "text-gray-300 hover:text-yellow-200"
+        }`}
+        onMouseEnter={() => setHoverRating(i + 1)}
+        onMouseLeave={() => setHoverRating(0)}
+        onClick={() => onRatingChange(i + 1)}
       />
     ));
   };
@@ -131,14 +240,14 @@ export default function UserReviewsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg text-HG-500">
-                      {review.listingId.pgName}
+                      {review.listingId?.pgName || "Unknown PG"}
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center gap-1">
-                        {renderStars(review.rating)}
+                        {renderStars(review.rating || 0)}
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {review.rating}/5
+                        {review.rating || 0}/5
                       </Badge>
                     </div>
                   </div>
@@ -147,6 +256,7 @@ export default function UserReviewsPage() {
                       variant="outline"
                       size="sm"
                       className="border-HG-500 text-HG-500 hover:bg-HG-50"
+                      onClick={() => handleEditReview(review)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
@@ -155,7 +265,7 @@ export default function UserReviewsPage() {
                       variant="outline"
                       size="sm"
                       className="border-red-500 text-red-500 hover:bg-red-50"
-                      onClick={() => handleDeleteReview(review._id)}
+                      onClick={() => handleDeleteReview(review)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete
@@ -164,12 +274,16 @@ export default function UserReviewsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 mb-4">{review.comment}</p>
+                <p className="text-gray-700 mb-4">
+                  {review.comment || "No comment provided"}
+                </p>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Calendar className="h-4 w-4" />
                   <span>
                     Reviewed on{" "}
-                    {new Date(review.createdAt).toLocaleDateString()}
+                    {review.createdAt
+                      ? new Date(review.createdAt).toLocaleDateString()
+                      : "Unknown date"}
                   </span>
                 </div>
               </CardContent>
@@ -177,6 +291,150 @@ export default function UserReviewsPage() {
           ))}
         </div>
       )}
+
+      {/* Edit Review Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-HG-500">
+              Edit Review
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingReview && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">
+                  {editingReview.listingId?.pgName || "Unknown PG"}
+                </h4>
+
+                {/* Rating Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-600">
+                    Rating *
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {renderInteractiveStars(editForm.rating, (rating) =>
+                      setEditForm({ ...editForm, rating })
+                    )}
+                    <span className="ml-2 text-sm text-gray-500">
+                      {editForm.rating}/5
+                    </span>
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-600">
+                    Comment *
+                  </label>
+                  <Textarea
+                    value={editForm.comment}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, comment: e.target.value })
+                    }
+                    placeholder="Write your review..."
+                    className="min-h-[100px] resize-none"
+                    maxLength={500}
+                  />
+                  <div className="text-xs text-gray-500 text-right">
+                    {editForm.comment.length}/500 characters
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="flex-1"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateReview}
+                  disabled={isUpdating}
+                  className="flex-1 bg-HG-500 hover:bg-HG-600 text-white disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-red-600">
+              Delete Review
+            </DialogTitle>
+          </DialogHeader>
+
+          {reviewToDelete && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Are you sure you want to delete this review?
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  This action cannot be undone. Your review for{" "}
+                  <span className="font-medium">
+                    {reviewToDelete.listingId?.pgName || "this PG"}
+                  </span>{" "}
+                  will be permanently removed.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={cancelDeleteReview}
+                  className="flex-1"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteReview}
+                  disabled={isDeleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete Review
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
