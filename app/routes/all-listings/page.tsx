@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,6 +27,14 @@ function AllListingsContent() {
   const [nearbyCurrentPage, setNearbyCurrentPage] = useState(1);
   const [nearbyTotalPages, setNearbyTotalPages] = useState(0);
 
+  // State for category listings (bypassing advanced filter)
+  const [categoryListings, setCategoryListings] = useState<any[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryTotal, setCategoryTotal] = useState(0);
+  const [categoryCurrentPage, setCategoryCurrentPage] = useState(1);
+  const [categoryTotalPages, setCategoryTotalPages] = useState(0);
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+
   // State for user location
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -38,6 +46,10 @@ function AllListingsContent() {
   const isNearbySearch = searchParams.get("nearby") === "true";
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
+
+  // Check if this is a category search
+  const category = searchParams.get("category");
+  const isCategorySearch = !!category;
 
   // Use advanced filters hook with pagination (autoSearch disabled for better control)
   const {
@@ -54,6 +66,10 @@ function AllListingsContent() {
     currentPage,
     searchWithFilters,
   } = useAdvancedFilters(8, false); // Disable autoSearch for manual control
+
+  // Check if advanced filters are applied (for category searches with filters)
+  const hasAdvancedFilters = activeFiltersCount > 0;
+  const isCategorySearchWithFilters = isCategorySearch && hasAdvancedFilters;
 
   const goBack = () => {
     router.back();
@@ -86,37 +102,108 @@ function AllListingsContent() {
   }, [lat, lng]);
 
   // Function to fetch nearby listings (bypassing advanced filter)
-  const fetchNearbyListings = async (page: number = 1) => {
-    if (!lat || !lng) return;
+  const fetchNearbyListings = useCallback(
+    async (page: number = 1) => {
+      if (!lat || !lng) return;
 
-    setNearbyLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        per_page: "12",
-        lat: lat,
-        lng: lng,
-      });
+      setNearbyLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          per_page: "12",
+          lat: lat,
+          lng: lng,
+        });
 
-      const res = await axios.get(`/api/listing?${queryParams.toString()}`);
-      if (res?.data?.success) {
-        setNearbyListings(res.data.data);
-        setNearbyTotal(res.data.total);
-        // Calculate total pages manually if not provided by API
-        const totalPages =
-          res.data.totalPages || Math.ceil(res.data.total / 12);
-        setNearbyTotalPages(totalPages);
-        setNearbyCurrentPage(page);
-      } else {
-        toast.error(res?.data?.message || "Something went wrong");
+        const res = await axios.get(`/api/listing?${queryParams.toString()}`);
+        if (res?.data?.success) {
+          setNearbyListings(res.data.data);
+          setNearbyTotal(res.data.total);
+          // Calculate total pages manually if not provided by API
+          const totalPages =
+            res.data.totalPages || Math.ceil(res.data.total / 12);
+          setNearbyTotalPages(totalPages);
+          setNearbyCurrentPage(page);
+        } else {
+          toast.error(res?.data?.message || "Something went wrong");
+        }
+      } catch (error) {
+        console.error("Nearby listings fetch error", error);
+        toast.error("Failed to fetch nearby listings");
+      } finally {
+        setNearbyLoading(false);
       }
-    } catch (error) {
-      console.error("Nearby listings fetch error", error);
-      toast.error("Failed to fetch nearby listings");
-    } finally {
-      setNearbyLoading(false);
-    }
-  };
+    },
+    [lat, lng]
+  );
+
+  // Function to fetch category listings with advanced filters
+  const fetchCategoryListings = useCallback(
+    async (page: number = 1, appliedFilters?: FilterState) => {
+      if (!category) return;
+
+      setCategoryLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          category: category,
+          page: page.toString(),
+          per_page: "12",
+        });
+
+        // Add location if available
+        if (userLocation) {
+          queryParams.set("lat", userLocation.lat.toString());
+          queryParams.set("lng", userLocation.lng.toString());
+        }
+
+        // Add advanced filters if provided
+        const filtersToApply = appliedFilters || filters;
+        if (filtersToApply.query) queryParams.set("q", filtersToApply.query);
+        if (filtersToApply.subType)
+          queryParams.set("subType", filtersToApply.subType);
+        if (filtersToApply.minPrice)
+          queryParams.set("minPrice", filtersToApply.minPrice.toString());
+        if (filtersToApply.maxPrice)
+          queryParams.set("maxPrice", filtersToApply.maxPrice.toString());
+        if (filtersToApply.genderPreference)
+          queryParams.set("genderPreference", filtersToApply.genderPreference);
+        if (filtersToApply.amenities.length > 0)
+          queryParams.set("amenities", filtersToApply.amenities.join(","));
+        if (filtersToApply.roomTypes.length > 0)
+          queryParams.set("roomTypes", filtersToApply.roomTypes.join(","));
+        if (filtersToApply.location)
+          queryParams.set("location", filtersToApply.location);
+        if (filtersToApply.city) queryParams.set("city", filtersToApply.city);
+        if (filtersToApply.area) queryParams.set("area", filtersToApply.area);
+        if (filtersToApply.nearbyPlaces.length > 0)
+          queryParams.set(
+            "nearbyPlaces",
+            filtersToApply.nearbyPlaces.join(",")
+          );
+
+        const res = await axios.get(
+          `/api/listing/category?${queryParams.toString()}`
+        );
+        if (res?.data?.success) {
+          setCategoryListings(res.data.data);
+          setCategoryTotal(res.data.total);
+          setCategoryTotalPages(
+            res.data.totalPages || Math.ceil(res.data.total / 12)
+          );
+          setCategoryCurrentPage(page);
+          setCurrentCategory(category);
+        } else {
+          toast.error(res?.data?.message || "Something went wrong");
+        }
+      } catch (error) {
+        console.error("Category listings fetch error", error);
+        toast.error("Failed to fetch category listings");
+      } finally {
+        setCategoryLoading(false);
+      }
+    },
+    [category, userLocation, filters]
+  );
 
   const handleNearbyPageChange = (page: number) => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -124,20 +211,63 @@ function AllListingsContent() {
     router.push(`?${searchParams.toString()}`);
   };
 
-  const handlePageChange = (page: number) => {
+  const handleCategoryPageChange = (page: number) => {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("page", page.toString());
     router.push(`?${searchParams.toString()}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    // Build URL with current filters and new page
+    const searchParams = new URLSearchParams();
+
+    // Add current filter parameters to URL
+    if (filters.query) searchParams.set("q", filters.query);
+    if (filters.type) searchParams.set("type", filters.type);
+    if (filters.subType) searchParams.set("subType", filters.subType);
+    if (filters.minPrice) searchParams.set("minPrice", filters.minPrice);
+    if (filters.maxPrice) searchParams.set("maxPrice", filters.maxPrice);
+    if (filters.genderPreference)
+      searchParams.set("genderPreference", filters.genderPreference);
+    if (filters.amenities.length > 0)
+      searchParams.set("amenities", filters.amenities.join(","));
+    if (filters.roomTypes.length > 0)
+      searchParams.set("roomTypes", filters.roomTypes.join(","));
+    if (filters.location) searchParams.set("location", filters.location);
+    if (filters.city) searchParams.set("city", filters.city);
+    if (filters.area) searchParams.set("area", filters.area);
+    if (filters.nearbyPlaces.length > 0)
+      searchParams.set("nearbyPlaces", filters.nearbyPlaces.join(","));
+    if (filters.visible.length > 0)
+      searchParams.set("visible", filters.visible.join(","));
+    if (filters.sortBy) searchParams.set("sortBy", filters.sortBy);
+    if (userLocation) {
+      searchParams.set("lat", userLocation.lat.toString());
+      searchParams.set("lng", userLocation.lng.toString());
+    }
+
+    // Set the new page
+    searchParams.set("page", page.toString());
+
+    // Update URL
+    router.push(`?${searchParams.toString()}`);
+
+    // Trigger search with current filters when page changes
+    const locationParams = userLocation
+      ? {
+          lat: userLocation.lat.toString(),
+          lng: userLocation.lng.toString(),
+        }
+      : {};
+    searchWithFilters({ ...filters, ...locationParams }, true);
   };
 
   // Remove a specific filter
   const removeFilter = (key: keyof FilterState, value?: string) => {
     if (key === "amenities" || key === "roomTypes" || key === "nearbyPlaces") {
       const currentArray = filters[key] as string[];
-      updateFilter(
-        key,
-        currentArray.filter((item) => item !== value)
-      );
+      const newArray = currentArray.filter((item) => item !== value);
+      updateFilter(key, newArray);
     } else {
       updateFilter(key, "");
     }
@@ -186,27 +316,47 @@ function AllListingsContent() {
       if (isNearbySearch && lat && lng) {
         // Fetch nearby listings (bypass advanced filter)
         fetchNearbyListings(1);
+      } else if (isCategorySearch && category) {
+        // Fetch category listings (bypass advanced filter)
+        fetchCategoryListings(1);
       }
       setInitialLoadDone(true);
     }
-  }, [initialLoadDone, isNearbySearch, lat, lng, fetchNearbyListings]);
+  }, [
+    initialLoadDone,
+    isNearbySearch,
+    isCategorySearch,
+    lat,
+    lng,
+    category,
+    fetchNearbyListings,
+    fetchCategoryListings,
+  ]);
 
   // Handle page changes
   useEffect(() => {
-    if (initialLoadDone && isNearbySearch && lat && lng) {
-      // Handle nearby search page changes only
+    if (initialLoadDone) {
       const page = searchParams.get("page");
       if (page) {
-        fetchNearbyListings(parseInt(page));
+        if (isNearbySearch && lat && lng) {
+          // Handle nearby search page changes
+          fetchNearbyListings(parseInt(page));
+        } else if (isCategorySearch && category) {
+          // Handle category search page changes
+          fetchCategoryListings(parseInt(page));
+        }
       }
     }
   }, [
-    searchParams.get("page"),
+    searchParams,
     initialLoadDone,
     isNearbySearch,
+    isCategorySearch,
     lat,
     lng,
+    category,
     fetchNearbyListings,
+    fetchCategoryListings,
   ]);
 
   return (
@@ -244,13 +394,28 @@ function AllListingsContent() {
 
             <div>
               <h1 className="text-xl md:text-3xl font-bold text-gray-900 font-poppins">
-                {isNearbySearch ? "Nearby Properties" : "All Property Listings"}
+                {isNearbySearch
+                  ? "Nearby Properties"
+                  : isCategorySearch
+                  ? `${
+                      currentCategory
+                        ? currentCategory.charAt(0).toUpperCase() +
+                          currentCategory.slice(1)
+                        : "Category"
+                    } Properties`
+                  : "All Property Listings"}
               </h1>
               <p className="text-gray-600 font-inter text-sm md:text-base">
                 {isNearbySearch
                   ? nearbyLoading
                     ? "Loading..."
                     : `Showing ${nearbyTotal} properties near your location`
+                  : isCategorySearch
+                  ? categoryLoading
+                    ? "Loading..."
+                    : `Showing ${categoryTotal} ${
+                        currentCategory || "category"
+                      } properties`
                   : loading
                   ? "Loading..."
                   : `Showing ${total} properties`}
@@ -258,30 +423,41 @@ function AllListingsContent() {
             </div>
           </div>
 
-          {/* Advanced Filter Button - Only show for regular listings */}
+          {/* Advanced Filter Button - Show for regular listings and category search */}
           {!isNearbySearch && (
             <AdvancedFilter
               filters={filters}
               onFiltersChange={(newFilters) => {
                 setFilters(newFilters);
-                // Include user location in search if available
+                // Always use searchWithFilters for better filtering capabilities
                 const locationParams = userLocation
                   ? {
                       lat: userLocation.lat.toString(),
                       lng: userLocation.lng.toString(),
                     }
                   : {};
-                // Trigger immediate search with new filters
-                searchWithFilters({ ...newFilters, ...locationParams }, true);
+
+                // If this is a category search, ensure the category filter is applied
+                const filtersToApply = isCategorySearch
+                  ? { ...newFilters, type: category, ...locationParams }
+                  : { ...newFilters, ...locationParams };
+
+                searchWithFilters(filtersToApply, true);
               }}
-              onApplyFilters={applyFilters}
-              onClearFilters={clearFilters}
+              onApplyFilters={() => {
+                // onFiltersChange already handles the search, so we don't need to do anything here
+                // The search is triggered by onFiltersChange when filters are updated
+              }}
+              onClearFilters={() => {
+                // Always use clearFilters for consistent behavior
+                clearFilters();
+              }}
               activeFiltersCount={activeFiltersCount}
             />
           )}
         </div>
 
-        {/* Active Filters Display - Only show for regular listings */}
+        {/* Active Filters Display - Show for regular listings and category search */}
         {!isNearbySearch && activeFiltersCount > 0 && (
           <div className="mb-8 p-4 bg-white rounded-lg border">
             <div className="flex items-center justify-between mb-3">
@@ -404,13 +580,56 @@ function AllListingsContent() {
         )}
 
         {/* Loading State */}
-        {(loading || nearbyLoading) && (
+        {(loading || nearbyLoading || categoryLoading) && (
           <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, idx) => (
               <Skeleton key={idx} />
             ))}
           </div>
         )}
+
+        {/* Category Listings Grid (bypassing advanced filter) - Only show if no advanced filters */}
+        {isCategorySearch &&
+          !isCategorySearchWithFilters &&
+          !categoryLoading &&
+          categoryListings.length > 0 && (
+            <>
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 font-poppins">
+                  {currentCategory
+                    ? currentCategory.charAt(0).toUpperCase() +
+                      currentCategory.slice(1)
+                    : "Category"}{" "}
+                  Properties
+                </h2>
+                <p className="text-gray-600 font-inter">
+                  Showing {categoryTotal} {currentCategory || "category"}{" "}
+                  properties
+                </p>
+              </div>
+              <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+                {categoryListings.map((pg, idx) => (
+                  <PgCard
+                    key={pg._id || idx}
+                    id={pg._id}
+                    image={pg.primaryImage}
+                    images={pg.images?.map((img: any) => img.url) || []}
+                    area={pg.location?.area}
+                    pgName={pg.pgName}
+                    primaryLine={pg.primaryLine}
+                    ownerName={pg.ownerId?.fullName}
+                    price={pg.minRent}
+                    genderPreference={pg.genderPreference}
+                    isWishlisted={pg.inWatchList}
+                    type={pg.type}
+                    distance={pg.distance}
+                    amenities={pg.amenities || []}
+                    rentInclusions={pg.rentInclusions || {}}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
         {/* Nearby Listings Grid (bypassing advanced filter) */}
         {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
@@ -447,36 +666,45 @@ function AllListingsContent() {
           </>
         )}
 
-        {/* Regular Listings Grid (with advanced filter) */}
-        {!isNearbySearch && !loading && listings.length > 0 && (
-          <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {listings.map((pg, idx) => (
-              <PgCard
-                key={pg._id || idx}
-                id={pg._id}
-                image={pg.primaryImage}
-                images={pg.images?.map((img: any) => img.url) || []}
-                area={pg.location?.area}
-                pgName={pg.pgName}
-                primaryLine={pg.primaryLine}
-                ownerName={pg.ownerId?.fullName}
-                price={pg.minRent}
-                genderPreference={pg.genderPreference}
-                isWishlisted={pg.inWatchList}
-                type={pg.type}
-                distance={pg.distance}
-                amenities={pg.amenities || []}
-                rentInclusions={pg.rentInclusions || {}}
-              />
-            ))}
-          </div>
-        )}
+        {/* Regular Listings Grid (with advanced filter) - Show for regular search or category search with filters */}
+        {!isNearbySearch &&
+          (!isCategorySearch || isCategorySearchWithFilters) &&
+          !loading &&
+          listings.length > 0 && (
+            <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {listings.map((pg, idx) => (
+                <PgCard
+                  key={pg._id || idx}
+                  id={pg._id}
+                  image={pg.primaryImage}
+                  images={pg.images?.map((img: any) => img.url) || []}
+                  area={pg.location?.area}
+                  pgName={pg.pgName}
+                  primaryLine={pg.primaryLine}
+                  ownerName={pg.ownerId?.fullName}
+                  price={pg.minRent}
+                  genderPreference={pg.genderPreference}
+                  isWishlisted={pg.inWatchList}
+                  type={pg.type}
+                  distance={pg.distance}
+                  amenities={pg.amenities || []}
+                  rentInclusions={pg.rentInclusions || {}}
+                />
+              ))}
+            </div>
+          )}
 
         {/* Empty State */}
         {!loading &&
           !nearbyLoading &&
+          !categoryLoading &&
           ((isNearbySearch && nearbyListings.length === 0) ||
-            (!isNearbySearch && listings.length === 0)) && (
+            (isCategorySearch &&
+              !isCategorySearchWithFilters &&
+              categoryListings.length === 0) ||
+            (!isNearbySearch &&
+              (!isCategorySearch || isCategorySearchWithFilters) &&
+              listings.length === 0)) && (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -485,6 +713,8 @@ function AllListingsContent() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
                   {isNearbySearch
                     ? "No properties found near your location"
+                    : isCategorySearch
+                    ? `No ${currentCategory || "category"} properties found`
                     : activeFiltersCount > 0
                     ? "No properties match your filters"
                     : "No listings found"}
@@ -492,6 +722,10 @@ function AllListingsContent() {
                 <p className="text-gray-600 font-inter mb-4">
                   {isNearbySearch
                     ? "Try expanding your search area or check back later."
+                    : isCategorySearch
+                    ? `No ${
+                        currentCategory || "category"
+                      } properties are available at the moment. Try other categories.`
                     : activeFiltersCount > 0
                     ? "Try adjusting your search criteria or removing some filters."
                     : "There are no property listings available at the moment."}
@@ -508,6 +742,128 @@ function AllListingsContent() {
               </div>
             </div>
           )}
+
+        {/* Pagination for Category Listings */}
+        {isCategorySearch &&
+          !isCategorySearchWithFilters &&
+          !categoryLoading &&
+          categoryTotalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-12">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleCategoryPageChange(categoryCurrentPage - 1)
+                }
+                disabled={categoryCurrentPage <= 1}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+
+              <div className="flex items-center gap-2">
+                {Array.from(
+                  { length: Math.min(5, categoryTotalPages) },
+                  (_, i) => {
+                    let pageNum;
+                    if (categoryTotalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (categoryCurrentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (categoryCurrentPage >= categoryTotalPages - 2) {
+                      pageNum = categoryTotalPages - 4 + i;
+                    } else {
+                      pageNum = categoryCurrentPage - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={
+                          categoryCurrentPage === pageNum
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        onClick={() => handleCategoryPageChange(pageNum)}
+                        className="w-10 h-10 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  }
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleCategoryPageChange(categoryCurrentPage + 1)
+                }
+                disabled={categoryCurrentPage >= categoryTotalPages}
+                className="flex items-center gap-2"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+        {/* Pagination for Category Listings with Filters */}
+        {isCategorySearchWithFilters && !loading && totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-12">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="w-10 h-10 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Pagination for Nearby Listings */}
         {isNearbySearch && !nearbyLoading && nearbyTotalPages > 1 && (
@@ -566,7 +922,7 @@ function AllListingsContent() {
         )}
 
         {/* Pagination for Regular Listings */}
-        {!isNearbySearch && !loading && totalPages > 1 && (
+        {!isNearbySearch && !isCategorySearch && !loading && totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 mt-12">
             <Button
               variant="outline"
@@ -619,6 +975,19 @@ function AllListingsContent() {
           </div>
         )}
 
+        {/* Page Info for Category Listings */}
+        {isCategorySearch &&
+          !isCategorySearchWithFilters &&
+          !categoryLoading &&
+          categoryListings.length > 0 && (
+            <div className="text-center mt-8">
+              <p className="text-sm text-gray-600 font-inter">
+                Page {categoryCurrentPage} of {categoryTotalPages} •{" "}
+                {categoryTotal} total {currentCategory || "category"} properties
+              </p>
+            </div>
+          )}
+
         {/* Page Info for Nearby Listings */}
         {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
           <div className="text-center mt-8">
@@ -629,8 +998,8 @@ function AllListingsContent() {
           </div>
         )}
 
-        {/* Page Info for Regular Listings */}
-        {!isNearbySearch && !loading && listings.length > 0 && (
+        {/* Page Info for Category Listings with Filters */}
+        {isCategorySearchWithFilters && !loading && listings.length > 0 && (
           <div className="text-center mt-8">
             <p className="text-sm text-gray-600 font-inter">
               Page {currentPage} of {totalPages} • {total} total properties
@@ -638,6 +1007,19 @@ function AllListingsContent() {
             </p>
           </div>
         )}
+
+        {/* Page Info for Regular Listings */}
+        {!isNearbySearch &&
+          !isCategorySearch &&
+          !loading &&
+          listings.length > 0 && (
+            <div className="text-center mt-8">
+              <p className="text-sm text-gray-600 font-inter">
+                Page {currentPage} of {totalPages} • {total} total properties
+                {activeFiltersCount > 0 && ` (filtered from all listings)`}
+              </p>
+            </div>
+          )}
       </div>
     </div>
   );

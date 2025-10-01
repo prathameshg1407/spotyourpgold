@@ -152,7 +152,11 @@ export const useAdvancedFilters = (
 
   // Search function
   const searchWithFilters = useCallback(
-    async (customFilters?: Partial<FilterState>, forceSearch?: boolean) => {
+    async (
+      customFilters?: Partial<FilterState>,
+      forceSearch?: boolean,
+      page?: number
+    ): Promise<void> => {
       const searchFilters = customFilters
         ? { ...filters, ...customFilters }
         : filters;
@@ -174,6 +178,7 @@ export const useAdvancedFilters = (
         query: searchFilters.query,
         lat: searchFilters.lat,
         lng: searchFilters.lng,
+        page: page || currentPage,
       });
 
       // Don't search if no filters are active and not query and no location, unless forced
@@ -193,7 +198,10 @@ export const useAdvancedFilters = (
       setLoading(true);
 
       try {
-        const searchParams = buildSearchParams(searchFilters, currentPage);
+        const searchParams = buildSearchParams(
+          searchFilters,
+          page || currentPage
+        );
         console.log(
           "Making search API call:",
           `/api/listing/search?${searchParams.toString()}`
@@ -241,7 +249,7 @@ export const useAdvancedFilters = (
 
       return () => clearTimeout(timer);
     }
-  }, [filters, currentPage, autoSearch, searchWithFilters]);
+  }, [filters, autoSearch, searchWithFilters]);
 
   // Update single filter
   const updateFilter = useCallback((key: keyof FilterState, value: any) => {

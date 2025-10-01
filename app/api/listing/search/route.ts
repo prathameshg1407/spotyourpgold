@@ -193,28 +193,35 @@ export async function GET(req: Request) {
       query.$and.push({ subType: subType });
     }
 
-    // Price range filter (check both monthlyRent field and roomTypes.monthlyRent)
+    // Price range filter (check roomTypes.monthlyRent)
     if (minPrice !== null || maxPrice !== null) {
-      const priceConditions = [];
-
-      // Direct monthlyRent field filter (for backward compatibility)
-      const directPriceFilter: any = {};
-      if (minPrice !== null) directPriceFilter.$gte = minPrice;
-      if (maxPrice !== null) directPriceFilter.$lte = maxPrice;
-      if (Object.keys(directPriceFilter).length > 0) {
-        priceConditions.push({ monthlyRent: directPriceFilter });
-      }
-
-      // Room types price filter
       const roomPriceFilter: any = {};
       if (minPrice !== null) roomPriceFilter.$gte = minPrice;
       if (maxPrice !== null) roomPriceFilter.$lte = maxPrice;
-      if (Object.keys(roomPriceFilter).length > 0) {
-        priceConditions.push({ "roomTypes.monthlyRent": roomPriceFilter });
-      }
 
-      if (priceConditions.length > 0) {
-        query.$and.push({ $or: priceConditions });
+      if (Object.keys(roomPriceFilter).length > 0) {
+        // Filter properties where ALL room types meet the price criteria
+        // This ensures that properties with mixed price ranges are properly filtered
+        query.$and.push({
+          $expr: {
+            $allElementsTrue: {
+              $map: {
+                input: "$roomTypes",
+                as: "room",
+                in: {
+                  $and: [
+                    ...(minPrice !== null
+                      ? [{ $gte: ["$$room.monthlyRent", minPrice] }]
+                      : []),
+                    ...(maxPrice !== null
+                      ? [{ $lte: ["$$room.monthlyRent", maxPrice] }]
+                      : []),
+                  ],
+                },
+              },
+            },
+          },
+        });
       }
     }
 
@@ -223,12 +230,9 @@ export async function GET(req: Request) {
       if (genderPreference === "both" || genderPreference === "unisex") {
         query.$and.push({ genderPreference: "both" });
       } else {
-        query.$and.push({
-          $or: [
-            { genderPreference: genderPreference },
-            { genderPreference: "both" },
-          ],
-        });
+        // For specific gender preferences (male/female), only show properties with that exact preference
+        // This gives users more precise control over their search
+        query.$and.push({ genderPreference: genderPreference });
       }
     }
 

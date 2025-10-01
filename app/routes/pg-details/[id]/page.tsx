@@ -1337,13 +1337,13 @@ export default function ProductPage() {
                 priority={true}
               />
 
-              {/* Navigation Arrows */}
+              {/* Navigation Arrows - Hidden on Mobile */}
               {listing.images.length > 1 && (
                 <>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hidden md:flex"
                     onClick={previousImage}
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -1351,7 +1351,7 @@ export default function ProductPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hidden md:flex"
                     onClick={nextImage}
                   >
                     <ArrowLeft className="w-4 h-4 rotate-180" />

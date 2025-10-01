@@ -140,6 +140,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
       return [
         ...baseItems,
         {
+          name: "Visit Requests",
+          href: "/routes/dashboard/user/visit-requests",
+          icon: "Calendar",
+        },
+        {
           name: "My Reviews",
           href: "/routes/dashboard/user/reviews",
           icon: "Star",

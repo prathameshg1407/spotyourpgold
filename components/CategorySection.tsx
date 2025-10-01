@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { Home, Building2, DoorOpen, Building, Store } from "lucide-react";
+import { useState } from "react";
 
 interface Category {
   id: string;
@@ -50,9 +51,17 @@ const categories: Category[] = [
 
 const CategorySection = () => {
   const router = useRouter();
+  const [loadingCategory, setLoadingCategory] = useState<string | null>(null);
 
-  const handleCategoryClick = (categoryId: string) => {
+  const handleCategoryClick = async (categoryId: string) => {
+    setLoadingCategory(categoryId);
+
+    // Navigate to all-listings with category filter
+    // The all-listings page will handle the API call
     router.push(`/routes/all-listings?category=${categoryId}`);
+
+    // Reset loading state after a short delay
+    setTimeout(() => setLoadingCategory(null), 1000);
   };
 
   return (
@@ -74,7 +83,11 @@ const CategorySection = () => {
                 onClick={() => handleCategoryClick(category.id)}
               >
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-HG-400 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <category.icon className="w-6 h-6 text-HG-400" />
+                  {loadingCategory === category.id ? (
+                    <div className="w-4 h-4 border-2 border-HG-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <category.icon className="w-6 h-6 text-HG-400" />
+                  )}
                 </div>
                 <h3 className="text-xs font-semibold text-gray-800 group-hover:text-HG-500 transition-colors duration-300 font-poppins leading-tight max-w-[80px]">
                   {category.name}
@@ -93,7 +106,11 @@ const CategorySection = () => {
               onClick={() => handleCategoryClick(category.id)}
             >
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-HG-400 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <category.icon className="w-7 h-7 text-HG-400" />
+                {loadingCategory === category.id ? (
+                  <div className="w-6 h-6 border-2 border-HG-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <category.icon className="w-7 h-7 text-HG-400" />
+                )}
               </div>
               <h3 className="text-xl font-semibold text-gray-800 group-hover:text-HG-500 transition-colors duration-300 font-poppins">
                 {category.name}
