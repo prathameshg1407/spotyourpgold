@@ -22,6 +22,22 @@ export async function POST(req: Request) {
       });
     }
 
+    // Parse request body with error handling
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Invalid request data. The request may be too large or malformed.",
+        },
+        { status: 400 }
+      );
+    }
+
     const {
       pgName,
       primaryLine,
@@ -40,12 +56,31 @@ export async function POST(req: Request) {
       mealTimings,
       images,
       videos = [],
-    } = await req.json();
+    } = requestData;
 
     // Debug log for primaryLine
     if (process.env.NODE_ENV === "development") {
       console.log("API Debug - Received Primary Line:", primaryLine);
       console.log("API Debug - Primary Line Type:", typeof primaryLine);
+      console.log("API Debug - Images count:", images?.length || 0);
+      console.log("API Debug - Videos count:", videos?.length || 0);
+    }
+
+    // Validate payload size
+    const payloadSize = JSON.stringify(requestData).length;
+    const payloadSizeMB = payloadSize / (1024 * 1024);
+
+    if (payloadSizeMB > 50) {
+      console.error("Payload too large:", payloadSizeMB.toFixed(2), "MB");
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Request payload is too large (${payloadSizeMB.toFixed(
+            2
+          )}MB). Please reduce the number or size of images/videos.`,
+        },
+        { status: 413 }
+      );
     }
 
     // ✅ Basic validation
@@ -210,7 +245,7 @@ export async function POST(req: Request) {
       message: "PG added successfully.",
       data: pg?._id,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[listPg_API]", error);
 
     // ❌ Cleanup uploaded images and videos on failure
@@ -231,9 +266,29 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    return NextResponse.json({
-      success: false,
-      message: "Server error while adding PG.",
-    });
+    let errorMessage = "Server error while adding PG.";
+    let statusCode = 500;
+
+    if (
+      error?.message?.includes("too large") ||
+      error?.message?.includes("413")
+    ) {
+      errorMessage =
+        "Request payload is too large. Please reduce the number or size of images/videos.";
+      statusCode = 413;
+    } else if (error?.message?.includes("JSON")) {
+      errorMessage = "Invalid request data format.";
+      statusCode = 400;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: errorMessage,
+      },
+      { status: statusCode }
+    );
   }
 }

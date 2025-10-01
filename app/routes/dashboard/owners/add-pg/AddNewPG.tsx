@@ -2500,12 +2500,32 @@ export default function AddNewPG() {
     );
 
     try {
+      // Convert images to base64 with size validation
       const newImagesBase64 = await Promise.all(
-        formData.images.map((file: any) => toBase64(file))
+        formData.images.map(async (file: any) => {
+          const base64 = await toBase64(file);
+          // Check if base64 string is too large (roughly 1.33x the original file size)
+          const estimatedSize = (base64.length * 3) / 4;
+          if (estimatedSize > 2 * 1024 * 1024) {
+            // 2MB limit per image
+            throw new Error(`Image ${file.name} is too large after conversion`);
+          }
+          return base64;
+        })
       );
 
+      // Convert videos to base64 with size validation
       const newVideosBase64 = await Promise.all(
-        formData.videos.map((file: any) => toBase64(file))
+        formData.videos.map(async (file: any) => {
+          const base64 = await toBase64(file);
+          // Check if base64 string is too large
+          const estimatedSize = (base64.length * 3) / 4;
+          if (estimatedSize > 25 * 1024 * 1024) {
+            // 25MB limit per video
+            throw new Error(`Video ${file.name} is too large after conversion`);
+          }
+          return base64;
+        })
       );
 
       const allImages = [...formData.existingImageUrls, ...newImagesBase64];
@@ -2517,19 +2537,41 @@ export default function AddNewPG() {
         videos: allVideos,
       };
 
-      // Debug log for primaryLine
+      // Calculate total payload size estimate
+      const payloadString = JSON.stringify(payload);
+      const payloadSizeMB = new Blob([payloadString]).size / (1024 * 1024);
+
+      // Debug log for payload size
       if (process.env.NODE_ENV === "development") {
-        console.log(
-          "Form Submission Debug - Primary Line:",
-          payload.primaryLine
+        console.log("Payload size:", payloadSizeMB.toFixed(2), "MB");
+        console.log("Images count:", allImages.length);
+        console.log("Videos count:", allVideos.length);
+      }
+
+      // Check if payload is too large
+      if (payloadSizeMB > 45) {
+        // 45MB limit (leaving some buffer)
+        throw new Error(
+          `Form data is too large (${payloadSizeMB.toFixed(
+            2
+          )}MB). Please reduce the number or size of images/videos.`
         );
-        console.log("Full Payload Keys:", Object.keys(payload));
       }
 
       const res =
         mode === "edit"
-          ? await axios.put(`/api/owner/listPg/${listingId}`, payload)
-          : await axios.post("/api/owner/listPg", payload);
+          ? await axios.put(`/api/owner/listPg/${listingId}`, payload, {
+              timeout: 120000, // 2 minutes timeout
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+          : await axios.post("/api/owner/listPg", payload, {
+              timeout: 120000, // 2 minutes timeout
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
 
       if (res?.data?.success) {
         setFormData((prev: any) => ({
@@ -2555,15 +2597,27 @@ export default function AddNewPG() {
           general: res?.data?.message || "Unknown error",
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("submitPGStep error:", error);
-      toast.error("Failed . Try again.", {
-        duration: 3000,
+
+      let errorMessage = "Failed to submit form. Please try again.";
+
+      if (error?.response?.status === 413) {
+        errorMessage =
+          "Form data is too large. Please reduce the number or size of images/videos.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      toast.error(errorMessage, {
+        duration: 5000,
         closeButton: true,
       });
       setErrors((prev: any) => ({
         ...prev,
-        general: "Failed . Try again.",
+        general: errorMessage,
       }));
     } finally {
       toast.dismiss(loadingToast);
