@@ -9,11 +9,20 @@ import { toast } from "sonner";
 import PgCard from "@/components/PgCard";
 import SectionHeading from "@/components/SectionHeading";
 import AdvancedFilter from "@/components/AdvancedFilter";
+import LocationCategoryFilter from "@/components/LocationCategoryFilter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  MapPin,
+  Navigation,
+} from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
+import { useLocationSearch } from "@/hooks/useLocationSearch";
 
 function AllListingsContent() {
   const router = useRouter();
@@ -42,6 +51,12 @@ function AllListingsContent() {
   } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
 
+  // State for category filtering in location-based search
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
+    {}
+  );
+
   // Check if this is a nearby search
   const isNearbySearch = searchParams.get("nearby") === "true";
   const lat = searchParams.get("lat");
@@ -66,6 +81,13 @@ function AllListingsContent() {
     currentPage,
     searchWithFilters,
   } = useAdvancedFilters(8, false); // Disable autoSearch for manual control
+
+  // Use location search hook
+  const {
+    userLocation: locationSearchUserLocation,
+    searchLocation,
+    locationDenied: locationSearchDenied,
+  } = useLocationSearch();
 
   // Check if advanced filters are applied (for category searches with filters)
   const hasAdvancedFilters = activeFiltersCount > 0;
@@ -205,6 +227,72 @@ function AllListingsContent() {
     [category, userLocation, filters]
   );
 
+  // Function to fetch category counts for location-based search
+  const fetchCategoryCounts = useCallback(async () => {
+    if (!lat || !lng) return;
+
+    try {
+      const queryParams = new URLSearchParams({
+        lat: lat,
+        lng: lng,
+        radius: "10",
+        countByCategory: "true",
+      });
+
+      const res = await axios.get(
+        `/api/listing/search?${queryParams.toString()}`
+      );
+      if (res?.data?.success && res.data.categoryCounts) {
+        setCategoryCounts(res.data.categoryCounts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch category counts:", error);
+    }
+  }, [lat, lng]);
+
+  // Function to fetch filtered listings by category in location
+  const fetchLocationCategoryListings = useCallback(
+    async (page: number = 1) => {
+      if (!lat || !lng) return;
+
+      setCategoryLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          lat: lat,
+          lng: lng,
+          radius: "10",
+          page: page.toString(),
+          per_page: "12",
+        });
+
+        // Add selected categories
+        if (selectedCategories.length > 0) {
+          queryParams.set("categories", selectedCategories.join(","));
+        }
+
+        const res = await axios.get(
+          `/api/listing/search?${queryParams.toString()}`
+        );
+        if (res?.data?.success) {
+          setCategoryListings(res.data.data);
+          setCategoryTotal(res.data.total);
+          setCategoryTotalPages(
+            res.data.totalPages || Math.ceil(res.data.total / 12)
+          );
+          setCategoryCurrentPage(page);
+        } else {
+          toast.error(res?.data?.message || "Something went wrong");
+        }
+      } catch (error) {
+        console.error("Location category listings fetch error", error);
+        toast.error("Failed to fetch listings");
+      } finally {
+        setCategoryLoading(false);
+      }
+    },
+    [lat, lng, selectedCategories]
+  );
+
   const handleNearbyPageChange = (page: number) => {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("page", page.toString());
@@ -316,6 +404,8 @@ function AllListingsContent() {
       if (isNearbySearch && lat && lng) {
         // Fetch nearby listings (bypass advanced filter)
         fetchNearbyListings(1);
+        // Also fetch category counts for filtering
+        fetchCategoryCounts();
       } else if (isCategorySearch && category) {
         // Fetch category listings (bypass advanced filter)
         fetchCategoryListings(1);
@@ -331,6 +421,20 @@ function AllListingsContent() {
     category,
     fetchNearbyListings,
     fetchCategoryListings,
+    fetchCategoryCounts,
+  ]);
+
+  // Fetch location category listings when categories change
+  useEffect(() => {
+    if (isNearbySearch && lat && lng && selectedCategories.length > 0) {
+      fetchLocationCategoryListings(1);
+    }
+  }, [
+    isNearbySearch,
+    lat,
+    lng,
+    selectedCategories,
+    fetchLocationCategoryListings,
   ]);
 
   // Handle page changes
@@ -456,6 +560,50 @@ function AllListingsContent() {
             />
           )}
         </div>
+
+        {/* Category Filter for Location-based Search */}
+        {isNearbySearch && lat && lng && (
+          <div className="mb-8 p-4 bg-white rounded-lg border">
+            <LocationCategoryFilter
+              categories={[
+                {
+                  id: "pgs",
+                  name: "pgs",
+                  label: "PGs",
+                  count: categoryCounts.pgs,
+                },
+                {
+                  id: "hostels",
+                  name: "hostels",
+                  label: "Hostels",
+                  count: categoryCounts.hostels,
+                },
+                {
+                  id: "rooms",
+                  name: "rooms",
+                  label: "Rooms",
+                  count: categoryCounts.rooms,
+                },
+                {
+                  id: "flats",
+                  name: "flats",
+                  label: "Flats",
+                  count: categoryCounts.flats,
+                },
+                {
+                  id: "commercial",
+                  name: "commercial",
+                  label: "Commercial",
+                  count: categoryCounts.commercial,
+                },
+              ]}
+              selectedCategories={selectedCategories}
+              onCategoryChange={setSelectedCategories}
+              onClearAll={() => setSelectedCategories([])}
+              showCounts={true}
+            />
+          </div>
+        )}
 
         {/* Active Filters Display - Show for regular listings and category search */}
         {!isNearbySearch && activeFiltersCount > 0 && (

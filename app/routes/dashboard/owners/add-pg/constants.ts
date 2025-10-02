@@ -127,6 +127,7 @@ export const initialFormData: PGFormData = {
     {
       type: "",
       numberOfRooms: 0,
+      availableRooms: 0,
       capacityPerRoom: 0,
       monthlyRent: 0,
       securityDeposit: 0,

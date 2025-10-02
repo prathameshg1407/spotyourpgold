@@ -1,6 +1,7 @@
 import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import { NextResponse } from "next/server";
+import indoreLocations from "@/data/indore-locations.json";
 
 export async function GET(req: Request) {
   try {
@@ -321,6 +322,26 @@ export async function GET(req: Request) {
 
     // Process and filter locations
     let locations: any[] = [];
+
+    // First, search Indore locations for fast results
+    const indoreMatches = indoreLocations
+      .filter((location) => {
+        const nameMatch = searchRegex.test(location.name);
+        const aliasMatch = location.aliases.some((alias) =>
+          searchRegex.test(alias)
+        );
+        return nameMatch || aliasMatch;
+      })
+      .slice(0, 5)
+      .map((location) => ({
+        name: location.name,
+        type: "indore",
+        displayText: location.displayName,
+        category: "Indore Locations",
+        lat: location.lat,
+        lng: location.lng,
+      }));
+
     if (locationResults) {
       const { allCities, allAreas, allStates, allNearbyPlaces } =
         locationResults;
@@ -362,7 +383,9 @@ export async function GET(req: Request) {
           category: "Nearby Places",
         }));
 
-      locations = [...cities, ...areas, ...nearbyPlaces];
+      locations = [...indoreMatches, ...cities, ...areas, ...nearbyPlaces];
+    } else {
+      locations = indoreMatches;
     }
 
     // Format properties for response

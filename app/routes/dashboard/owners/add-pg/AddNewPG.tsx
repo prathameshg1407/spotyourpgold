@@ -2256,6 +2256,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useLoadingStore } from "@/store/loading";
+import { useProgressSave } from "@/hooks/useProgressSave";
 
 // Dynamic import with proper loading component and error handling
 const Step2Location = dynamic(() => import("./components/Step2Location"), {
@@ -2305,6 +2306,77 @@ export default function AddNewPG() {
   const progress = (currentStep / totalSteps) * 100;
 
   const { setLoading } = useLoadingStore();
+
+  // Progress saving functionality
+  const {
+    isSaving,
+    lastSaved,
+    hasUnsavedChanges,
+    savedProgress,
+    saveProgress,
+    autoSave,
+    loadProgress,
+    clearProgress,
+    checkForChanges,
+  } = useProgressSave({
+    autoSaveDelay: 30000, // 30 seconds
+    enableAutoSave: true,
+    onSaveSuccess: (data) => {
+      console.log("Progress saved successfully:", data);
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save progress:", error);
+    },
+  });
+
+  // Load saved progress on component mount
+  useEffect(() => {
+    console.log("🚀 AddNewPG mounted, mode:", mode, "listingId:", listingId);
+    if (mode !== "edit" && !listingId) {
+      console.log("📥 Loading progress for new listing...");
+      loadProgress().then((progress) => {
+        if (progress && progress.formData) {
+          console.log("✅ Progress loaded, updating form data:", progress);
+          setFormData(progress.formData);
+          setCurrentStep(progress.currentStep);
+          toast.success("Previous progress loaded successfully!");
+        } else {
+          console.log("ℹ️ No progress to load");
+        }
+      });
+    } else {
+      console.log("⏭️ Skipping progress load (edit mode or existing listing)");
+    }
+  }, [mode, listingId, loadProgress]);
+
+  // Auto-save progress when form data changes
+  useEffect(() => {
+    console.log("🔄 Form data changed, checking for auto-save...");
+    if (mode !== "edit" && !listingId) {
+      const hasChanges = checkForChanges({
+        formData,
+        currentStep,
+        totalSteps,
+        isCompleted: false,
+      });
+
+      console.log("📊 Has changes:", hasChanges, "Form data:", formData);
+
+      if (hasChanges) {
+        console.log("💾 Triggering auto-save...");
+        autoSave({
+          formData,
+          currentStep,
+          totalSteps,
+          isCompleted: false,
+        });
+      } else {
+        console.log("ℹ️ No changes detected, skipping auto-save");
+      }
+    } else {
+      console.log("⏭️ Skipping auto-save (edit mode or existing listing)");
+    }
+  }, [formData, currentStep, mode, listingId, autoSave, checkForChanges]);
 
   useEffect(() => {
     let ignore = false;
@@ -2578,6 +2650,12 @@ export default function AddNewPG() {
           ...prev,
           id: res.data.data || prev.id, // Update ID if available
         }));
+
+        // Clear saved progress on successful submission
+        if (mode !== "edit" && !listingId) {
+          await clearProgress();
+        }
+
         toast.success(res.data.message || "Success!", {
           duration: 3000,
           closeButton: true,
@@ -2687,9 +2765,32 @@ export default function AddNewPG() {
       <div className="text-center space-y-4 pt-5">
         <div className="max-w-3xl mx-auto space-y-3">
           <Progress value={progress} className="h-2" />
-          <p className="text-sm text-gray-500">
-            Step {currentStep} of {totalSteps}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Step {currentStep} of {totalSteps}
+            </p>
+            {/* Progress saving indicators */}
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              {isSaving && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span>Saving...</span>
+                </div>
+              )}
+              {!isSaving && lastSaved && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Saved {lastSaved.toLocaleTimeString()}</span>
+                </div>
+              )}
+              {hasUnsavedChanges && !isSaving && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>Unsaved changes</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2718,6 +2819,80 @@ export default function AddNewPG() {
           <h2 className="md:text-[22px] font-medium text-gray-900 mb-5 font-poppins">
             {stepTitles[currentStep as keyof typeof stepTitles]}
           </h2>
+
+          {/* Progress saving controls - only show for new listings */}
+          {mode !== "edit" && !listingId && (
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <button
+                onClick={() =>
+                  saveProgress({
+                    formData,
+                    currentStep,
+                    totalSteps,
+                    isCompleted: false,
+                  })
+                }
+                disabled={isSaving}
+                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    Save Progress
+                  </>
+                )}
+              </button>
+
+              {savedProgress && (
+                <button
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Are you sure you want to clear your saved progress? This action cannot be undone."
+                      )
+                    ) {
+                      clearProgress();
+                      setFormData(initialFormData);
+                      setCurrentStep(1);
+                    }
+                  }}
+                  className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Clear Progress
+                </button>
+              )}
+            </div>
+          )}
 
           {currentStep < totalSteps ? (
             <h2

@@ -260,6 +260,7 @@ export const Step1BasicInfo: React.FC<StepProps> = ({
                   {
                     type: "",
                     numberOfRooms: 0,
+                    availableRooms: 0,
                     capacityPerRoom: 0,
                     monthlyRent: 0,
                     securityDeposit: 0,

@@ -403,7 +403,7 @@ function InfiniteScrollListings({
     setLoading(true);
     try {
       const response = await axios.get(
-        `/api/listing/getFeatured?page=${page}&per_page=6&exclude=${currentListingId}`
+        `/api/listing/getFeatured?page=${page}&per_page=12&exclude=${currentListingId}`
       );
 
       if (response.data.success) {
@@ -423,6 +423,71 @@ function InfiniteScrollListings({
       setInitialLoad(true);
     }
   }, [page, loading, hasMore, currentListingId]);
+
+  // Fetch initial 12 listings
+  const fetchInitialListings = useCallback(async () => {
+    if (loading) return;
+
+    setLoading(true);
+    try {
+      // First try to get featured listings
+      const featuredResponse = await axios.get(
+        `/api/listing/getFeatured?page=1&per_page=12&exclude=${currentListingId}`
+      );
+
+      if (featuredResponse.data.success) {
+        const featuredListings = featuredResponse.data.data;
+
+        // If we have 12 featured listings, use them
+        if (featuredListings.length >= 12) {
+          setListings(featuredListings.slice(0, 12));
+          setPage(2);
+          setHasMore(featuredListings.length === 12);
+        } else {
+          // If we don't have enough featured listings, fetch regular listings to fill up
+          const regularResponse = await axios.get(
+            `/api/listing/search?page=1&per_page=${
+              12 - featuredListings.length
+            }&exclude=${currentListingId}`
+          );
+
+          if (regularResponse.data.success) {
+            const regularListings = regularResponse.data.data;
+            const allListings = [...featuredListings, ...regularListings].slice(
+              0,
+              12
+            );
+            setListings(allListings);
+            setPage(2);
+            setHasMore(allListings.length === 12);
+          } else {
+            // Fallback to just featured listings
+            setListings(featuredListings);
+            setPage(2);
+            setHasMore(false);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching initial listings:", error);
+      // Fallback to regular listings if featured fails
+      try {
+        const fallbackResponse = await axios.get(
+          `/api/listing/search?page=1&per_page=12&exclude=${currentListingId}`
+        );
+        if (fallbackResponse.data.success) {
+          setListings(fallbackResponse.data.data.slice(0, 12));
+          setPage(2);
+          setHasMore(fallbackResponse.data.data.length === 12);
+        }
+      } catch (fallbackError) {
+        console.error("Fallback fetch also failed:", fallbackError);
+      }
+    } finally {
+      setLoading(false);
+      setInitialLoad(true);
+    }
+  }, [loading, currentListingId]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -446,16 +511,16 @@ function InfiniteScrollListings({
   // Initial load when component mounts
   useEffect(() => {
     if (!initialLoad) {
-      fetchMoreListings();
+      fetchInitialListings();
     }
-  }, [fetchMoreListings, initialLoad]);
+  }, [fetchInitialListings, initialLoad]);
 
   if (!initialLoad && loading) {
     return (
       <div className="mt-16">
         <SectionHeading>More PG Accommodations</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-          {[...Array(4)].map((_, index) => (
+          {[...Array(12)].map((_, index) => (
             <div
               key={index}
               className="w-full max-w-[320px] mx-auto animate-pulse"
@@ -485,7 +550,7 @@ function InfiniteScrollListings({
       <SectionHeading>More PG Accommodations</SectionHeading>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-        {listings.slice(0, 4).map((listing: any) => (
+        {listings.slice(0, 12).map((listing: any) => (
           <PgCard
             key={listing._id}
             id={listing._id}
@@ -509,7 +574,7 @@ function InfiniteScrollListings({
       {/* Loading indicator */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-          {[...Array(4)].map((_, index) => (
+          {[...Array(12)].map((_, index) => (
             <div
               key={index}
               className="w-full max-w-[320px] mx-auto animate-pulse"

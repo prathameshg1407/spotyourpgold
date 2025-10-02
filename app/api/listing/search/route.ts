@@ -60,6 +60,9 @@ export async function GET(req: Request) {
     const visible =
       searchParams.get("visible")?.split(",").filter(Boolean) || [];
     const sortBy = searchParams.get("sortBy")?.trim() || "";
+    const categories =
+      searchParams.get("categories")?.split(",").filter(Boolean) || [];
+    const countByCategory = searchParams.get("countByCategory") === "true";
 
     // Location-based search (lat/lng for proximity)
     const lat = searchParams.get("lat")
@@ -116,6 +119,7 @@ export async function GET(req: Request) {
       area ||
       nearbyPlaces.length > 0 ||
       visible.length > 0 ||
+      categories.length > 0 ||
       (lat !== null && lng !== null);
 
     // If no search criteria, we still want to return all approved and active listings
@@ -247,6 +251,13 @@ export async function GET(req: Request) {
     if (roomTypes.length > 0) {
       query.$and.push({
         "roomTypes.type": { $in: roomTypes },
+      });
+    }
+
+    // Category filter
+    if (categories.length > 0) {
+      query.$and.push({
+        type: { $in: categories },
       });
     }
 
@@ -437,6 +448,50 @@ export async function GET(req: Request) {
       countPipeline = [{ $match: query }, { $count: "total" }];
     }
 
+    // If countByCategory is requested, get category counts
+    let categoryCounts = {};
+    if (countByCategory) {
+      const categoryCountPipeline =
+        lat !== null && lng !== null
+          ? [
+              {
+                $geoNear: {
+                  near: {
+                    type: "Point" as const,
+                    coordinates: [lng, lat] as [number, number],
+                  },
+                  distanceField: "distance",
+                  spherical: true,
+                  query: { isActive: true, isApproved: true },
+                  maxDistance: radius * 1000, // Convert km to meters
+                },
+              },
+              {
+                $group: {
+                  _id: "$type",
+                  count: { $sum: 1 },
+                },
+              },
+            ]
+          : [
+              { $match: { isActive: true, isApproved: true } },
+              {
+                $group: {
+                  _id: "$type",
+                  count: { $sum: 1 },
+                },
+              },
+            ];
+
+      const categoryCountResult = await Listing.aggregate(
+        categoryCountPipeline
+      );
+      categoryCounts = categoryCountResult.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {});
+    }
+
     const [listings, totalResult] = await Promise.all([
       Listing.aggregate(aggregationPipeline),
       Listing.aggregate(countPipeline),
@@ -449,7 +504,7 @@ export async function GET(req: Request) {
       inWatchList: userWatchlist.includes(listing._id.toString()),
     }));
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
       data: listingsWithWatchlist,
       total,
@@ -468,10 +523,17 @@ export async function GET(req: Request) {
         city,
         area,
         nearbyPlaces,
+        categories,
         query: q,
         sortBy,
       },
-    });
+    };
+
+    if (countByCategory) {
+      response.categoryCounts = categoryCounts;
+    }
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error("Search API Error:", error);
     return NextResponse.json(

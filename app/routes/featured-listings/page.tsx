@@ -88,7 +88,7 @@ function FeaturedListingsContent() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {Array.from({ length: 12 }).map((_, index) => (
               <Skeleton key={index} />
             ))}
@@ -97,7 +97,7 @@ function FeaturedListingsContent() {
           <>
             {listings.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
+                <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mb-12">
                   {listings.map((listing) => (
                     <PgCard
                       key={listing._id}

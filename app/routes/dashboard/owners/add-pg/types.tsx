@@ -9,6 +9,7 @@ export interface PGFormData {
   roomTypes: {
     type: string;
     numberOfRooms: number;
+    availableRooms: number;
     capacityPerRoom: number;
     monthlyRent: number;
     securityDeposit: number;

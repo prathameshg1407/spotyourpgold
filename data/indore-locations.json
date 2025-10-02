@@ -1,0 +1,770 @@
+[
+  {
+    "name": "Rajwada Palace",
+    "displayName": "Rajwada Palace, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Holkar Palace", "Rajwada"]
+  },
+  {
+    "name": "Lal Bagh Palace",
+    "displayName": "Lal Bagh Palace, Indore",
+    "lat": 22.7057,
+    "lng": 75.8338,
+    "city": "Indore",
+    "aliases": ["Lalbagh Palace"]
+  },
+  {
+    "name": "Khajrana Ganesh Temple",
+    "displayName": "Khajrana Ganesh Temple, Indore",
+    "lat": 22.7193,
+    "lng": 75.879,
+    "city": "Indore",
+    "aliases": ["Khajrana Temple"]
+  },
+  {
+    "name": "Sarafa Bazaar",
+    "displayName": "Sarafa Bazaar, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Sarafa Market"]
+  },
+  {
+    "name": "Chhappan Dukan",
+    "displayName": "Chhappan Dukan, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["56 Dukan"]
+  },
+  {
+    "name": "Bombay Hospital",
+    "displayName": "Bombay Hospital, Indore",
+    "lat": 22.7196,
+    "lng": 75.888,
+    "city": "Indore",
+    "aliases": ["Bombay Hospital Indore"]
+  },
+  {
+    "name": "Choithram Hospital",
+    "displayName": "Choithram Hospital, Indore",
+    "lat": 22.705,
+    "lng": 75.88,
+    "city": "Indore",
+    "aliases": ["Choithram Hospital & Research Centre"]
+  },
+  {
+    "name": "Apollo Hospital",
+    "displayName": "Apollo Hospital, Indore",
+    "lat": 22.73,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["Apollo Indore"]
+  },
+  {
+    "name": "Fortis Hospital",
+    "displayName": "Fortis Hospital, Indore",
+    "lat": 22.74,
+    "lng": 75.9,
+    "city": "Indore",
+    "aliases": ["Fortis Indore"]
+  },
+  {
+    "name": "Medanta Hospital",
+    "displayName": "Medanta Hospital, Indore",
+    "lat": 22.75,
+    "lng": 75.91,
+    "city": "Indore",
+    "aliases": ["Medanta Indore"]
+  },
+  {
+    "name": "AIIMS Indore",
+    "displayName": "AIIMS Indore",
+    "lat": 22.76,
+    "lng": 75.92,
+    "city": "Indore",
+    "aliases": ["All India Institute of Medical Sciences Indore"]
+  },
+  {
+    "name": "Maharaja Yeshwantrao Hospital",
+    "displayName": "Maharaja Yeshwantrao Hospital, Indore",
+    "lat": 22.72,
+    "lng": 75.86,
+    "city": "Indore",
+    "aliases": ["MY Hospital", "M.Y. Hospital"]
+  },
+  {
+    "name": "Indore Christian Hospital",
+    "displayName": "Indore Christian Hospital, Indore",
+    "lat": 22.71,
+    "lng": 75.85,
+    "city": "Indore",
+    "aliases": ["Christian Hospital"]
+  },
+  {
+    "name": "Sri Aurobindo Institute of Medical Sciences",
+    "displayName": "Sri Aurobindo Institute of Medical Sciences, Indore",
+    "lat": 22.77,
+    "lng": 75.93,
+    "city": "Indore",
+    "aliases": ["SAIMS", "Sri Aurobindo Medical College"]
+  },
+  {
+    "name": "Indore Institute of Medical Sciences",
+    "displayName": "Indore Institute of Medical Sciences, Indore",
+    "lat": 22.78,
+    "lng": 75.94,
+    "city": "Indore",
+    "aliases": ["IIMS", "Indore Medical College"]
+  },
+  {
+    "name": "Government Medical College Indore",
+    "displayName": "Government Medical College Indore",
+    "lat": 22.79,
+    "lng": 75.95,
+    "city": "Indore",
+    "aliases": ["GMC Indore", "Government Medical College"]
+  },
+  {
+    "name": "Devi Ahilya Vishwavidyalaya",
+    "displayName": "Devi Ahilya Vishwavidyalaya, Indore",
+    "lat": 22.6866,
+    "lng": 75.879,
+    "city": "Indore",
+    "aliases": ["DAVV", "Indore University"]
+  },
+  {
+    "name": "IIM Indore",
+    "displayName": "IIM Indore",
+    "lat": 22.52,
+    "lng": 75.92,
+    "city": "Indore",
+    "aliases": ["IIMI", "Indian Institute of Management Indore"]
+  },
+  {
+    "name": "IIT Indore",
+    "displayName": "IIT Indore",
+    "lat": 22.53,
+    "lng": 75.93,
+    "city": "Indore",
+    "aliases": ["Indian Institute of Technology Indore"]
+  },
+  {
+    "name": "NIT Indore",
+    "displayName": "NIT Indore",
+    "lat": 22.54,
+    "lng": 75.94,
+    "city": "Indore",
+    "aliases": ["National Institute of Technology Indore"]
+  },
+  {
+    "name": "Holkar Science College",
+    "displayName": "Holkar Science College, Indore",
+    "lat": 22.7,
+    "lng": 75.87,
+    "city": "Indore",
+    "aliases": ["Holkar College"]
+  },
+  {
+    "name": "Government Holkar Science College",
+    "displayName": "Government Holkar Science College, Indore",
+    "lat": 22.71,
+    "lng": 75.88,
+    "city": "Indore",
+    "aliases": ["Government Holkar College"]
+  },
+  {
+    "name": "Daly College",
+    "displayName": "Daly College, Indore",
+    "lat": 22.72,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["Daly College Indore"]
+  },
+  {
+    "name": "St. Paul Higher Secondary School",
+    "displayName": "St. Paul Higher Secondary School, Indore",
+    "lat": 22.73,
+    "lng": 75.9,
+    "city": "Indore",
+    "aliases": ["St. Paul School"]
+  },
+  {
+    "name": "Kendriya Vidyalaya Indore",
+    "displayName": "Kendriya Vidyalaya Indore",
+    "lat": 22.74,
+    "lng": 75.91,
+    "city": "Indore",
+    "aliases": ["KV Indore"]
+  },
+  {
+    "name": "Delhi Public School Indore",
+    "displayName": "Delhi Public School Indore",
+    "lat": 22.75,
+    "lng": 75.92,
+    "city": "Indore",
+    "aliases": ["DPS Indore"]
+  },
+  {
+    "name": "The Emerald Heights International School",
+    "displayName": "The Emerald Heights International School, Indore",
+    "lat": 22.76,
+    "lng": 75.93,
+    "city": "Indore",
+    "aliases": ["Emerald Heights", "EHIS"]
+  },
+  {
+    "name": "Choithram School",
+    "displayName": "Choithram School, Indore",
+    "lat": 22.77,
+    "lng": 75.94,
+    "city": "Indore",
+    "aliases": ["Choithram School Indore"]
+  },
+  {
+    "name": "C21 Mall",
+    "displayName": "C21 Mall, Indore",
+    "lat": 22.75,
+    "lng": 75.9,
+    "city": "Indore",
+    "aliases": ["Century 21 Mall"]
+  },
+  {
+    "name": "Treasure Island Mall",
+    "displayName": "Treasure Island Mall, Indore",
+    "lat": 22.72,
+    "lng": 75.88,
+    "city": "Indore",
+    "aliases": ["TI Mall"]
+  },
+  {
+    "name": "Phoenix Citadel Mall",
+    "displayName": "Phoenix Citadel Mall, Indore",
+    "lat": 22.73,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["Phoenix Mall", "Citadel Mall"]
+  },
+  {
+    "name": "Crystal Palm Mall",
+    "displayName": "Crystal Palm Mall, Indore",
+    "lat": 22.74,
+    "lng": 75.9,
+    "city": "Indore",
+    "aliases": ["Crystal Palm"]
+  },
+  {
+    "name": "Malhar Mega Mall",
+    "displayName": "Malhar Mega Mall, Indore",
+    "lat": 22.75,
+    "lng": 75.91,
+    "city": "Indore",
+    "aliases": ["Malhar Mall"]
+  },
+  {
+    "name": "Central Mall Indore",
+    "displayName": "Central Mall Indore",
+    "lat": 22.76,
+    "lng": 75.92,
+    "city": "Indore",
+    "aliases": ["Central Mall"]
+  },
+  {
+    "name": "Indore Junction Railway Station",
+    "displayName": "Indore Junction Railway Station",
+    "lat": 22.72,
+    "lng": 75.87,
+    "city": "Indore",
+    "aliases": ["Indore Railway Station"]
+  },
+  {
+    "name": "Devi Ahilya Bai Holkar Airport",
+    "displayName": "Devi Ahilya Bai Holkar Airport, Indore",
+    "lat": 22.72,
+    "lng": 75.8,
+    "city": "Indore",
+    "aliases": ["Indore Airport"]
+  },
+  {
+    "name": "Indore Bus Stand",
+    "displayName": "Indore Bus Stand",
+    "lat": 22.71,
+    "lng": 75.86,
+    "city": "Indore",
+    "aliases": ["Indore Bus Station", "City Bus Stand"]
+  },
+  {
+    "name": "Sarafa Metro Station",
+    "displayName": "Sarafa Metro Station, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Sarafa Metro"]
+  },
+  {
+    "name": "Rajwada Metro Station",
+    "displayName": "Rajwada Metro Station, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Rajwada Metro"]
+  },
+  {
+    "name": "Vijay Nagar Metro Station",
+    "displayName": "Vijay Nagar Metro Station, Indore",
+    "lat": 22.73,
+    "lng": 75.87,
+    "city": "Indore",
+    "aliases": ["Vijay Nagar Metro"]
+  },
+  {
+    "name": "Palasia Metro Station",
+    "displayName": "Palasia Metro Station, Indore",
+    "lat": 22.74,
+    "lng": 75.88,
+    "city": "Indore",
+    "aliases": ["Palasia Metro"]
+  },
+  {
+    "name": "Bhawarkuan Metro Station",
+    "displayName": "Bhawarkuan Metro Station, Indore",
+    "lat": 22.75,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["Bhawarkuan Metro"]
+  },
+  {
+    "name": "Indore Central Museum",
+    "displayName": "Indore Central Museum",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Central Museum"]
+  },
+  {
+    "name": "Patalpani Waterfall",
+    "displayName": "Patalpani Waterfall, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Patalpani"]
+  },
+  {
+    "name": "Annapurna Temple",
+    "displayName": "Annapurna Temple, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Annapurna Mandir"]
+  },
+  {
+    "name": "Ralamandal Wildlife Sanctuary",
+    "displayName": "Ralamandal Wildlife Sanctuary, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Ralamandal Sanctuary"]
+  },
+  {
+    "name": "Shree Bada Ganpati Mandir",
+    "displayName": "Shree Bada Ganpati Mandir, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Bada Ganpati Temple"]
+  },
+  {
+    "name": "ISKCON Radha Govind Temple",
+    "displayName": "ISKCON Radha Govind Temple, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["ISKCON Temple"]
+  },
+  {
+    "name": "Gandhi Hall",
+    "displayName": "Gandhi Hall, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Town Hall"]
+  },
+  {
+    "name": "Indore White Church",
+    "displayName": "Indore White Church",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["White Church"]
+  },
+  {
+    "name": "Kanch Mandir",
+    "displayName": "Kanch Mandir, Indore",
+    "lat": 22.7196,
+    "lng": 75.8577,
+    "city": "Indore",
+    "aliases": ["Glass Temple"]
+  },
+  {
+    "name": "Lotus Hospital",
+    "displayName": "Lotus Hospital, Indore",
+    "lat": 22.68,
+    "lng": 75.85,
+    "city": "Indore",
+    "aliases": ["Lotus Hospital Indore"]
+  },
+  {
+    "name": "Life Care Hospital",
+    "displayName": "Life Care Hospital, Indore",
+    "lat": 22.69,
+    "lng": 75.86,
+    "city": "Indore",
+    "aliases": ["Life Care Indore"]
+  },
+  {
+    "name": "Shri Mahakal Hospital",
+    "displayName": "Shri Mahakal Hospital, Indore",
+    "lat": 22.7,
+    "lng": 75.87,
+    "city": "Indore",
+    "aliases": ["Mahakal Hospital"]
+  },
+  {
+    "name": "Indore Eye Hospital",
+    "displayName": "Indore Eye Hospital, Indore",
+    "lat": 22.71,
+    "lng": 75.88,
+    "city": "Indore",
+    "aliases": ["Eye Hospital Indore"]
+  },
+  {
+    "name": "Sai Hospital",
+    "displayName": "Sai Hospital, Indore",
+    "lat": 22.72,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["Sai Hospital Indore"]
+  },
+  {
+    "name": "Gokuldas Hospital",
+    "displayName": "Gokuldas Hospital, Indore",
+    "lat": 22.73,
+    "lng": 75.9,
+    "city": "Indore",
+    "aliases": ["Gokuldas Indore"]
+  },
+  {
+    "name": "Shree Ganesh Hospital",
+    "displayName": "Shree Ganesh Hospital, Indore",
+    "lat": 22.74,
+    "lng": 75.91,
+    "city": "Indore",
+    "aliases": ["Ganesh Hospital"]
+  },
+  {
+    "name": "Indore Heart Hospital",
+    "displayName": "Indore Heart Hospital, Indore",
+    "lat": 22.75,
+    "lng": 75.92,
+    "city": "Indore",
+    "aliases": ["Heart Hospital Indore"]
+  },
+  {
+    "name": "City Hospital",
+    "displayName": "City Hospital, Indore",
+    "lat": 22.76,
+    "lng": 75.93,
+    "city": "Indore",
+    "aliases": ["City Hospital Indore"]
+  },
+  {
+    "name": "St. Raphael School",
+    "displayName": "St. Raphael School, Indore",
+    "lat": 22.77,
+    "lng": 75.94,
+    "city": "Indore",
+    "aliases": ["St. Raphael Indore"]
+  },
+  {
+    "name": "The Daly College Preparatory School",
+    "displayName": "The Daly College Preparatory School, Indore",
+    "lat": 22.78,
+    "lng": 75.95,
+    "city": "Indore",
+    "aliases": ["Daly College Prep", "DCP"]
+  },
+  {
+    "name": "Indore Public School",
+    "displayName": "Indore Public School, Indore",
+    "lat": 22.79,
+    "lng": 75.96,
+    "city": "Indore",
+    "aliases": ["IPS Indore"]
+  },
+  {
+    "name": "St. Mary's Convent School",
+    "displayName": "St. Mary's Convent School, Indore",
+    "lat": 22.8,
+    "lng": 75.97,
+    "city": "Indore",
+    "aliases": ["St. Mary's Indore"]
+  },
+  {
+    "name": "Indore International School",
+    "displayName": "Indore International School, Indore",
+    "lat": 22.81,
+    "lng": 75.98,
+    "city": "Indore",
+    "aliases": ["IIS Indore"]
+  },
+  {
+    "name": "The International School",
+    "displayName": "The International School, Indore",
+    "lat": 22.82,
+    "lng": 75.99,
+    "city": "Indore",
+    "aliases": ["TIS Indore"]
+  },
+  {
+    "name": "Indore Montessori School",
+    "displayName": "Indore Montessori School, Indore",
+    "lat": 22.83,
+    "lng": 76.0,
+    "city": "Indore",
+    "aliases": ["Montessori Indore"]
+  },
+  {
+    "name": "Indore Cambridge School",
+    "displayName": "Indore Cambridge School, Indore",
+    "lat": 22.84,
+    "lng": 76.01,
+    "city": "Indore",
+    "aliases": ["Cambridge Indore"]
+  },
+  {
+    "name": "Indore Central School",
+    "displayName": "Indore Central School, Indore",
+    "lat": 22.85,
+    "lng": 76.02,
+    "city": "Indore",
+    "aliases": ["Central School Indore"]
+  },
+  {
+    "name": "Rajwada Market",
+    "displayName": "Rajwada Market, Indore",
+    "lat": 22.86,
+    "lng": 76.03,
+    "city": "Indore",
+    "aliases": ["Rajwada Bazaar"]
+  },
+  {
+    "name": "Cloth Market",
+    "displayName": "Cloth Market, Indore",
+    "lat": 22.87,
+    "lng": 76.04,
+    "city": "Indore",
+    "aliases": ["Kapda Market"]
+  },
+  {
+    "name": "Fruit Market",
+    "displayName": "Fruit Market, Indore",
+    "lat": 22.88,
+    "lng": 76.05,
+    "city": "Indore",
+    "aliases": ["Phal Mandi"]
+  },
+  {
+    "name": "Vegetable Market",
+    "displayName": "Vegetable Market, Indore",
+    "lat": 22.89,
+    "lng": 76.06,
+    "city": "Indore",
+    "aliases": ["Sabzi Mandi"]
+  },
+  {
+    "name": "Grain Market",
+    "displayName": "Grain Market, Indore",
+    "lat": 22.9,
+    "lng": 76.07,
+    "city": "Indore",
+    "aliases": ["Anaj Mandi"]
+  },
+  {
+    "name": "Flower Market",
+    "displayName": "Flower Market, Indore",
+    "lat": 22.91,
+    "lng": 76.08,
+    "city": "Indore",
+    "aliases": ["Phool Mandi"]
+  },
+  {
+    "name": "Jewelry Market",
+    "displayName": "Jewelry Market, Indore",
+    "lat": 22.92,
+    "lng": 76.09,
+    "city": "Indore",
+    "aliases": ["Jewellery Market", "Jewelry Bazaar"]
+  },
+  {
+    "name": "Electronics Market",
+    "displayName": "Electronics Market, Indore",
+    "lat": 22.93,
+    "lng": 76.1,
+    "city": "Indore",
+    "aliases": ["Electronic Market"]
+  },
+  {
+    "name": "Book Market",
+    "displayName": "Book Market, Indore",
+    "lat": 22.94,
+    "lng": 76.11,
+    "city": "Indore",
+    "aliases": ["Book Bazaar"]
+  },
+  {
+    "name": "Sarafa Bazaar Food Street",
+    "displayName": "Sarafa Bazaar Food Street, Indore",
+    "lat": 22.95,
+    "lng": 76.12,
+    "city": "Indore",
+    "aliases": ["Sarafa Food Street", "Food Street"]
+  },
+  {
+    "name": "Chappan Dukan Food Court",
+    "displayName": "Chappan Dukan Food Court, Indore",
+    "lat": 22.96,
+    "lng": 76.13,
+    "city": "Indore",
+    "aliases": ["56 Dukan Food Court"]
+  },
+  {
+    "name": "Indore Central Food Court",
+    "displayName": "Indore Central Food Court, Indore",
+    "lat": 22.97,
+    "lng": 76.14,
+    "city": "Indore",
+    "aliases": ["Central Food Court"]
+  },
+  {
+    "name": "Rajwada Food Plaza",
+    "displayName": "Rajwada Food Plaza, Indore",
+    "lat": 22.98,
+    "lng": 76.15,
+    "city": "Indore",
+    "aliases": ["Food Plaza"]
+  },
+  {
+    "name": "Indore Street Food Market",
+    "displayName": "Indore Street Food Market, Indore",
+    "lat": 22.99,
+    "lng": 76.16,
+    "city": "Indore",
+    "aliases": ["Street Food Market"]
+  },
+  {
+    "name": "Indore Restaurant Hub",
+    "displayName": "Indore Restaurant Hub, Indore",
+    "lat": 23.0,
+    "lng": 76.17,
+    "city": "Indore",
+    "aliases": ["Restaurant Hub"]
+  },
+  {
+    "name": "Indore Food Center",
+    "displayName": "Indore Food Center, Indore",
+    "lat": 23.01,
+    "lng": 76.18,
+    "city": "Indore",
+    "aliases": ["Food Center"]
+  },
+  {
+    "name": "Indore Dining District",
+    "displayName": "Indore Dining District, Indore",
+    "lat": 23.02,
+    "lng": 76.19,
+    "city": "Indore",
+    "aliases": ["Dining District"]
+  },
+  {
+    "name": "Indore Cafe Street",
+    "displayName": "Indore Cafe Street, Indore",
+    "lat": 23.03,
+    "lng": 76.2,
+    "city": "Indore",
+    "aliases": ["Cafe Street"]
+  },
+  {
+    "name": "Indore Metro Station",
+    "displayName": "Indore Metro Station, Indore",
+    "lat": 23.04,
+    "lng": 76.21,
+    "city": "Indore",
+    "aliases": ["Indore Metro"]
+  },
+  {
+    "name": "Central Metro Station",
+    "displayName": "Central Metro Station, Indore",
+    "lat": 23.05,
+    "lng": 76.22,
+    "city": "Indore",
+    "aliases": ["Central Metro"]
+  },
+  {
+    "name": "Airport Metro Station",
+    "displayName": "Airport Metro Station, Indore",
+    "lat": 23.06,
+    "lng": 76.23,
+    "city": "Indore",
+    "aliases": ["Airport Metro"]
+  },
+  {
+    "name": "Railway Metro Station",
+    "displayName": "Railway Metro Station, Indore",
+    "lat": 23.07,
+    "lng": 76.24,
+    "city": "Indore",
+    "aliases": ["Railway Metro"]
+  },
+  {
+    "name": "Bus Stand Metro Station",
+    "displayName": "Bus Stand Metro Station, Indore",
+    "lat": 23.08,
+    "lng": 76.25,
+    "city": "Indore",
+    "aliases": ["Bus Stand Metro"]
+  },
+  {
+    "name": "Indore Central Bus Stand",
+    "displayName": "Indore Central Bus Stand, Indore",
+    "lat": 23.09,
+    "lng": 76.26,
+    "city": "Indore",
+    "aliases": ["Central Bus Stand"]
+  },
+  {
+    "name": "Indore City Bus Terminal",
+    "displayName": "Indore City Bus Terminal, Indore",
+    "lat": 23.1,
+    "lng": 76.27,
+    "city": "Indore",
+    "aliases": ["City Bus Terminal"]
+  },
+  {
+    "name": "Indore Inter State Bus Terminal",
+    "displayName": "Indore Inter State Bus Terminal, Indore",
+    "lat": 23.11,
+    "lng": 76.28,
+    "city": "Indore",
+    "aliases": ["ISBT Indore", "Inter State Bus Terminal"]
+  },
+  {
+    "name": "Indore Local Bus Stand",
+    "displayName": "Indore Local Bus Stand, Indore",
+    "lat": 23.12,
+    "lng": 76.29,
+    "city": "Indore",
+    "aliases": ["Local Bus Stand"]
+  }
+]
