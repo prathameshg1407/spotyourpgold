@@ -27,6 +27,7 @@ import {
   Clock,
   Award,
   Pin,
+  Trash2,
 } from "lucide-react";
 import {
   mockUser,
@@ -89,6 +90,19 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
     }
   };
 
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      const response = await axios.delete(`/api/booking/${bookingId}`);
+      if (response.data.success) {
+        toast.success("Booking request deleted successfully");
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      toast.error("Failed to delete booking request");
+    }
+  };
+
   const handleEditBooking = (booking: any) => {
     setEditingBooking(booking);
     setEditForm({
@@ -131,12 +145,42 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
         return "bg-green-100 text-green-800";
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
       case "completed":
         return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusMessage = (status: string, paymentStatus: string) => {
+    switch (status) {
+      case "pending":
+        return "Awaiting owner approval";
+      case "confirmed":
+        switch (paymentStatus) {
+          case "pending":
+            return "Approved! Mark as cash payment to proceed";
+          case "pending_cash_payment":
+            return "Cash payment pending - Owner will collect payment";
+          case "completed_cash":
+            return "Cash payment confirmed - Awaiting admin verification";
+          case "failed":
+            return "Payment failed - Contact support";
+          default:
+            return "Booking confirmed";
+        }
+      case "rejected":
+        return "Booking request rejected";
+      case "cancelled":
+        return "Booking cancelled";
+      case "completed":
+        return "Stay completed";
+      default:
+        return status;
     }
   };
 
@@ -191,6 +235,9 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
                         {booking.status}
                       </Badge>
                     </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {getStatusMessage(booking.status, booking.paymentStatus)}
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p>
@@ -233,6 +280,45 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    {booking.status === "confirmed" &&
+                      booking.paymentStatus === "pending" && (
+                        <Button
+                          onClick={async () => {
+                            try {
+                              const response = await axios.post(
+                                `/api/booking/${booking._id}/cash-payment`
+                              );
+                              if (response.data.success) {
+                                toast.success(
+                                  "Booking marked for cash payment"
+                                );
+                                fetchBookings();
+                              }
+                            } catch (error) {
+                              console.error(
+                                "Failed to mark cash payment:",
+                                error
+                              );
+                              toast.error("Failed to mark cash payment");
+                            }
+                          }}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Mark as Cash Payment
+                        </Button>
+                      )}
+                    {booking.status === "pending" && (
+                      <Button
+                        onClick={() => handleDeleteBooking(booking._id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete Request
+                      </Button>
+                    )}
                     <Button
                       onClick={() => handleEditBooking(booking)}
                       variant="outline"
@@ -697,24 +783,47 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-black font-inter">
-                Visit Requests
-              </p>
-              <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                {ownerStats.pendingVisitRequests}
-              </h2>
-              <p className="text-xs text-muted-foreground font-inter">
-                Pending requests
-              </p>
+        <Link href="/routes/dashboard/owners/visit-requests">
+          <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-black font-inter">
+                  Visit Requests
+                </p>
+                <h2 className="text-3xl font-poppins font-semibold text-HG-500">
+                  {ownerStats.pendingVisitRequests}
+                </h2>
+                <p className="text-xs text-muted-foreground font-inter">
+                  Pending requests
+                </p>
+              </div>
+              <div className="p-2 rounded-full bg-golden/10 text-HG-500">
+                <Calendar className="md:h-8 md:w-8" />
+              </div>
             </div>
-            <div className="p-2 rounded-full bg-golden/10 text-HG-500">
-              <Calendar className="md:h-8 md:w-8" />
+          </Card>
+        </Link>
+
+        <Link href="/routes/dashboard/owners/booking-requests">
+          <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-black font-inter">
+                  Booking Requests
+                </p>
+                <h2 className="text-3xl font-poppins font-semibold text-HG-500">
+                  {ownerStats.pendingBookingRequests || 0}
+                </h2>
+                <p className="text-xs text-muted-foreground font-inter">
+                  Awaiting approval
+                </p>
+              </div>
+              <div className="p-2 rounded-full bg-golden/10 text-HG-500">
+                <CheckCircle className="md:h-8 md:w-8" />
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </Link>
 
         <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white">
           <div className="flex items-center justify-between">

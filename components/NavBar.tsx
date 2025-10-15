@@ -130,12 +130,8 @@ const NavBar = () => {
                   router.push(`/routes/pg-details/${property._id}`);
                 }}
                 onSelectLocation={(location) => {
-                  // Update filters based on location type
-                  if (location.type === "city") {
-                    updateFilter("city", location.name);
-                  } else {
-                    updateFilter("area", location.name);
-                  }
+                  // Update query filter with location name
+                  updateFilter("query", location.name);
                 }}
                 placeholder="Search by location, PG name, or nearby..."
                 showNearbyOption={true}
@@ -259,12 +255,8 @@ const NavBar = () => {
                 router.push(`/routes/pg-details/${property._id}`);
               }}
               onSelectLocation={(location) => {
-                // Update filters based on location type
-                if (location.type === "city") {
-                  updateFilter("city", location.name);
-                } else {
-                  updateFilter("area", location.name);
-                }
+                // Update query filter with location name
+                updateFilter("query", location.name);
               }}
               placeholder="Search PGs, locations, or nearby..."
               showNearbyOption={true}
@@ -310,18 +302,6 @@ const NavBar = () => {
                 Search: {filters.query}
                 <button
                   onClick={() => removeFilter("query")}
-                  className="ml-1 hover:text-red-500"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-
-            {filters.city && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                City: {filters.city}
-                <button
-                  onClick={() => removeFilter("city")}
                   className="ml-1 hover:text-red-500"
                 >
                   <X className="h-3 w-3" />

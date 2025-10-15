@@ -3,6 +3,7 @@ import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import Booking from "@/models/booking";
 import Listing from "@/models/listing";
+import Notification from "@/models/notification";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,12 +67,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate amounts
+    // Calculate amounts - only charge first month's rent
     const durationMonths = parseInt(duration);
-    const amount = selectedRoom.monthlyRent * durationMonths;
+    const amount = selectedRoom.monthlyRent; // Only first month's rent
     const securityDeposit = selectedRoom.securityDeposit;
 
-    // Create booking
+    // Create booking request (pending owner approval)
     const booking = new Booking({
       userId: new mongoose.Types.ObjectId(userId),
       listingId: new mongoose.Types.ObjectId(listingId),
@@ -87,11 +88,28 @@ export async function POST(req: NextRequest) {
       termsAccepted,
       amount,
       securityDeposit,
-      status: "pending",
-      paymentStatus: "pending",
+      status: "pending", // Booking request pending owner approval
+      paymentStatus: "pending", // Payment will be pending until approved
+      paymentMethod: "cash", // Cash payment only
     });
 
     await booking.save();
+
+    // Create notification for owner
+    await Notification.create({
+      userId: listing.ownerId,
+      type: "booking_request",
+      title: "New Booking Request",
+      message: `You have a new booking request for ${listing.pgName} from ${fullName}.`,
+      relatedId: booking._id,
+      relatedType: "booking",
+      priority: "high",
+      metadata: {
+        listingName: listing.pgName,
+        tenantName: fullName,
+        tenantPhone: phoneNumber,
+      },
+    });
 
     return NextResponse.json({
       success: true,

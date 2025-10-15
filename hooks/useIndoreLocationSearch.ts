@@ -156,37 +156,7 @@ export const useIndoreLocationSearch = () => {
           return locationData;
         }
 
-        // Fallback to Nominatim geocoding
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query
-          )}&limit=1&addressdetails=1&countrycodes=in`
-        );
-        const data = await response.json();
-
-        if (data && data[0]) {
-          const lat = Number.parseFloat(data[0].lat);
-          const lng = Number.parseFloat(data[0].lon);
-          const displayName = data[0].display_name;
-
-          // Determine location type based on address components
-          let type: LocationData["type"] = "city";
-          if (data[0].address) {
-            if (data[0].address.city) type = "city";
-            else if (data[0].address.town) type = "city";
-            else if (data[0].address.village) type = "area";
-            else if (data[0].address.state) type = "state";
-            else if (data[0].address.country) type = "country";
-          }
-
-          return {
-            name: displayName,
-            lat,
-            lng,
-            displayName,
-            type,
-          };
-        }
+        // No fallback - only use Indore locations
         return null;
       } catch (error) {
         console.error("Geocoding failed:", error);

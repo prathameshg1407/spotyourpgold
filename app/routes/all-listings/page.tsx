@@ -193,10 +193,6 @@ function AllListingsContent() {
           queryParams.set("amenities", filtersToApply.amenities.join(","));
         if (filtersToApply.roomTypes.length > 0)
           queryParams.set("roomTypes", filtersToApply.roomTypes.join(","));
-        if (filtersToApply.location)
-          queryParams.set("location", filtersToApply.location);
-        if (filtersToApply.city) queryParams.set("city", filtersToApply.city);
-        if (filtersToApply.area) queryParams.set("area", filtersToApply.area);
         if (filtersToApply.nearbyPlaces.length > 0)
           queryParams.set(
             "nearbyPlaces",
@@ -321,9 +317,6 @@ function AllListingsContent() {
       searchParams.set("amenities", filters.amenities.join(","));
     if (filters.roomTypes.length > 0)
       searchParams.set("roomTypes", filters.roomTypes.join(","));
-    if (filters.location) searchParams.set("location", filters.location);
-    if (filters.city) searchParams.set("city", filters.city);
-    if (filters.area) searchParams.set("area", filters.area);
     if (filters.nearbyPlaces.length > 0)
       searchParams.set("nearbyPlaces", filters.nearbyPlaces.join(","));
     if (filters.visible.length > 0)
@@ -467,37 +460,82 @@ function AllListingsContent() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-lg md:text-xl font-semibold font-poppins hover:opacity-80 transition-opacity"
-            >
-              <Image
-                src="/logo.png"
-                alt="SYPG Logo"
-                width={48}
-                height={48}
-                className="h-10 w-10 md:h-12 md:w-12 object-contain"
-              />
-              <span className="hidden sm:block text-HG-500">SYPG</span>
-            </Link>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+          <div className="flex flex-col gap-4">
+            {/* Top Row - Logo, Back Button, and Filter Button */}
+            <div className="flex items-center justify-between">
+              {/* Left Section - Logo and Back Button */}
+              <div className="flex items-center gap-3 min-w-0">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/logo.png"
+                    alt="SYPG Logo"
+                    width={40}
+                    height={40}
+                    className="h-8 w-8 md:h-10 md:w-10 object-contain"
+                  />
+                  <span className="hidden sm:block text-HG-500 font-semibold text-sm">
+                    SYPG
+                  </span>
+                </Link>
 
-            <div className="hidden md:block w-px h-8 bg-gray-300"></div>
+                <div className="hidden md:block w-px h-6 bg-gray-200 flex-shrink-0"></div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goBack}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goBack}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 px-2 py-1.5 h-auto flex-shrink-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline text-sm font-medium">
+                    Back
+                  </span>
+                </Button>
+              </div>
 
-            <div>
-              <h1 className="text-xl md:text-3xl font-bold text-gray-900 font-poppins">
+              {/* Right Section - Filter Button */}
+              <div className="flex-shrink-0">
+                {!isNearbySearch && (
+                  <AdvancedFilter
+                    filters={filters}
+                    onFiltersChange={(newFilters) => {
+                      setFilters(newFilters);
+                      // Always use searchWithFilters for better filtering capabilities
+                      const locationParams = userLocation
+                        ? {
+                            lat: userLocation.lat.toString(),
+                            lng: userLocation.lng.toString(),
+                          }
+                        : {};
+
+                      // If this is a category search, ensure the category filter is applied
+                      const filtersToApply = isCategorySearch
+                        ? { ...newFilters, type: category, ...locationParams }
+                        : { ...newFilters, ...locationParams };
+
+                      searchWithFilters(filtersToApply, true);
+                    }}
+                    onApplyFilters={() => {
+                      // onFiltersChange already handles the search, so we don't need to do anything here
+                      // The search is triggered by onFiltersChange when filters are updated
+                    }}
+                    onClearFilters={() => {
+                      // Always use clearFilters for consistent behavior
+                      clearFilters();
+                    }}
+                    activeFiltersCount={activeFiltersCount}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Row - Title and Count */}
+            <div className="text-center md:text-left">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-poppins">
                 {isNearbySearch
                   ? "Nearby Properties"
                   : isCategorySearch
@@ -507,63 +545,30 @@ function AllListingsContent() {
                           currentCategory.slice(1)
                         : "Category"
                     } Properties`
-                  : "All Property Listings"}
+                  : "All Properties"}
               </h1>
-              <p className="text-gray-600 font-inter text-sm md:text-base">
+              <p className="text-gray-500 font-inter text-sm md:text-base mt-1">
                 {isNearbySearch
                   ? nearbyLoading
                     ? "Loading..."
-                    : `Showing ${nearbyTotal} properties near your location`
+                    : `${nearbyTotal} properties nearby`
                   : isCategorySearch
                   ? categoryLoading
                     ? "Loading..."
-                    : `Showing ${categoryTotal} ${
+                    : `${categoryTotal} ${
                         currentCategory || "category"
                       } properties`
                   : loading
                   ? "Loading..."
-                  : `Showing ${total} properties`}
+                  : `${total} properties`}
               </p>
             </div>
           </div>
-
-          {/* Advanced Filter Button - Show for regular listings and category search */}
-          {!isNearbySearch && (
-            <AdvancedFilter
-              filters={filters}
-              onFiltersChange={(newFilters) => {
-                setFilters(newFilters);
-                // Always use searchWithFilters for better filtering capabilities
-                const locationParams = userLocation
-                  ? {
-                      lat: userLocation.lat.toString(),
-                      lng: userLocation.lng.toString(),
-                    }
-                  : {};
-
-                // If this is a category search, ensure the category filter is applied
-                const filtersToApply = isCategorySearch
-                  ? { ...newFilters, type: category, ...locationParams }
-                  : { ...newFilters, ...locationParams };
-
-                searchWithFilters(filtersToApply, true);
-              }}
-              onApplyFilters={() => {
-                // onFiltersChange already handles the search, so we don't need to do anything here
-                // The search is triggered by onFiltersChange when filters are updated
-              }}
-              onClearFilters={() => {
-                // Always use clearFilters for consistent behavior
-                clearFilters();
-              }}
-              activeFiltersCount={activeFiltersCount}
-            />
-          )}
         </div>
 
         {/* Category Filter for Location-based Search */}
         {isNearbySearch && lat && lng && (
-          <div className="mb-8 p-4 bg-white rounded-lg border">
+          <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
             <LocationCategoryFilter
               categories={[
                 {
@@ -607,62 +612,89 @@ function AllListingsContent() {
 
         {/* Active Filters Display - Show for regular listings and category search */}
         {!isNearbySearch && activeFiltersCount > 0 && (
-          <div className="mb-8 p-4 bg-white rounded-lg border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-700">
-                Active Filters ({activeFiltersCount}):
-              </span>
+          <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-HG-500 rounded-full"></div>
+                <span className="text-sm font-semibold text-gray-800">
+                  Active Filters ({activeFiltersCount})
+                </span>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-xs h-auto p-1 text-HG-500 hover:text-HG-600"
+                className="text-xs h-auto px-3 py-1.5 text-HG-500 hover:text-HG-600 hover:bg-HG-50 rounded-lg transition-colors"
               >
-                Clear All Filters
+                Clear All
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {filters.query && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Search: &ldquo;{filters.query}&rdquo;
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1.5 bg-HG-50 text-HG-700 border-HG-200 hover:bg-HG-100 transition-colors"
+                >
+                  <span className="text-xs font-medium">Search:</span>
+                  <span className="text-xs">&ldquo;{filters.query}&rdquo;</span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-HG-800 transition-colors"
                     onClick={() => removeFilter("query")}
                   />
                 </Badge>
               )}
               {filters.type && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Type: {filters.type}
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+                >
+                  <span className="text-xs font-medium">Type:</span>
+                  <span className="text-xs capitalize">{filters.type}</span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-blue-800 transition-colors"
                     onClick={() => removeFilter("type")}
                   />
                 </Badge>
               )}
               {filters.subType && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Subtype: {filters.subType}
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1.5 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 transition-colors"
+                >
+                  <span className="text-xs font-medium">Subtype:</span>
+                  <span className="text-xs capitalize">{filters.subType}</span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-purple-800 transition-colors"
                     onClick={() => removeFilter("subType")}
                   />
                 </Badge>
               )}
               {filters.genderPreference && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Gender: {filters.genderPreference}
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1.5 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors"
+                >
+                  <span className="text-xs font-medium">Gender:</span>
+                  <span className="text-xs capitalize">
+                    {filters.genderPreference}
+                  </span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-green-800 transition-colors"
                     onClick={() => removeFilter("genderPreference")}
                   />
                 </Badge>
               )}
               {(filters.minPrice || filters.maxPrice) && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Price: ₹{filters.minPrice || "0"} - ₹{filters.maxPrice || "∞"}
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1.5 bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 transition-colors"
+                >
+                  <span className="text-xs font-medium">Price:</span>
+                  <span className="text-xs">
+                    ₹{filters.minPrice || "0"} - ₹{filters.maxPrice || "∞"}
+                  </span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-orange-800 transition-colors"
                     onClick={() => {
                       removeFilter("minPrice");
                       removeFilter("maxPrice");
@@ -670,42 +702,15 @@ function AllListingsContent() {
                   />
                 </Badge>
               )}
-              {filters.city && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  City: {filters.city}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => removeFilter("city")}
-                  />
-                </Badge>
-              )}
-              {filters.area && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Area: {filters.area}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => removeFilter("area")}
-                  />
-                </Badge>
-              )}
-              {filters.location && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Location: {filters.location}
-                  <X
-                    className="w-3 h-3 cursor-pointer"
-                    onClick={() => removeFilter("location")}
-                  />
-                </Badge>
-              )}
               {filters.amenities.map((amenity) => (
                 <Badge
                   key={amenity}
                   variant="secondary"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1.5 bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 transition-colors"
                 >
-                  {amenity}
+                  <span className="text-xs capitalize">{amenity}</span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-pink-800 transition-colors"
                     onClick={() => removeFilter("amenities", amenity)}
                   />
                 </Badge>
@@ -714,11 +719,11 @@ function AllListingsContent() {
                 <Badge
                   key={roomType}
                   variant="secondary"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1.5 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors"
                 >
-                  {roomType}
+                  <span className="text-xs capitalize">{roomType}</span>
                   <X
-                    className="w-3 h-3 cursor-pointer"
+                    className="w-3 h-3 cursor-pointer hover:text-amber-800 transition-colors"
                     onClick={() => removeFilter("roomTypes", roomType)}
                   />
                 </Badge>

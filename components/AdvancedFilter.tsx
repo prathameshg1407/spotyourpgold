@@ -94,9 +94,6 @@ interface FilterState {
   genderPreference: string;
   amenities: string[];
   roomTypes: string[];
-  location: string;
-  city: string;
-  area: string;
   nearbyPlaces: string[];
   visible: string[];
   sortBy: string;
@@ -153,7 +150,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
     genderPreference: true,
     amenities: false,
     roomTypes: false,
-    location: true,
     visible: false,
     sortBy: true,
   });
@@ -189,9 +185,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       genderPreference: "",
       amenities: [],
       roomTypes: [],
-      location: "",
-      city: "",
-      area: "",
       nearbyPlaces: [],
       visible: [],
       sortBy: "",
@@ -226,15 +219,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          className="relative flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+          className="relative flex items-center justify-center w-10 h-10 p-0 bg-white hover:bg-gray-50 border-gray-200 text-gray-700 rounded-lg"
         >
           <Filter className="w-4 h-4" />
-          <span className="hidden md:inline">Advanced Filters</span>
-          <span className="md:hidden">Filters</span>
           {activeFiltersCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs"
             >
               {activeFiltersCount}
             </Badge>
@@ -503,61 +494,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                       {option.label}
                     </button>
                   ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <Separator />
-
-          {/* Location */}
-          <div>
-            <button
-              onClick={() => toggleSection("location")}
-              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
-            >
-              <span className="flex items-center gap-2">
-                <IconMapPin className="w-4 h-4" />
-                Location & Address
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  expandedSections.location ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {expandedSections.location && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="space-y-3"
-                >
-                  <input
-                    type="text"
-                    placeholder="City (e.g., Delhi, Mumbai)"
-                    value={localFilters.city}
-                    onChange={(e) => updateLocalFilter("city", e.target.value)}
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Area/Locality (e.g., Connaught Place)"
-                    value={localFilters.area}
-                    onChange={(e) => updateLocalFilter("area", e.target.value)}
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="General location search"
-                    value={localFilters.location}
-                    onChange={(e) =>
-                      updateLocalFilter("location", e.target.value)
-                    }
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
                 </motion.div>
               )}
             </AnimatePresence>

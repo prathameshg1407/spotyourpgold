@@ -9,6 +9,7 @@ interface OwnerMetrics {
   totalReviews: number;
   averageRating: number;
   pendingVisitRequests: number;
+  pendingBookingRequests: number;
   monthlyRevenue: number;
   totalWishlist: number;
 }

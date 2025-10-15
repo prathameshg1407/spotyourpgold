@@ -185,6 +185,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/visit-requests",
           icon: "Calendar",
         },
+        {
+          name: "Booking Requests",
+          href: "/routes/dashboard/owners/booking-requests",
+          icon: "UserCheck",
+        },
         // { name: "Bookings", href: "/owner-bookings", icon: "Calendar" },
         // { name: "Analytics", href: "/analytics", icon: "BarChart3" },
         {
@@ -212,6 +217,16 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "All Listings",
           href: "/routes/dashboard/admin/listings",
           icon: "Building2",
+        },
+        {
+          name: "Cash Payments",
+          href: "/routes/dashboard/admin/cash-payments",
+          icon: "DollarSign",
+        },
+        {
+          name: "Commissions",
+          href: "/routes/dashboard/admin/commissions",
+          icon: "TrendingUp",
         },
         {
           name: "Visit Requests",

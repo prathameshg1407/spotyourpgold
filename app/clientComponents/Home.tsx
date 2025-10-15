@@ -410,30 +410,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     />
                   </Badge>
                 )}
-                {filters.city && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    City: {filters.city}
-                    <X
-                      className="w-3 h-3 cursor-pointer"
-                      onClick={() => removeFilter("city")}
-                    />
-                  </Badge>
-                )}
-                {filters.area && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    Area: {filters.area}
-                    <X
-                      className="w-3 h-3 cursor-pointer"
-                      onClick={() => removeFilter("area")}
-                    />
-                  </Badge>
-                )}
                 {filters.amenities.map((amenity) => (
                   <Badge
                     key={amenity}
@@ -779,30 +755,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             removeFilter("minPrice");
                             removeFilter("maxPrice");
                           }}
-                        />
-                      </Badge>
-                    )}
-                    {filters.city && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        City: {filters.city}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("city")}
-                        />
-                      </Badge>
-                    )}
-                    {filters.area && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        Area: {filters.area}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("area")}
                         />
                       </Badge>
                     )}

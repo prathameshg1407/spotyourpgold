@@ -206,6 +206,12 @@ async function getOwnerMetrics(userId: string) {
       }
     }
 
+    // Get pending booking requests for owner's listings
+    const pendingBookingRequests = await Booking.countDocuments({
+      listingId: { $in: ownerListingIds },
+      status: "pending",
+    });
+
     return {
       totalListings: listingStats.totalListings,
       activeListings: listingStats.activeListings,
@@ -214,6 +220,7 @@ async function getOwnerMetrics(userId: string) {
       totalReviews: reviewStats.totalReviews,
       averageRating: Math.round(reviewStats.averageRating * 10) / 10 || 0,
       pendingVisitRequests: visitRequestsCount,
+      pendingBookingRequests: pendingBookingRequests,
       monthlyRevenue: 0, // As requested, keeping revenue as 0 for now
       totalWishlist: totalWishlist,
     };

@@ -998,10 +998,13 @@ export default function ProductPage() {
         setShowBookingModal(false);
         setBookingStep(1);
         setSelectedRoomType(null);
-        toast.success("Booking request submitted successfully!", {
-          closeButton: true,
-          duration: 3000,
-        });
+        toast.success(
+          "Booking request submitted successfully! You can mark it for cash payment once approved.",
+          {
+            closeButton: true,
+            duration: 3000,
+          }
+        );
       } else {
         toast.error(response.data.message || "Failed to submit booking");
       }
@@ -2780,15 +2783,22 @@ export default function ProductPage() {
                       </div>
                       <hr className="my-3" />
                       <div className="flex justify-between font-bold text-lg">
-                        <span>Total Amount:</span>
+                        <span>Amount to Pay Now:</span>
                         <span className="text-HG-600">
-                          ₹
-                          {(
-                            selectedRoomType?.monthlyRent *
-                              parseInt(bookingForm.duration) +
-                            selectedRoomType?.securityDeposit
-                          )?.toLocaleString()}
+                          ₹{selectedRoomType?.monthlyRent?.toLocaleString()}
                         </span>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        <p>
+                          • First month&apos;s rent: ₹
+                          {selectedRoomType?.monthlyRent?.toLocaleString()}
+                        </p>
+                        <p>
+                          • Security deposit: ₹
+                          {selectedRoomType?.securityDeposit?.toLocaleString()}{" "}
+                          (payable on move-in)
+                        </p>
+                        <p>• Remaining months: Pay monthly as per agreement</p>
                       </div>
                     </div>
                   </div>
@@ -2797,46 +2807,29 @@ export default function ProductPage() {
                     <h4 className="font-semibold text-lg mb-4">
                       Payment Method
                     </h4>
-                    <div className="space-y-3">
-                      <div className="border-2 border-HG-500 bg-HG-50 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="payment"
-                            id="advance"
-                            defaultChecked
-                            className="text-HG-600 focus:ring-HG-500"
-                          />
-                          <label htmlFor="advance" className="font-medium">
-                            Pay Advance (₹
-                            {selectedRoomType?.monthlyRent?.toLocaleString()})
-                          </label>
+                    <div className="border-2 border-HG-500 bg-HG-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 bg-HG-500 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1 ml-6">
-                          Pay first month&apos;s rent now, security deposit on
-                          move-in
-                        </p>
+                        <label className="font-medium text-HG-700">
+                          Pay First Month&apos;s Rent (₹
+                          {selectedRoomType?.monthlyRent?.toLocaleString()})
+                        </label>
                       </div>
-                      <div className="border-2 border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="payment"
-                            id="full"
-                            className="text-HG-600 focus:ring-HG-500"
-                          />
-                          <label htmlFor="full" className="font-medium">
-                            Pay Full Amount (₹
-                            {(
-                              selectedRoomType?.monthlyRent *
-                                parseInt(bookingForm.duration) +
-                              selectedRoomType?.securityDeposit
-                            )?.toLocaleString()}
-                            )
-                          </label>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 ml-6">
-                          Pay complete amount including security deposit
+                      <div className="text-sm text-gray-600 mt-2 ml-8 space-y-1">
+                        <p>
+                          • First month&apos;s rent: ₹
+                          {selectedRoomType?.monthlyRent?.toLocaleString()}
+                        </p>
+                        <p>
+                          • Security deposit: ₹
+                          {selectedRoomType?.securityDeposit?.toLocaleString()}{" "}
+                          (payable on move-in)
+                        </p>
+                        <p>
+                          • Remaining {parseInt(bookingForm.duration) - 1}{" "}
+                          month(s): Pay monthly as per agreement
                         </p>
                       </div>
                     </div>

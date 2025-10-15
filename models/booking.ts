@@ -95,8 +95,19 @@ const bookingSchema = new mongoose.Schema(
     // Payment Information
     paymentStatus: {
       type: String,
-      enum: ["pending", "completed", "failed", "refunded"],
+      enum: [
+        "pending",
+        "pending_cash_payment",
+        "completed_cash",
+        "failed",
+        "refunded",
+      ],
       default: "pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "online"],
+      default: "cash",
     },
     amount: {
       type: Number,
@@ -105,6 +116,24 @@ const bookingSchema = new mongoose.Schema(
     securityDeposit: {
       type: Number,
       required: true,
+    },
+
+    // Cash Payment Details
+    cashPaymentProof: {
+      type: String, // URL to uploaded proof image
+      default: "",
+    },
+    cashCollectedBy: {
+      type: String, // Owner's name who collected cash
+      default: "",
+    },
+    cashCollectedAt: {
+      type: Date,
+      default: null,
+    },
+    adminVerifiedAt: {
+      type: Date,
+      default: null,
     },
 
     // Terms and Conditions

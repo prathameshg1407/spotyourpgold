@@ -14,9 +14,6 @@ export interface FilterState {
   genderPreference: string;
   amenities: string[];
   roomTypes: string[];
-  location: string;
-  city: string;
-  area: string;
   nearbyPlaces: string[];
   visible: string[];
   sortBy: string;
@@ -51,9 +48,6 @@ const initialFilters: FilterState = {
   genderPreference: "",
   amenities: [],
   roomTypes: [],
-  location: "",
-  city: "",
-  area: "",
   nearbyPlaces: [],
   visible: [],
   sortBy: "",
@@ -88,9 +82,6 @@ export const useAdvancedFilters = (
         searchParams.get("amenities")?.split(",").filter(Boolean) || [],
       roomTypes:
         searchParams.get("roomTypes")?.split(",").filter(Boolean) || [],
-      location: searchParams.get("location") || "",
-      city: searchParams.get("city") || "",
-      area: searchParams.get("area") || "",
       nearbyPlaces:
         searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [],
       visible: searchParams.get("visible")?.split(",").filter(Boolean) || [],
@@ -131,9 +122,6 @@ export const useAdvancedFilters = (
         params.set("amenities", filterState.amenities.join(","));
       if (filterState.roomTypes.length > 0)
         params.set("roomTypes", filterState.roomTypes.join(","));
-      if (filterState.location) params.set("location", filterState.location);
-      if (filterState.city) params.set("city", filterState.city);
-      if (filterState.area) params.set("area", filterState.area);
       if (filterState.nearbyPlaces.length > 0)
         params.set("nearbyPlaces", filterState.nearbyPlaces.join(","));
       if (filterState.visible.length > 0)

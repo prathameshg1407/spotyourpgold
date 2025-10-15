@@ -9,7 +9,10 @@ import { BlurImage } from "./BlurImage";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { useLocationSearch, LocationData } from "@/hooks/useLocationSearch";
+import {
+  useIndoreLocationSearch,
+  LocationData,
+} from "@/hooks/useIndoreLocationSearch";
 import { cn } from "@/lib/utils";
 
 interface Property {
@@ -86,7 +89,7 @@ export default function EnhancedSearchDropdown({
     searchNearby,
     searchInLocation,
     searchWithQuery,
-  } = useLocationSearch();
+  } = useIndoreLocationSearch();
 
   const debouncedSearch = useDebouncedValue(value, 150);
 
@@ -272,27 +275,28 @@ export default function EnhancedSearchDropdown({
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen) return;
-
     switch (e.key) {
       case "ArrowDown":
+        if (!isOpen) return;
         e.preventDefault();
         setFocusedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
         break;
       case "ArrowUp":
+        if (!isOpen) return;
         e.preventDefault();
         setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
         break;
       case "Enter":
         e.preventDefault();
-        if (focusedIndex >= 0) {
+        if (isOpen && focusedIndex >= 0) {
           handleItemSelect(focusedIndex);
         } else if (value.trim()) {
-          // No item focused, perform search
+          // No item focused or dropdown closed, perform search
           handleSearch();
         }
         break;
       case "Escape":
+        if (!isOpen) return;
         setIsOpen(false);
         setFocusedIndex(-1);
         inputRef.current?.blur();

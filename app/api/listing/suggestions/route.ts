@@ -276,55 +276,8 @@ export async function GET(req: Request) {
     // Execute search pipeline
     const properties = await Listing.aggregate(searchPipeline);
 
-    // Fast location aggregation for unique suggestions
-    const locationPipeline = [
-      {
-        $match: {
-          isActive: true,
-          isApproved: true,
-          $or: [
-            { "location.city": { $regex: searchRegex } },
-            { "location.area": { $regex: searchRegex } },
-            { "location.state": { $regex: searchRegex } },
-            {
-              $and: [
-                { "location.nearbyPlaces": { $type: "array" } },
-                {
-                  "location.nearbyPlaces": {
-                    $elemMatch: { $regex: searchRegex },
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      },
-      {
-        $project: {
-          cities: ["$location.city"],
-          areas: ["$location.area"],
-          states: ["$location.state"],
-          nearbyPlaces: "$location.nearbyPlaces",
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          allCities: { $addToSet: "$cities" },
-          allAreas: { $addToSet: "$areas" },
-          allStates: { $addToSet: "$states" },
-          allNearbyPlaces: { $addToSet: "$nearbyPlaces" },
-        },
-      },
-    ];
-
-    const [locationResults] = await Listing.aggregate(locationPipeline);
-
-    // Process and filter locations
-    let locations: any[] = [];
-
-    // First, search Indore locations for fast results
-    const indoreMatches = indoreLocations
+    // Process and filter locations - Only use Indore locations from JSON
+    const locations = indoreLocations
       .filter((location) => {
         const nameMatch = searchRegex.test(location.name);
         const aliasMatch = location.aliases.some((alias) =>
@@ -332,7 +285,7 @@ export async function GET(req: Request) {
         );
         return nameMatch || aliasMatch;
       })
-      .slice(0, 5)
+      .slice(0, 8)
       .map((location) => ({
         name: location.name,
         type: "indore",
@@ -341,52 +294,6 @@ export async function GET(req: Request) {
         lat: location.lat,
         lng: location.lng,
       }));
-
-    if (locationResults) {
-      const { allCities, allAreas, allStates, allNearbyPlaces } =
-        locationResults;
-
-      // Process cities
-      const cities = allCities
-        .flat()
-        .filter((city: string) => city && searchRegex.test(city))
-        .slice(0, 3)
-        .map((city: string) => ({
-          name: city,
-          type: "city",
-          displayText: city,
-          category: "Cities",
-        }));
-
-      // Process areas
-      const areas = allAreas
-        .flat()
-        .filter((area: string) => area && searchRegex.test(area))
-        .slice(0, 3)
-        .map((area: string) => ({
-          name: area,
-          type: "area",
-          displayText: area,
-          category: "Areas",
-        }));
-
-      // Process nearby places
-      const nearbyPlaces = allNearbyPlaces
-        .flat()
-        .flat()
-        .filter((place: string) => place && searchRegex.test(place))
-        .slice(0, 2)
-        .map((place: string) => ({
-          name: place,
-          type: "nearby",
-          displayText: place,
-          category: "Nearby Places",
-        }));
-
-      locations = [...indoreMatches, ...cities, ...areas, ...nearbyPlaces];
-    } else {
-      locations = indoreMatches;
-    }
 
     // Format properties for response
     const formattedProperties = properties.map((property) => ({
