@@ -25,6 +25,7 @@ import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import DiscountSection from "@/components/DiscountSection";
+import CategorySection from "@/components/CategorySection";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -153,7 +154,21 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
     const fetchFeaturedData = async () => {
       try {
-        const res = await axios.get(`/api/listing/getFeatured?per_page=5`);
+        // If user location is available, fetch featured listings with distance calculation
+        let res;
+        if (userLocation && !locationDenied) {
+          const queryParams = new URLSearchParams({
+            per_page: "5",
+            lat: userLocation.lat.toString(),
+            lng: userLocation.lng.toString(),
+          });
+          res = await axios.get(
+            `/api/listing/getFeatured?${queryParams.toString()}`
+          );
+        } else {
+          res = await axios.get(`/api/listing/getFeatured?per_page=5`);
+        }
+
         if (res?.data?.success && !ignore) {
           setFeaturedListings(res.data.data);
         } else if (!ignore) {
@@ -176,7 +191,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [userLocation, locationDenied]);
 
   // Fetch All Property Listings
   useEffect(() => {
@@ -185,7 +200,20 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
     const fetchAllData = async () => {
       try {
-        const res = await axios.get(`/api/listing?page=1&per_page=5`);
+        // If user location is available, fetch listings with distance calculation
+        let res;
+        if (userLocation && !locationDenied) {
+          const queryParams = new URLSearchParams({
+            page: "1",
+            per_page: "5",
+            lat: userLocation.lat.toString(),
+            lng: userLocation.lng.toString(),
+          });
+          res = await axios.get(`/api/listing?${queryParams.toString()}`);
+        } else {
+          res = await axios.get(`/api/listing?page=1&per_page=5`);
+        }
+
         if (res?.data?.success && !ignore) {
           setAllListings(res.data.data);
         } else if (!ignore) {
@@ -208,7 +236,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [userLocation, locationDenied]);
 
   // Fetch Nearby PGs when location is available
   useEffect(() => {
@@ -382,30 +410,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     />
                   </Badge>
                 )}
-                {filters.city && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    City: {filters.city}
-                    <X
-                      className="w-3 h-3 cursor-pointer"
-                      onClick={() => removeFilter("city")}
-                    />
-                  </Badge>
-                )}
-                {filters.area && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    Area: {filters.area}
-                    <X
-                      className="w-3 h-3 cursor-pointer"
-                      onClick={() => removeFilter("area")}
-                    />
-                  </Badge>
-                )}
                 {filters.amenities.map((amenity) => (
                   <Badge
                     key={amenity}
@@ -470,11 +474,16 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     key={pg._id || idx}
                     id={pg._id}
                     image={pg.primaryImage}
+                    images={pg.images?.map((img: any) => img.url) || []}
                     area={pg.location?.area}
                     pgName={pg.pgName}
+                    primaryLine={pg.primaryLine}
                     ownerName={pg.ownerId?.fullName}
                     price={pg.minRent}
+                    genderPreference={pg.genderPreference}
                     isWishlisted={pg.inWatchList}
+                    type={pg.type}
+                    distance={pg.distance}
                   />
                 ))}
               </div>
@@ -673,7 +682,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
               )}
 
               {/* Advanced Filter Button */}
-              <div className="flex justify-between items-center mb-8">
+              {/* <div className="flex justify-between items-center mb-8">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
                     Find Your Perfect PG
@@ -690,10 +699,10 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                   onClearFilters={clearFilters}
                   activeFiltersCount={activeFiltersCount}
                 />
-              </div>
+              </div> */}
 
               {/* Active Filters Display for Home Page */}
-              {activeFiltersCount > 0 && (
+              {/* {activeFiltersCount > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-sm font-medium text-gray-600">
@@ -749,30 +758,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         />
                       </Badge>
                     )}
-                    {filters.city && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        City: {filters.city}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("city")}
-                        />
-                      </Badge>
-                    )}
-                    {filters.area && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        Area: {filters.area}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("area")}
-                        />
-                      </Badge>
-                    )}
                     {filters.amenities.map((amenity) => (
                       <Badge
                         key={amenity}
@@ -815,7 +800,10 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
+
+              {/* Category Section */}
+              <CategorySection />
 
               {/* Section 1: Featured Properties */}
               <section>
@@ -848,11 +836,17 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         key={idx}
                         id={pg?._id}
                         image={pg?.primaryImage}
+                        images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
                         pgName={pg?.pgName}
                         ownerName={pg?.ownerId?.fullName}
                         price={pg?.minRent}
+                        genderPreference={pg?.genderPreference}
                         isWishlisted={pg?.inWatchList}
+                        type={pg?.type}
+                        distance={pg?.distance}
+                        amenities={pg?.amenities || []}
+                        rentInclusions={pg?.rentInclusions || {}}
                       />
                     ))}
                   </div>
@@ -893,11 +887,17 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         key={idx}
                         id={pg?._id}
                         image={pg?.primaryImage}
+                        images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
                         pgName={pg?.pgName}
                         ownerName={pg?.ownerId?.fullName}
                         price={pg?.minRent}
+                        genderPreference={pg?.genderPreference}
                         isWishlisted={pg?.inWatchList}
+                        type={pg?.type}
+                        distance={pg?.distance}
+                        amenities={pg?.amenities || []}
+                        rentInclusions={pg?.rentInclusions || {}}
                       />
                     ))}
                   </div>
@@ -909,29 +909,50 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                 <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-100">
                   <SectionHeading
                     rightSide={
-                      <Link
-                        href="/routes/nearbypg-map"
-                        className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all duration-200 border border-blue-200 hover:border-blue-300"
-                      >
-                        <svg
-                          className="w-4 h-4 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/routes/all-listings?lat=${userLocation.lat}&lng=${userLocation.lng}&nearby=true`}
+                          className="text-HG-500 hover:text-HG-600 font-medium text-sm flex items-center gap-1 transition-colors"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m0 0L9 7"
-                          />
-                        </svg>
-                        <p className="font-inter text-sm md:text-base text-blue-600 font-medium">
-                          View on Maps
-                        </p>
-                        <IconArrowRight className="text-blue-600 w-4 h-4 md:w-5 md:h-5" />
-                      </Link>
+                          View All
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </Link>
+                        <Link
+                          href="/routes/nearbypg-map"
+                          className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all duration-200 border border-blue-200 hover:border-blue-300"
+                        >
+                          <svg
+                            className="w-4 h-4 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m0 0L9 7"
+                            />
+                          </svg>
+                          <p className="font-inter text-sm md:text-base text-blue-600 font-medium">
+                            View on Maps
+                          </p>
+                          <IconArrowRight className="text-blue-600 w-4 h-4 md:w-5 md:h-5" />
+                        </Link>
+                      </div>
                     }
                   >
                     <div className="flex items-center gap-3">
@@ -976,11 +997,17 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                           key={idx}
                           id={pg?._id}
                           image={pg?.primaryImage}
+                          images={pg?.images?.map((img: any) => img.url) || []}
                           area={pg?.location?.area}
                           pgName={pg?.pgName}
                           ownerName={pg?.ownerId?.fullName}
                           price={pg?.minRent}
+                          genderPreference={pg?.genderPreference}
                           isWishlisted={pg?.inWatchList}
+                          type={pg?.type}
+                          distance={pg?.distance}
+                          amenities={pg?.amenities || []}
+                          rentInclusions={pg?.rentInclusions || {}}
                         />
                       ))}
                     </div>

@@ -9,7 +9,6 @@ import {
   IconCurrencyRupee,
   IconUsers,
   IconHome,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   Sheet,
@@ -95,11 +94,11 @@ interface FilterState {
   genderPreference: string;
   amenities: string[];
   roomTypes: string[];
-  location: string;
-  city: string;
-  area: string;
   nearbyPlaces: string[];
   visible: string[];
+  sortBy: string;
+  lat: string;
+  lng: string;
 }
 
 interface AdvancedFilterProps {
@@ -128,6 +127,14 @@ const genderOptions = [
   { value: "both", label: "Unisex/Co-ed" },
 ];
 
+const sortOptions = [
+  { value: "", label: "Default" },
+  { value: "price-low-high", label: "Price: Low to High" },
+  { value: "price-high-low", label: "Price: High to Low" },
+  { value: "rating-high-low", label: "Rating: High to Low" },
+  { value: "rating-low-high", label: "Rating: Low to High" },
+];
+
 const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   filters,
   onFiltersChange,
@@ -143,8 +150,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
     genderPreference: true,
     amenities: false,
     roomTypes: false,
-    location: true,
     visible: false,
+    sortBy: true,
   });
 
   useEffect(() => {
@@ -165,7 +172,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const handleApply = () => {
     onFiltersChange(localFilters);
-    onApplyFilters();
     setIsOpen(false);
   };
 
@@ -179,11 +185,11 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       genderPreference: "",
       amenities: [],
       roomTypes: [],
-      location: "",
-      city: "",
-      area: "",
       nearbyPlaces: [],
       visible: [],
+      sortBy: "",
+      lat: "",
+      lng: "",
     };
     setLocalFilters(clearedFilters);
     onFiltersChange(clearedFilters);
@@ -213,15 +219,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          className="relative flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+          className="relative flex items-center justify-center w-10 h-10 p-0 bg-white hover:bg-gray-50 border-gray-200 text-gray-700 rounded-lg"
         >
           <Filter className="w-4 h-4" />
-          <span className="hidden md:inline">Advanced Filters</span>
-          <span className="md:hidden">Filters</span>
           {activeFiltersCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs"
             >
               {activeFiltersCount}
             </Badge>
@@ -245,19 +249,53 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Quick Search */}
+          {/* Sort By */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <IconSearch className="w-4 h-4" />
-              Quick Search
-            </label>
-            <input
-              type="text"
-              placeholder="Search by PG name, location, area..."
-              value={localFilters.query}
-              onChange={(e) => updateLocalFilter("query", e.target.value)}
-              className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-HG-400"
-            />
+            <button
+              onClick={() => toggleSection("sortBy")}
+              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Sort By
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  expandedSections.sortBy ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {expandedSections.sortBy && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="space-y-3"
+                >
+                  <select
+                    value={localFilters.sortBy}
+                    onChange={(e) =>
+                      updateLocalFilter("sortBy", e.target.value)
+                    }
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {localFilters.sortBy === "location-nearby" && (
+                    <p className="text-xs text-gray-500 italic">
+                      Note: Location sorting works best when location filters
+                      are applied
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <Separator />
@@ -463,61 +501,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
           <Separator />
 
-          {/* Location */}
-          <div>
-            <button
-              onClick={() => toggleSection("location")}
-              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
-            >
-              <span className="flex items-center gap-2">
-                <IconMapPin className="w-4 h-4" />
-                Location & Address
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  expandedSections.location ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {expandedSections.location && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="space-y-3"
-                >
-                  <input
-                    type="text"
-                    placeholder="City (e.g., Delhi, Mumbai)"
-                    value={localFilters.city}
-                    onChange={(e) => updateLocalFilter("city", e.target.value)}
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Area/Locality (e.g., Connaught Place)"
-                    value={localFilters.area}
-                    onChange={(e) => updateLocalFilter("area", e.target.value)}
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="General location search"
-                    value={localFilters.location}
-                    onChange={(e) =>
-                      updateLocalFilter("location", e.target.value)
-                    }
-                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-HG-400"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <Separator />
-
           {/* Room Types */}
           <div>
             <button
@@ -674,6 +657,14 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                 {localFilters.amenities.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {localFilters.amenities.length} amenities
+                  </Badge>
+                )}
+                {localFilters.sortBy && (
+                  <Badge variant="secondary" className="text-xs">
+                    {
+                      sortOptions.find((s) => s.value === localFilters.sortBy)
+                        ?.label
+                    }
                   </Badge>
                 )}
               </div>

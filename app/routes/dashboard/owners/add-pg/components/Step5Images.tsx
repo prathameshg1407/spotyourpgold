@@ -58,7 +58,7 @@ export const Step5Images: React.FC<Step5ImagesProps> = ({
               Click to upload images
             </p>
             <p className="text-xs text-gray-400 mt-1 font-inter">
-              JPG, PNG up to 3MB each • Max 12 images
+              JPG, PNG up to 10MB each (auto-compressed to ~1MB) • Max 12 images
             </p>
           </div>
 
@@ -93,7 +93,8 @@ export const Step5Images: React.FC<Step5ImagesProps> = ({
               Click to upload videos
             </p>
             <p className="text-xs text-gray-400 mt-1 font-inter">
-              MP4, MOV up to 50MB each • Max 3 videos
+              MP4, MOV up to 100MB each (auto-compressed to ~20MB) • Max 3
+              videos
             </p>
           </div>
 

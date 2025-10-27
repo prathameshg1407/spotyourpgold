@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import PageLoader from "@/components/PageLoader";
 import AuthProvider from "@/components/AuthProvider";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import Footer from "@/components/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({
@@ -57,7 +57,7 @@ export default function RootLayout({
         <PageLoader />
         <div className="min-h-screen flex flex-col">
           <div className="flex-1">{children}</div>
-          <Footer />
+          <ConditionalFooter />
         </div>
         <Toaster />
         <DockWrapper />

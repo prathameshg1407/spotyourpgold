@@ -60,6 +60,14 @@ interface ListingDetails {
     maintenanceIncluded: boolean;
   };
 
+  // Meal Timings
+  mealTimings?: {
+    morning: { enabled: boolean; from: string; to: string };
+    noon: { enabled: boolean; from: string; to: string };
+    evening: { enabled: boolean; from: string; to: string };
+    night: { enabled: boolean; from: string; to: string };
+  };
+
   // Rules
   rulesAndRegulations: string[];
   detailedRules: {
@@ -178,6 +186,7 @@ import "leaflet/dist/leaflet.css";
 import { useListingStore } from "@/store/listingStore";
 import { useUserStore } from "@/store/userStore";
 import SectionHeading from "@/components/SectionHeading";
+import PgCard from "@/components/PgCard";
 import { FeaturedCarousel } from "@/components/FeaturedCarousel";
 import OwnerListingSection from "@/components/OwnerListingSection";
 import VisitRequestForm from "@/components/VisitRequestForm";
@@ -394,7 +403,7 @@ function InfiniteScrollListings({
     setLoading(true);
     try {
       const response = await axios.get(
-        `/api/listing/getFeatured?page=${page}&per_page=6&exclude=${currentListingId}`
+        `/api/listing/getFeatured?page=${page}&per_page=12&exclude=${currentListingId}`
       );
 
       if (response.data.success) {
@@ -414,6 +423,71 @@ function InfiniteScrollListings({
       setInitialLoad(true);
     }
   }, [page, loading, hasMore, currentListingId]);
+
+  // Fetch initial 12 listings
+  const fetchInitialListings = useCallback(async () => {
+    if (loading) return;
+
+    setLoading(true);
+    try {
+      // First try to get featured listings
+      const featuredResponse = await axios.get(
+        `/api/listing/getFeatured?page=1&per_page=12&exclude=${currentListingId}`
+      );
+
+      if (featuredResponse.data.success) {
+        const featuredListings = featuredResponse.data.data;
+
+        // If we have 12 featured listings, use them
+        if (featuredListings.length >= 12) {
+          setListings(featuredListings.slice(0, 12));
+          setPage(2);
+          setHasMore(featuredListings.length === 12);
+        } else {
+          // If we don't have enough featured listings, fetch regular listings to fill up
+          const regularResponse = await axios.get(
+            `/api/listing/search?page=1&per_page=${
+              12 - featuredListings.length
+            }&exclude=${currentListingId}`
+          );
+
+          if (regularResponse.data.success) {
+            const regularListings = regularResponse.data.data;
+            const allListings = [...featuredListings, ...regularListings].slice(
+              0,
+              12
+            );
+            setListings(allListings);
+            setPage(2);
+            setHasMore(allListings.length === 12);
+          } else {
+            // Fallback to just featured listings
+            setListings(featuredListings);
+            setPage(2);
+            setHasMore(false);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching initial listings:", error);
+      // Fallback to regular listings if featured fails
+      try {
+        const fallbackResponse = await axios.get(
+          `/api/listing/search?page=1&per_page=12&exclude=${currentListingId}`
+        );
+        if (fallbackResponse.data.success) {
+          setListings(fallbackResponse.data.data.slice(0, 12));
+          setPage(2);
+          setHasMore(fallbackResponse.data.data.length === 12);
+        }
+      } catch (fallbackError) {
+        console.error("Fallback fetch also failed:", fallbackError);
+      }
+    } finally {
+      setLoading(false);
+      setInitialLoad(true);
+    }
+  }, [loading, currentListingId]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -437,16 +511,16 @@ function InfiniteScrollListings({
   // Initial load when component mounts
   useEffect(() => {
     if (!initialLoad) {
-      fetchMoreListings();
+      fetchInitialListings();
     }
-  }, [fetchMoreListings, initialLoad]);
+  }, [fetchInitialListings, initialLoad]);
 
   if (!initialLoad && loading) {
     return (
       <div className="mt-16">
         <SectionHeading>More PG Accommodations</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-          {[...Array(4)].map((_, index) => (
+          {[...Array(12)].map((_, index) => (
             <div
               key={index}
               className="w-full max-w-[320px] mx-auto animate-pulse"
@@ -476,80 +550,31 @@ function InfiniteScrollListings({
       <SectionHeading>More PG Accommodations</SectionHeading>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-        {listings.slice(0, 4).map((listing: any) => (
-          <div key={listing._id} className="w-full max-w-[320px] mx-auto">
-            <Link
-              href={`/routes/pg-details/${listing._id}`}
-              className="hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
-              hover:scale-[1.02]
-              w-full border-4 border-HG-500  
-              rounded-xl border-opacity-25 overflow-hidden 
-              hover:border-opacity-50 transition duration-300 ease-in group @container
-              flex flex-col h-full block"
-            >
-              <div className="flex relative items-center justify-center rounded-b-2xl">
-                <div className="w-full h-44 overflow-hidden">
-                  <BlurImage
-                    className="object-cover w-full h-44"
-                    src={
-                      listing.primaryImage ||
-                      listing.images?.[0]?.url ||
-                      "/placeholder.svg"
-                    }
-                    width={400}
-                    height={176}
-                    alt={listing.pgName}
-                  />
-                </div>
-
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-70 transition-opacity bg-black/40 p-3 rounded-xl backdrop-blur-2xl">
-                  <IconArrowUpRight className="text-white w-7 h-7" />
-                </div>
-              </div>
-
-              <div className="p-4 font-inter relative bg-white flex-grow flex flex-col">
-                <div className="flex-grow">
-                  <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-2 leading-tight mb-1">
-                    {listing.location?.area}
-                  </p>
-
-                  <h5 className="text-lg font-semibold text-HG-900 dark:text-white py-1 line-clamp-1">
-                    {listing.pgName}
-                  </h5>
-
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-300 line-clamp-1">
-                      by {listing.ownerId?.fullName}
-                    </p>
-                    {listing.genderPreference && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="w-4 h-4 text-HG-600" />
-                        <span className="text-gray-600 capitalize font-medium">
-                          {listing.genderPreference === "both"
-                            ? "Male & Female"
-                            : listing.genderPreference}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-2xl font-bold font-poppins text-HG-400 pt-4 mt-auto">
-                  ₹{listing.minRent?.toLocaleString()}{" "}
-                  <span className="text-base font-medium text-gray-600 dark:text-gray-300">
-                    /mo
-                  </span>
-                </p>
-              </div>
-            </Link>
-          </div>
+        {listings.slice(0, 12).map((listing: any) => (
+          <PgCard
+            key={listing._id}
+            id={listing._id}
+            image={listing.primaryImage || listing.images?.[0]?.url}
+            images={listing.images?.map((img: any) => img.url) || []}
+            area={listing.location?.area}
+            pgName={listing.pgName}
+            primaryLine={listing.primaryLine}
+            ownerName={listing.ownerId?.fullName}
+            price={listing.minRent}
+            genderPreference={listing.genderPreference}
+            isWishlisted={listing.inWatchList}
+            type={listing.type}
+            distance={listing.distance}
+            amenities={listing.amenities || []}
+            rentInclusions={listing.rentInclusions || {}}
+          />
         ))}
       </div>
 
       {/* Loading indicator */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-          {[...Array(4)].map((_, index) => (
+          {[...Array(12)].map((_, index) => (
             <div
               key={index}
               className="w-full max-w-[320px] mx-auto animate-pulse"
@@ -584,6 +609,8 @@ function InfiniteScrollListings({
 export default function ProductPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
@@ -606,12 +633,24 @@ export default function ProductPage() {
     aadhaarNumber: "",
     additionalRequirements: "",
     termsAccepted: false,
+    couponCode: "",
   });
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: "",
   });
   const [hoverRating, setHoverRating] = useState(0);
+
+  // Coupon state
+  const [couponData, setCouponData] = useState<{
+    name: string;
+    percentage: number;
+    usageCount: number;
+    maxUsage: number | null;
+    validUntil: string | null;
+  } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [listing, setListing] = useState<ListingDetails>({
     inWatchList: false,
@@ -795,6 +834,33 @@ export default function ProductPage() {
     );
   };
 
+  // Touch handlers for mobile swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && listing?.images?.length > 1) {
+      nextImage();
+    }
+    if (isRightSwipe && listing?.images?.length > 1) {
+      previousImage();
+    }
+  };
+
   const toggleWatchlist = async () => {
     if (loading) return;
     setLoading(true);
@@ -910,17 +976,59 @@ export default function ProductPage() {
       aadhaarNumber: "",
       additionalRequirements: "",
       termsAccepted: false,
+      couponCode: "",
     });
+    // Reset coupon state
+    setCouponData(null);
+    setCouponError(null);
   };
 
-  const handleBookingSuccess = () => {
-    setShowBookingModal(false);
-    setBookingStep(1);
-    setSelectedRoomType(null);
-    toast.success("Booking request submitted successfully!", {
-      closeButton: true,
-      duration: 3000,
-    });
+  const handleBookingSuccess = async () => {
+    if (!user) {
+      toast.error("Please log in to submit booking");
+      return;
+    }
+
+    if (!selectedRoomType) {
+      toast.error("Please select a room type");
+      return;
+    }
+
+    try {
+      const response = await axios.post("/api/booking", {
+        userId: user.id,
+        listingId: params.id,
+        roomType: selectedRoomType.type,
+        moveInDate: bookingForm.moveInDate,
+        duration: bookingForm.duration,
+        fullName: bookingForm.fullName,
+        phoneNumber: bookingForm.phoneNumber,
+        email: bookingForm.email,
+        address: bookingForm.address,
+        aadhaarNumber: bookingForm.aadhaarNumber,
+        additionalRequirements: bookingForm.additionalRequirements,
+        termsAccepted: bookingForm.termsAccepted,
+        couponCode: bookingForm.couponCode || null,
+      });
+
+      if (response.data.success) {
+        setShowBookingModal(false);
+        setBookingStep(1);
+        setSelectedRoomType(null);
+        toast.success(
+          "Booking request submitted successfully! You can mark it for cash payment once approved.",
+          {
+            closeButton: true,
+            duration: 3000,
+          }
+        );
+      } else {
+        toast.error(response.data.message || "Failed to submit booking");
+      }
+    } catch (error) {
+      console.error("Booking submission error:", error);
+      toast.error("Failed to submit booking. Please try again.");
+    }
   };
 
   const handleFormChange = (field: string, value: any) => {
@@ -941,6 +1049,76 @@ export default function ProductPage() {
         [field as keyof typeof prev]: value,
       }));
     }
+  };
+
+  const validateCoupon = async (couponCode: string) => {
+    if (!couponCode.trim()) {
+      setCouponData(null);
+      setCouponError(null);
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponError(null);
+
+      const response = await fetch("/api/coupon-validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ couponCode }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCouponData(data.data);
+        setCouponError(null);
+      } else {
+        setCouponData(null);
+        setCouponError(data.message || "Invalid coupon code");
+      }
+    } catch (error) {
+      console.error("Error validating coupon:", error);
+      setCouponData(null);
+      setCouponError("Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleCouponChange = (value: string) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      couponCode: value.toUpperCase(),
+    }));
+
+    // Clear previous validation results when user types
+    if (couponData || couponError) {
+      setCouponData(null);
+      setCouponError(null);
+    }
+  };
+
+  const handleCheckCoupon = () => {
+    if (bookingForm.couponCode.trim()) {
+      validateCoupon(bookingForm.couponCode);
+    }
+  };
+
+  const calculateDiscount = () => {
+    if (!couponData || !selectedRoomType) return 0;
+    return Math.round(
+      (selectedRoomType.monthlyRent * couponData.percentage) / 100
+    );
+  };
+
+  const calculateFinalAmount = () => {
+    if (!selectedRoomType) return 0;
+    const originalAmount = selectedRoomType.monthlyRent;
+    const discount = calculateDiscount();
+    return originalAmount - discount;
   };
 
   const validateStep1 = () => {
@@ -984,12 +1162,12 @@ export default function ProductPage() {
       toast.error("Please enter your pincode");
       return false;
     }
-    if (!bookingForm.aadhaarNumber.trim()) {
-      toast.error("Please enter your Aadhaar number");
-      return false;
-    }
-    if (bookingForm.aadhaarNumber.length !== 12) {
-      toast.error("Aadhaar number must be 12 digits");
+    // Aadhaar number is now optional
+    if (
+      bookingForm.aadhaarNumber.trim() &&
+      bookingForm.aadhaarNumber.length !== 12
+    ) {
+      toast.error("Aadhaar number must be 12 digits if provided");
       return false;
     }
     return true;
@@ -1298,7 +1476,12 @@ export default function ProductPage() {
           {/* Product Images */}
           <div className="space-y-8">
             {/* Main Image - Smaller on mobile */}
-            <div className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg">
+            <div
+              className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
               <BlurImage
                 openInNewTab={true}
                 className="object-cover w-full cursor-pointer"
@@ -1309,13 +1492,13 @@ export default function ProductPage() {
                 priority={true}
               />
 
-              {/* Navigation Arrows */}
+              {/* Navigation Arrows - Hidden on Mobile */}
               {listing.images.length > 1 && (
                 <>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hidden md:flex"
                     onClick={previousImage}
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -1323,7 +1506,7 @@ export default function ProductPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hidden md:flex"
                     onClick={nextImage}
                   >
                     <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -1335,6 +1518,13 @@ export default function ProductPage() {
               <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
                 {currentImageIndex + 1} / {listing.images.length}
               </div>
+
+              {/* Swipe Hint for Mobile */}
+              {listing.images.length > 1 && (
+                <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium md:hidden">
+                  ← Swipe →
+                </div>
+              )}
             </div>
 
             <div className="grid md:hidden grid-cols-5 gap-3 max-w-sm sm:max-w-none mx-auto">
@@ -1448,9 +1638,9 @@ export default function ProductPage() {
                 <div className="flex items-center gap-2">
                   <MapPin className="md:w-4 md:h-4 w-3 h-3" />
                   <span className=" text-xs md:text-sm ">
-                    {listing?.ownerId?.address?.city +
-                      ", " +
-                      listing?.ownerId?.address?.state}
+                    {listing?.location?.area && `${listing.location.area}, `}
+                    {listing?.location?.city}
+                    {listing?.location?.state && `, ${listing.location.state}`}
                   </span>
                 </div>
                 {/* <Link
@@ -1627,206 +1817,283 @@ export default function ProductPage() {
                     </div>
                   </div>
 
-                  {/* ✅ Section 1: Additional Details */}
-                  <div>
-                    <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                      Additional Details
-                    </h3>
-                    <ul className="list-disc text-gray-700 pl-5 text-sm md:text-base space-y-2">
-                      {listing?.additionalDetails.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* ✅ Section 1: Additional Details - Only show if there are details */}
+                  {listing?.additionalDetails &&
+                    listing.additionalDetails.length > 0 && (
+                      <div>
+                        <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Additional Details
+                        </h3>
+                        <ul className="list-disc text-gray-700 pl-5 text-sm md:text-base space-y-2">
+                          {listing.additionalDetails.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-                  {/* ✅ Section 2: Amenities */}
-                  <div>
-                    <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                      Amenities
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
-                      {listing?.amenities.map((amenity, index) => {
-                        const IconComponent =
-                          amenityIcons[amenity.toLowerCase()] || Home;
-                        return (
-                          <div
-                            key={index}
-                            className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[60px]"
-                          >
-                            <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
-                              <IconComponent className="w-5 h-5 text-HG-600" />
+                  {/* ✅ Section 2: Amenities - Only show if there are amenities */}
+                  {listing?.amenities && listing.amenities.length > 0 && (
+                    <div>
+                      <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Amenities
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                        {listing.amenities.map((amenity, index) => {
+                          const IconComponent =
+                            amenityIcons[amenity.toLowerCase()] || Home;
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[60px]"
+                            >
+                              <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
+                                <IconComponent className="w-5 h-5 text-HG-600" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 capitalize flex-grow">
+                                {amenity}
+                              </span>
                             </div>
-                            <span className="text-sm font-medium text-gray-700 capitalize flex-grow">
-                              {amenity}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rent Inclusions - Only show if there are any inclusions */}
+                  {(listing?.rentInclusions?.foodIncluded ||
+                    listing?.rentInclusions?.electricityIncluded ||
+                    listing?.rentInclusions?.maintenanceIncluded) && (
+                    <div>
+                      <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Rent Inclusions
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {listing?.rentInclusions?.foodIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <Utensils className="w-5 h-5 text-green-600" />
+                            <span className="text-sm font-medium text-green-700">
+                              Food Included
                             </span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                      Rent Inclusions
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {listing?.rentInclusions?.foodIncluded && (
-                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <Utensils className="w-5 h-5 text-green-600" />
-                          <span className="text-sm font-medium text-green-700">
-                            Food Included
-                          </span>
-                        </div>
-                      )}
-                      {listing?.rentInclusions?.electricityIncluded && (
-                        <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                          <Zap className="w-5 h-5 text-yellow-600" />
-                          <span className="text-sm font-medium text-yellow-700">
-                            Electricity Included
-                          </span>
-                        </div>
-                      )}
-                      {listing?.rentInclusions?.maintenanceIncluded && (
-                        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <Home className="w-5 h-5 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-700">
-                            Maintenance Included
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ✅ Section 3: Rules and Regulations */}
-                  <div>
-                    <h3 className="  text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                      Rules & Regulations
-                    </h3>
-                    <ul className="text-gray-700 text-xs md:text-sm space-y-2">
-                      {listing?.rulesAndRegulations.map((rule, index) => (
-                        <li
-                          key={index}
-                          className="relative pl-3 md:pl-5 before:content-['*'] before:absolute before:left-0 before:top-[2px] before:text-red-600"
-                        >
-                          {rule}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* ✅ Section 4: Detailed Rules & Policies */}
-                  {listing?.detailedRules && (
-                    <div>
-                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                        Detailed Policies
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {listing?.detailedRules?.lockInPeriod && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="w-4 h-4 text-gray-600" />
-                              <span className="font-medium text-gray-900">
-                                Lock-in Period
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700">
-                              {listing.detailedRules.lockInPeriod}
-                            </p>
+                        )}
+                        {listing?.rentInclusions?.electricityIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <Zap className="w-5 h-5 text-yellow-600" />
+                            <span className="text-sm font-medium text-yellow-700">
+                              Electricity Included
+                            </span>
                           </div>
                         )}
-
-                        {listing?.detailedRules?.noticePeriod && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Calendar className="w-4 h-4 text-gray-600" />
-                              <span className="font-medium text-gray-900">
-                                Notice Period
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700">
-                              {listing.detailedRules.noticePeriod}
-                            </p>
-                          </div>
-                        )}
-
-                        {listing?.detailedRules?.entryTiming && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <DoorOpen className="w-4 h-4 text-green-600" />
-                              <span className="font-medium text-gray-900">
-                                Entry Timing
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700">
-                              {listing.detailedRules.entryTiming}
-                            </p>
-                          </div>
-                        )}
-
-                        {listing?.detailedRules?.exitTiming && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <DoorOpen className="w-4 h-4 text-red-600" />
-                              <span className="font-medium text-gray-900">
-                                Exit Timing
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700">
-                              {listing.detailedRules.exitTiming}
-                            </p>
-                          </div>
-                        )}
-
-                        {listing?.detailedRules?.guestStayPolicy && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Users className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium text-gray-900">
-                                Guest Policy
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700 capitalize">
-                              {listing.detailedRules.guestStayPolicy.replace(
-                                "-",
-                                " "
-                              )}
-                            </p>
-                          </div>
-                        )}
-
-                        {listing?.detailedRules?.smokingAlcoholPolicy && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Shield className="w-4 h-4 text-orange-600" />
-                              <span className="font-medium text-gray-900">
-                                Smoking & Alcohol
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700 capitalize">
-                              {listing.detailedRules.smokingAlcoholPolicy.replace(
-                                "-",
-                                " "
-                              )}
-                            </p>
-                          </div>
-                        )}
-
-                        {listing?.detailedRules?.maintenanceCharges && (
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <IndianRupee className="w-4 h-4 text-yellow-600" />
-                              <span className="font-medium text-gray-900">
-                                Maintenance Charges
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-700">
-                              {listing.detailedRules.maintenanceCharges}
-                            </p>
+                        {listing?.rentInclusions?.maintenanceIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <Home className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-700">
+                              Maintenance Included
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
+
+                  {/* Meals Section - Only show if food is included and meal timings exist */}
+                  {listing?.rentInclusions?.foodIncluded &&
+                    listing?.mealTimings &&
+                    Object.values(listing.mealTimings).some(
+                      (timing) => timing.enabled
+                    ) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Meal Timings
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.entries(listing.mealTimings).map(
+                            ([timing, timingData]) => {
+                              if (!timingData.enabled) return null;
+
+                              const timingLabels = {
+                                morning: "Morning",
+                                noon: "Noon",
+                                evening: "Evening",
+                                night: "Night",
+                              };
+
+                              const formatTime = (time: string) => {
+                                const [hours, minutes] = time.split(":");
+                                const hour = parseInt(hours);
+                                const ampm = hour >= 12 ? "PM" : "AM";
+                                const displayHour = hour % 12 || 12;
+                                return `${displayHour}:${minutes} ${ampm}`;
+                              };
+
+                              return (
+                                <div
+                                  key={timing}
+                                  className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200"
+                                >
+                                  <Utensils className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="font-medium text-orange-800">
+                                      {
+                                        timingLabels[
+                                          timing as keyof typeof timingLabels
+                                        ]
+                                      }
+                                    </div>
+                                    <div className="text-sm text-orange-600">
+                                      {formatTime(timingData.from)} -{" "}
+                                      {formatTime(timingData.to)}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* ✅ Section 3: Rules and Regulations - Only show if there are rules */}
+                  {listing?.rulesAndRegulations &&
+                    listing.rulesAndRegulations.length > 0 && (
+                      <div>
+                        <h3 className="  text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Rules & Regulations
+                        </h3>
+                        <ul className="text-gray-700 text-xs md:text-sm space-y-2">
+                          {listing.rulesAndRegulations.map((rule, index) => (
+                            <li
+                              key={index}
+                              className="relative pl-3 md:pl-5 before:content-['*'] before:absolute before:left-0 before:top-[2px] before:text-red-600"
+                            >
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* ✅ Section 4: Detailed Rules & Policies - Only show if there are detailed rules with content */}
+                  {listing?.detailedRules &&
+                    (listing.detailedRules.lockInPeriod ||
+                      listing.detailedRules.noticePeriod ||
+                      listing.detailedRules.entryTiming ||
+                      listing.detailedRules.exitTiming ||
+                      listing.detailedRules.guestStayPolicy ||
+                      listing.detailedRules.smokingAlcoholPolicy ||
+                      listing.detailedRules.maintenanceCharges) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Detailed Policies
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {listing?.detailedRules?.lockInPeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Lock-in Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.lockInPeriod}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.noticePeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Notice Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.noticePeriod}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.entryTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-green-600" />
+                                <span className="font-medium text-gray-900">
+                                  Entry Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.entryTiming}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.exitTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-red-600" />
+                                <span className="font-medium text-gray-900">
+                                  Exit Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.exitTiming}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.guestStayPolicy && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Users className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-gray-900">
+                                  Guest Policy
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700 capitalize">
+                                {listing.detailedRules.guestStayPolicy.replace(
+                                  "-",
+                                  " "
+                                )}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.smokingAlcoholPolicy && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium text-gray-900">
+                                  Smoking & Alcohol
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700 capitalize">
+                                {listing.detailedRules.smokingAlcoholPolicy.replace(
+                                  "-",
+                                  " "
+                                )}
+                              </p>
+                            </div>
+                          )}
+
+                          {listing?.detailedRules?.maintenanceCharges && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <IndianRupee className="w-4 h-4 text-yellow-600" />
+                                <span className="font-medium text-gray-900">
+                                  Maintenance Charges
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.maintenanceCharges}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                   {/* ✅ Section 5: Property Type & Category */}
                   {(listing?.type || listing?.subType) && (
@@ -2520,7 +2787,7 @@ export default function ProductPage() {
                     </h4>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Aadhaar Number *
+                        Aadhaar Number (Optional)
                       </label>
                       <input
                         type="text"
@@ -2532,7 +2799,7 @@ export default function ProductPage() {
                           )
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                        placeholder="Enter 12-digit Aadhaar number"
+                        placeholder="Enter 12-digit Aadhaar number (optional)"
                         maxLength={12}
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -2566,6 +2833,57 @@ export default function ProductPage() {
                 <div className="space-y-6">
                   <div>
                     <h4 className="font-semibold text-lg mb-4">
+                      Coupon Code (Optional)
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={bookingForm.couponCode}
+                          onChange={(e) => handleCouponChange(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent uppercase"
+                          placeholder="Enter coupon code"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCheckCoupon}
+                          disabled={
+                            !bookingForm.couponCode.trim() || couponLoading
+                          }
+                          className="px-4 py-2 bg-HG-500 text-white rounded-lg hover:bg-HG-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {couponLoading ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Checking...</span>
+                            </div>
+                          ) : (
+                            "Check"
+                          )}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-red-500 text-sm">{couponError}</p>
+                      )}
+                      {couponData && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-green-800 font-medium">
+                              {couponData.name} - {couponData.percentage}%
+                              discount applied!
+                            </span>
+                          </div>
+                          <p className="text-green-700 text-sm mt-1">
+                            You save ₹{calculateDiscount().toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
                       Booking Summary
                     </h4>
                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -2581,6 +2899,14 @@ export default function ProductPage() {
                           ₹{selectedRoomType?.monthlyRent?.toLocaleString()}
                         </span>
                       </div>
+                      {couponData && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Discount ({couponData.percentage}%):</span>
+                          <span className="font-medium">
+                            -₹{calculateDiscount().toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-gray-600">Duration:</span>
                         <span className="font-medium">
@@ -2603,15 +2929,22 @@ export default function ProductPage() {
                       </div>
                       <hr className="my-3" />
                       <div className="flex justify-between font-bold text-lg">
-                        <span>Total Amount:</span>
+                        <span>Amount to Pay Now:</span>
                         <span className="text-HG-600">
-                          ₹
-                          {(
-                            selectedRoomType?.monthlyRent *
-                              parseInt(bookingForm.duration) +
-                            selectedRoomType?.securityDeposit
-                          )?.toLocaleString()}
+                          ₹{calculateFinalAmount().toLocaleString()}
                         </span>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        <p>
+                          • First month&apos;s rent: ₹
+                          {selectedRoomType?.monthlyRent?.toLocaleString()}
+                        </p>
+                        <p>
+                          • Security deposit: ₹
+                          {selectedRoomType?.securityDeposit?.toLocaleString()}{" "}
+                          (payable on move-in)
+                        </p>
+                        <p>• Remaining months: Pay monthly as per agreement</p>
                       </div>
                     </div>
                   </div>
@@ -2620,46 +2953,35 @@ export default function ProductPage() {
                     <h4 className="font-semibold text-lg mb-4">
                       Payment Method
                     </h4>
-                    <div className="space-y-3">
-                      <div className="border-2 border-HG-500 bg-HG-50 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="payment"
-                            id="advance"
-                            defaultChecked
-                            className="text-HG-600 focus:ring-HG-500"
-                          />
-                          <label htmlFor="advance" className="font-medium">
-                            Pay Advance (₹
-                            {selectedRoomType?.monthlyRent?.toLocaleString()})
-                          </label>
+                    <div className="border-2 border-HG-500 bg-HG-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 bg-HG-500 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1 ml-6">
-                          Pay first month&apos;s rent now, security deposit on
-                          move-in
-                        </p>
+                        <label className="font-medium text-HG-700">
+                          Pay First Month&apos;s Rent (₹
+                          {calculateFinalAmount().toLocaleString()}
+                          {couponData && (
+                            <span className="text-green-600">
+                              {" "}
+                              (After {couponData.percentage}% discount)
+                            </span>
+                          )}
+                        </label>
                       </div>
-                      <div className="border-2 border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="payment"
-                            id="full"
-                            className="text-HG-600 focus:ring-HG-500"
-                          />
-                          <label htmlFor="full" className="font-medium">
-                            Pay Full Amount (₹
-                            {(
-                              selectedRoomType?.monthlyRent *
-                                parseInt(bookingForm.duration) +
-                              selectedRoomType?.securityDeposit
-                            )?.toLocaleString()}
-                            )
-                          </label>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 ml-6">
-                          Pay complete amount including security deposit
+                      <div className="text-sm text-gray-600 mt-2 ml-8 space-y-1">
+                        <p>
+                          • First month&apos;s rent: ₹
+                          {selectedRoomType?.monthlyRent?.toLocaleString()}
+                        </p>
+                        <p>
+                          • Security deposit: ₹
+                          {selectedRoomType?.securityDeposit?.toLocaleString()}{" "}
+                          (payable on move-in)
+                        </p>
+                        <p>
+                          • Remaining {parseInt(bookingForm.duration) - 1}{" "}
+                          month(s): Pay monthly as per agreement
                         </p>
                       </div>
                     </div>

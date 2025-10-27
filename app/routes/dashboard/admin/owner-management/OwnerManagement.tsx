@@ -646,6 +646,7 @@ import {
   CreditCard,
   Shield,
   Plus,
+  Trash2,
 } from "lucide-react";
 import {
   Select,
@@ -690,6 +691,14 @@ const OwnerManagement = () => {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserPhone, setNewUserPhone] = useState("");
+
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
+  const [ownerToDelete, setOwnerToDelete] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteErrorDialogOpen, setDeleteErrorDialogOpen] = useState(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
 
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
@@ -866,6 +875,51 @@ const OwnerManagement = () => {
     } finally {
       toast.dismiss();
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (owner: any) => {
+    setOwnerToDelete(owner);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    setDeleteDialogOpen(false);
+    setDeleteConfirmDialogOpen(true);
+  };
+
+  const handleDeleteOwner = async () => {
+    if (!ownerToDelete) return;
+
+    setDeleteLoading(true);
+    toast.loading("Deleting owner...");
+    try {
+      const res = await axios.delete(
+        `/api/admin/deleteOwner/${ownerToDelete._id}`
+      );
+      if (res?.data?.success) {
+        toast.success("Owner deleted successfully");
+        fetchOwners(); // Refresh the owners list
+        setDeleteConfirmDialogOpen(false);
+        setOwnerToDelete(null);
+      } else {
+        // Show error in dialog instead of toast
+        setDeleteErrorMessage(res?.data?.message || "Failed to delete owner");
+        setDeleteErrorDialogOpen(true);
+        setDeleteConfirmDialogOpen(false);
+      }
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      const errorMessage =
+        error?.response?.data?.message || "Something went wrong";
+      // Show error in dialog instead of toast
+      setDeleteErrorMessage(errorMessage);
+      setDeleteErrorDialogOpen(true);
+      setDeleteConfirmDialogOpen(false);
+      console.log("Error response:", error?.response?.data);
+    } finally {
+      toast.dismiss();
+      setDeleteLoading(false);
     }
   };
 
@@ -1159,7 +1213,7 @@ const OwnerManagement = () => {
                       {/* Status */}
                       <div>{getStatusBadge(owner.ownerStatus)}</div>
                       {/* Documents / Actions */}
-                      <div>
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -1168,6 +1222,15 @@ const OwnerManagement = () => {
                         >
                           <Eye className="h-4 w-4" />
                           View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteClick(owner)}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -1184,15 +1247,26 @@ const OwnerManagement = () => {
                     <p className="font-medium text-base">{owner.fullName}</p>
                     <div className="flex justify-between items-center text-sm">
                       <span>{getStatusBadge(owner.ownerStatus)}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewOwner(owner._id)}
-                        className="flex items-center gap-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewOwner(owner._id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteClick(owner)}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1467,6 +1541,111 @@ const OwnerManagement = () => {
           </div>
         </DrawerContent>
       </Drawer>
+
+      {/* First Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-poppins text-red-600">
+              Delete Owner
+            </DialogTitle>
+            <DialogDescription className="font-inter">
+              Are you sure you want to delete{" "}
+              <strong>{ownerToDelete?.fullName}</strong>? This action will
+              permanently remove the owner and all their data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="font-inter"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              className="font-inter"
+            >
+              Yes, Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Second Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmDialogOpen}
+        onOpenChange={setDeleteConfirmDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-poppins text-red-600">
+              Final Confirmation
+            </DialogTitle>
+            <DialogDescription className="font-inter">
+              <strong>WARNING:</strong> This action cannot be undone. Are you
+              absolutely sure you want to delete{" "}
+              <strong>{ownerToDelete?.fullName}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmDialogOpen(false)}
+              className="font-inter"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOwner}
+              disabled={deleteLoading}
+              className="font-inter"
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Yes, Delete Permanently"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog
+        open={deleteErrorDialogOpen}
+        onOpenChange={setDeleteErrorDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-poppins text-red-600 flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Cannot Delete Owner
+            </DialogTitle>
+            <DialogDescription className="font-inter">
+              {deleteErrorMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteErrorDialogOpen(false);
+                setOwnerToDelete(null);
+              }}
+              className="font-inter"
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

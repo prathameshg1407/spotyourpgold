@@ -1,12 +1,13 @@
 import type React from "react";
 import type { PGFormData } from "../types";
+import { compressVideo, validateFileSize } from "@/lib/imageCompression";
 
 export const useVideoUpload = (
   formData: PGFormData,
   setFormData: React.Dispatch<React.SetStateAction<PGFormData>>,
   setErrors: React.Dispatch<React.SetStateAction<any>>
 ) => {
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -17,29 +18,9 @@ export const useVideoUpload = (
     const currentCount = formData.videos.length;
     const totalCount = existingCount + currentCount;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      // Check file size (50MB limit for videos)
-      if (file.size > 50 * 1024 * 1024) {
-        errorMessage = "Each video must be under 50MB";
-        break;
-      }
-
-      // Check file type
-      if (!file.type.startsWith("video/")) {
-        errorMessage = "Only video files are allowed";
-        break;
-      }
-
-      validFiles.push(file);
-    }
-
-    if (!errorMessage && totalCount + validFiles.length > 3) {
+    // Check if adding these files would exceed the limit
+    if (totalCount + files.length > 3) {
       errorMessage = "Maximum 3 videos allowed including existing ones";
-    }
-
-    if (errorMessage) {
       setErrors((prev: any) => ({
         ...prev,
         videos: true,
@@ -48,16 +29,71 @@ export const useVideoUpload = (
       return;
     }
 
-    // Trim to fit max 3
-    const allowedCount = 3 - totalCount;
-    const trimmedFiles = validFiles.slice(0, allowedCount);
+    try {
+      // Process files with compression
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
 
-    setErrors((prev: any) => ({ ...prev, videos: false, general: "" }));
+        // Check file type
+        if (!file.type.startsWith("video/")) {
+          errorMessage = "Only video files are allowed";
+          break;
+        }
 
-    setFormData((prev) => ({
-      ...prev,
-      videos: [...prev.videos, ...trimmedFiles],
-    }));
+        // Check initial file size (100MB limit for videos before compression)
+        if (file.size > 100 * 1024 * 1024) {
+          errorMessage = "Each video must be under 100MB before compression";
+          break;
+        }
+
+        try {
+          // Compress the video (basic validation for now)
+          const compressedFile = await compressVideo(file, {
+            maxSizeMB: 20, // 20MB max after compression
+          });
+
+          // Validate compressed file size
+          if (!validateFileSize(compressedFile, 25)) {
+            // 25MB max after compression
+            errorMessage = `Video ${file.name} is still too large after compression`;
+            break;
+          }
+
+          validFiles.push(compressedFile);
+        } catch (compressionError) {
+          console.error("Video compression failed:", compressionError);
+          errorMessage = `Failed to process video ${file.name}`;
+          break;
+        }
+      }
+
+      if (errorMessage) {
+        setErrors((prev: any) => ({
+          ...prev,
+          videos: true,
+          general: errorMessage,
+        }));
+        return;
+      }
+
+      // Trim to fit max 3
+      const allowedCount = 3 - totalCount;
+      const trimmedFiles = validFiles.slice(0, allowedCount);
+
+      setErrors((prev: any) => ({ ...prev, videos: false, general: "" }));
+
+      setFormData((prev) => ({
+        ...prev,
+        videos: [...prev.videos, ...trimmedFiles],
+      }));
+    } catch (error) {
+      console.error("Video upload error:", error);
+      setErrors((prev: any) => ({
+        ...prev,
+        videos: true,
+        general: "Failed to process videos. Please try again.",
+      }));
+    }
 
     // Reset input to allow re-uploading same file
     e.target.value = "";

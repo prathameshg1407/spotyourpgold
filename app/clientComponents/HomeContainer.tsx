@@ -110,11 +110,18 @@ const HomeContainer = ({
             key={idx}
             id={pg?._id}
             image={pg?.primaryImage}
+            images={pg?.images?.map((img: any) => img.url) || []}
             area={pg?.location?.area}
             pgName={pg?.pgName}
+            primaryLine={pg?.primaryLine}
             ownerName={pg?.ownerId?.fullName}
             price={pg?.minRent}
+            genderPreference={pg?.genderPreference}
             isWishlisted={pg?.inWatchList}
+            type={pg?.type}
+            distance={pg?.distance}
+            amenities={pg?.amenities || []}
+            rentInclusions={pg?.rentInclusions || {}}
           />
         ))}
       </div>

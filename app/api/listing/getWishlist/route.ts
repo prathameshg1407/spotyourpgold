@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     const listings = await Listing.find({ _id: { $in: watchlistIds } })
       .select(
-        "_id pgName location.city roomTypes primaryImage ownerId amenities"
+        "_id pgName primaryLine type genderPreference location roomTypes primaryImage ownerId amenities images isFeatured"
       )
       .populate("ownerId", "fullName")
       .lean();
@@ -72,16 +72,24 @@ export async function GET(req: NextRequest) {
       return {
         _id: listing._id.toString(),
         pgName: listing.pgName,
-        city: listing.location?.city || "Unknown",
-        minRent: rents.length ? Math.min(...rents) : undefined,
-        minSecurity: securities.length ? Math.min(...securities) : undefined,
-        roomType: types,
+        primaryLine: listing.primaryLine || "",
+        type: listing.type || "",
+        genderPreference: listing.genderPreference || "both",
+        location: {
+          area: listing.location?.area || "Unknown",
+          city: listing.location?.city || "Unknown",
+          state: listing.location?.state || "Unknown",
+        },
+        roomTypes: listing.roomTypes || [],
+        images: listing.images || [],
+        isFeatured: listing.isFeatured || false,
+        amenities: listing.amenities || [],
+        averageRating: ratingMap.get(listing._id.toString()) || 0,
+        totalReviews: 0, // We can add this later if needed
         ownerId: {
           _id: listing.ownerId?._id?.toString() || "",
           fullName: listing.ownerId?.fullName || "Unknown",
         },
-        amenities: listing.amenities || [],
-        rating: ratingMap.get(listing._id.toString()) || 0,
         isWatchlisted: true,
       };
     });

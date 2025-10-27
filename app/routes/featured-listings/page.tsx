@@ -88,7 +88,7 @@ function FeaturedListingsContent() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {Array.from({ length: 12 }).map((_, index) => (
               <Skeleton key={index} />
             ))}
@@ -97,17 +97,24 @@ function FeaturedListingsContent() {
           <>
             {listings.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
+                <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 mb-12">
                   {listings.map((listing) => (
                     <PgCard
                       key={listing._id}
                       id={listing._id}
                       image={listing.primaryImage}
+                      images={listing.images?.map((img: any) => img.url) || []}
                       area={listing.location?.area}
                       pgName={listing.pgName}
+                      primaryLine={listing.primaryLine}
                       ownerName={listing.ownerId?.fullName}
                       price={listing.minRent}
+                      genderPreference={listing.genderPreference}
                       isWishlisted={listing.isWatchlisted}
+                      type={listing.type}
+                      distance={listing.distance}
+                      amenities={listing.amenities || []}
+                      rentInclusions={listing.rentInclusions || {}}
                     />
                   ))}
                 </div>

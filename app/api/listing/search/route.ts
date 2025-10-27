@@ -4,6 +4,26 @@ import { NextResponse } from "next/server";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
 
+// Helper function to get sort object based on sortBy parameter
+function getSortObject(
+  sortBy: string,
+  hasLocationSearch: boolean = false
+): Record<string, 1 | -1> {
+  switch (sortBy) {
+    case "price-low-high":
+      return { minRent: 1 as 1 };
+    case "price-high-low":
+      return { minRent: -1 as -1 };
+    case "rating-high-low":
+      return { rating: -1 as -1, createdAt: -1 as -1 };
+    case "rating-low-high":
+      return { rating: 1 as 1, createdAt: -1 as -1 };
+
+    default:
+      return { createdAt: -1 as -1 }; // Default: newest first
+  }
+}
+
 export async function GET(req: Request) {
   try {
     await connectToDB();
@@ -39,6 +59,10 @@ export async function GET(req: Request) {
       searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [];
     const visible =
       searchParams.get("visible")?.split(",").filter(Boolean) || [];
+    const sortBy = searchParams.get("sortBy")?.trim() || "";
+    const categories =
+      searchParams.get("categories")?.split(",").filter(Boolean) || [];
+    const countByCategory = searchParams.get("countByCategory") === "true";
 
     // Location-based search (lat/lng for proximity)
     const lat = searchParams.get("lat")
@@ -95,6 +119,7 @@ export async function GET(req: Request) {
       area ||
       nearbyPlaces.length > 0 ||
       visible.length > 0 ||
+      categories.length > 0 ||
       (lat !== null && lng !== null);
 
     // If no search criteria, we still want to return all approved and active listings
@@ -172,28 +197,35 @@ export async function GET(req: Request) {
       query.$and.push({ subType: subType });
     }
 
-    // Price range filter (check both monthlyRent field and roomTypes.monthlyRent)
+    // Price range filter (check roomTypes.monthlyRent)
     if (minPrice !== null || maxPrice !== null) {
-      const priceConditions = [];
-
-      // Direct monthlyRent field filter (for backward compatibility)
-      const directPriceFilter: any = {};
-      if (minPrice !== null) directPriceFilter.$gte = minPrice;
-      if (maxPrice !== null) directPriceFilter.$lte = maxPrice;
-      if (Object.keys(directPriceFilter).length > 0) {
-        priceConditions.push({ monthlyRent: directPriceFilter });
-      }
-
-      // Room types price filter
       const roomPriceFilter: any = {};
       if (minPrice !== null) roomPriceFilter.$gte = minPrice;
       if (maxPrice !== null) roomPriceFilter.$lte = maxPrice;
-      if (Object.keys(roomPriceFilter).length > 0) {
-        priceConditions.push({ "roomTypes.monthlyRent": roomPriceFilter });
-      }
 
-      if (priceConditions.length > 0) {
-        query.$and.push({ $or: priceConditions });
+      if (Object.keys(roomPriceFilter).length > 0) {
+        // Filter properties where ALL room types meet the price criteria
+        // This ensures that properties with mixed price ranges are properly filtered
+        query.$and.push({
+          $expr: {
+            $allElementsTrue: {
+              $map: {
+                input: "$roomTypes",
+                as: "room",
+                in: {
+                  $and: [
+                    ...(minPrice !== null
+                      ? [{ $gte: ["$$room.monthlyRent", minPrice] }]
+                      : []),
+                    ...(maxPrice !== null
+                      ? [{ $lte: ["$$room.monthlyRent", maxPrice] }]
+                      : []),
+                  ],
+                },
+              },
+            },
+          },
+        });
       }
     }
 
@@ -202,12 +234,9 @@ export async function GET(req: Request) {
       if (genderPreference === "both" || genderPreference === "unisex") {
         query.$and.push({ genderPreference: "both" });
       } else {
-        query.$and.push({
-          $or: [
-            { genderPreference: genderPreference },
-            { genderPreference: "both" },
-          ],
-        });
+        // For specific gender preferences (male/female), only show properties with that exact preference
+        // This gives users more precise control over their search
+        query.$and.push({ genderPreference: genderPreference });
       }
     }
 
@@ -222,6 +251,13 @@ export async function GET(req: Request) {
     if (roomTypes.length > 0) {
       query.$and.push({
         "roomTypes.type": { $in: roomTypes },
+      });
+    }
+
+    // Category filter
+    if (categories.length > 0) {
+      query.$and.push({
+        type: { $in: categories },
       });
     }
 
@@ -314,22 +350,32 @@ export async function GET(req: Request) {
 
     // Geospatial query for proximity search
     if (lat !== null && lng !== null) {
-      query.$and.push({
-        "location.coordinates": {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [lng, lat],
-            },
-            $maxDistance: radius * 1000, // Convert km to meters
-          },
-        },
-      });
+      // Use $geoNear in aggregation pipeline instead of $near in query
+      // This will be handled in the aggregation pipeline
     }
 
     // Execute query with aggregation to get min rent from roomTypes
-    const aggregationPipeline = [
-      { $match: query },
+    let aggregationPipeline = [];
+
+    // Add $geoNear stage if location search is active
+    if (lat !== null && lng !== null) {
+      aggregationPipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point" as const,
+            coordinates: [lng, lat] as [number, number],
+          },
+          distanceField: "distance",
+          spherical: true,
+          query: query,
+          distanceMultiplier: 0.001, // Convert meters to kilometers
+        },
+      });
+    } else {
+      aggregationPipeline.push({ $match: query });
+    }
+
+    aggregationPipeline.push(
       {
         $addFields: {
           minRent: {
@@ -358,24 +404,93 @@ export async function GET(req: Request) {
         $project: {
           _id: 1,
           primaryImage: 1,
+          images: 1,
           location: 1,
           pgName: 1,
+          primaryLine: 1,
           "ownerId.fullName": 1,
           minRent: 1,
           type: 1,
           subType: 1,
           genderPreference: 1,
           amenities: 1,
+          rentInclusions: 1,
+          mealTimings: 1,
           roomTypes: 1,
           createdAt: 1,
+          rating: 1,
+          distance: 1,
         },
       },
-      { $sort: { createdAt: -1 as -1 } },
+      { $sort: getSortObject(sortBy, lat !== null && lng !== null) },
       { $skip: (page - 1) * per_page },
-      { $limit: per_page },
-    ];
+      { $limit: per_page }
+    );
 
-    const countPipeline = [{ $match: query }, { $count: "total" }];
+    // Build count pipeline
+    let countPipeline = [];
+    if (lat !== null && lng !== null) {
+      countPipeline = [
+        {
+          $geoNear: {
+            near: {
+              type: "Point" as const,
+              coordinates: [lng, lat] as [number, number],
+            },
+            distanceField: "distance",
+            spherical: true,
+            query: query,
+          },
+        },
+        { $count: "total" },
+      ];
+    } else {
+      countPipeline = [{ $match: query }, { $count: "total" }];
+    }
+
+    // If countByCategory is requested, get category counts
+    let categoryCounts = {};
+    if (countByCategory) {
+      const categoryCountPipeline =
+        lat !== null && lng !== null
+          ? [
+              {
+                $geoNear: {
+                  near: {
+                    type: "Point" as const,
+                    coordinates: [lng, lat] as [number, number],
+                  },
+                  distanceField: "distance",
+                  spherical: true,
+                  query: { isActive: true, isApproved: true },
+                  maxDistance: radius * 1000, // Convert km to meters
+                },
+              },
+              {
+                $group: {
+                  _id: "$type",
+                  count: { $sum: 1 },
+                },
+              },
+            ]
+          : [
+              { $match: { isActive: true, isApproved: true } },
+              {
+                $group: {
+                  _id: "$type",
+                  count: { $sum: 1 },
+                },
+              },
+            ];
+
+      const categoryCountResult = await Listing.aggregate(
+        categoryCountPipeline
+      );
+      categoryCounts = categoryCountResult.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {});
+    }
 
     const [listings, totalResult] = await Promise.all([
       Listing.aggregate(aggregationPipeline),
@@ -389,7 +504,7 @@ export async function GET(req: Request) {
       inWatchList: userWatchlist.includes(listing._id.toString()),
     }));
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
       data: listingsWithWatchlist,
       total,
@@ -408,9 +523,17 @@ export async function GET(req: Request) {
         city,
         area,
         nearbyPlaces,
+        categories,
         query: q,
+        sortBy,
       },
-    });
+    };
+
+    if (countByCategory) {
+      response.categoryCounts = categoryCounts;
+    }
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error("Search API Error:", error);
     return NextResponse.json(

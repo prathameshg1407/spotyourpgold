@@ -139,10 +139,26 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "user":
       return [
         ...baseItems,
-        { name: "My Bookings", href: "/bookings", icon: "Calendar" },
-        { name: "My Reviews", href: "/reviews", icon: "Star" },
-        { name: "Favorites", href: "/favorites", icon: "Heart" },
-        { name: "Profile", href: "/profile", icon: "User" },
+        {
+          name: "Visit Requests",
+          href: "/routes/dashboard/user/visit-requests",
+          icon: "Calendar",
+        },
+        {
+          name: "My Reviews",
+          href: "/routes/dashboard/user/reviews",
+          icon: "Star",
+        },
+        {
+          name: "Favorites",
+          href: "/routes/dashboard/user/favorites",
+          icon: "Heart",
+        },
+        {
+          name: "Profile",
+          href: "/routes/dashboard/user/profile",
+          icon: "User",
+        },
       ];
 
     case "owner":
@@ -169,12 +185,22 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/visit-requests",
           icon: "Calendar",
         },
+        {
+          name: "Booking Requests",
+          href: "/routes/dashboard/owners/booking-requests",
+          icon: "UserCheck",
+        },
         // { name: "Bookings", href: "/owner-bookings", icon: "Calendar" },
         // { name: "Analytics", href: "/analytics", icon: "BarChart3" },
         {
           name: "Subscription",
           href: "/routes/dashboard/owners/subscription",
           icon: "Crown",
+        },
+        {
+          name: "Profile",
+          href: "/routes/dashboard/owners/profile",
+          icon: "User",
         },
         // { name: "Payments", href: "/payments", icon: "CreditCard" },
       ];
@@ -191,6 +217,26 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "All Listings",
           href: "/routes/dashboard/admin/listings",
           icon: "Building2",
+        },
+        {
+          name: "Booking Requests",
+          href: "/routes/dashboard/admin/booking-requests",
+          icon: "Calendar",
+        },
+        {
+          name: "Cash Payments",
+          href: "/routes/dashboard/admin/cash-payments",
+          icon: "DollarSign",
+        },
+        {
+          name: "Commissions",
+          href: "/routes/dashboard/admin/commissions",
+          icon: "TrendingUp",
+        },
+        {
+          name: "Coupon Management",
+          href: "/routes/dashboard/admin/coupons",
+          icon: "Megaphone",
         },
         {
           name: "Visit Requests",
@@ -240,11 +286,14 @@ export const getUserStats = () => ({
 
 export const getOwnerStats = () => ({
   totalListings: 3,
-  activeBookings: 15,
-  monthlyRevenue: 45000,
-  occupancyRate: 85,
+  activeListings: 2,
+  featuredListings: 1,
+  totalRevenue: 0,
+  monthlyRevenue: 0,
   totalReviews: 24,
   averageRating: 4.2,
+  pendingVisitRequests: 5,
+  totalWishlist: 12,
 });
 
 export const getAdminStats = () => ({

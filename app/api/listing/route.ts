@@ -233,7 +233,6 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
-            maxDistance: 100000,
             distanceMultiplier: 0.001,
           },
         },
@@ -241,12 +240,18 @@ export async function GET(req: NextRequest) {
           $project: {
             _id: 1,
             pgName: 1,
+            primaryLine: 1,
             primaryImage: 1,
+            images: 1,
             location: 1,
             roomTypes: 1,
             ownerId: 1,
             distance: 1,
             genderPreference: 1,
+            type: 1,
+            amenities: 1,
+            rentInclusions: 1,
+            mealTimings: 1,
             minRent: { $min: "$roomTypes.monthlyRent" }, // ✅ minRent from array
           },
         },
@@ -263,18 +268,32 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
-            maxDistance: 100000,
           },
         },
         { $count: "total" },
       ]);
       total = totalResult[0]?.total || 0;
+
+      // Debug log for primaryLine in listings
+      if (process.env.NODE_ENV === "development" && listings.length > 0) {
+        console.log(
+          "API Debug - Sample listing primaryLine:",
+          listings[0].primaryLine
+        );
+        listings.forEach((listing, index) => {
+          if (listing.primaryLine) {
+            console.log(
+              `Listing ${index} - ${listing.pgName}: "${listing.primaryLine}"`
+            );
+          }
+        });
+      }
     } else {
       // Fallback to createdAt ordering
       [listings, total] = await Promise.all([
         Listing.find(baseQuery)
           .select(
-            "_id primaryImage location pgName ownerId roomTypes genderPreference"
+            "_id primaryImage images location pgName primaryLine ownerId roomTypes genderPreference type amenities rentInclusions mealTimings"
           )
           .sort({ createdAt: -1 })
           .skip((page - 1) * per_page)
@@ -288,7 +307,9 @@ export async function GET(req: NextRequest) {
       listings = listings.map((listing: any) => ({
         ...listing,
         minRent: Math.min(
-          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
+          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+            Infinity,
+          ])
         ),
       }));
     }
@@ -330,12 +351,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("[GET_LISTINGS_ERROR]", err);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch listings",
-        data: [],
-        total: 0,
-      }    );
+    return NextResponse.json({
+      success: false,
+      message: "Failed to fetch listings",
+      data: [],
+      total: 0,
+    });
   }
 }

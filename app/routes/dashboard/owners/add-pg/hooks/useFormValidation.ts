@@ -17,6 +17,11 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.general ||= "Please enter a name for the property";
         }
 
+        if (formData.primaryLine && formData.primaryLine.length > 35) {
+          newErrors.primaryLine = true;
+          newErrors.general ||= "Primary line must be 35 characters or less";
+        }
+
         if (
           !Array.isArray(formData.roomTypes) ||
           formData.roomTypes.length === 0
@@ -48,7 +53,11 @@ export const useFormValidation = (formData: PGFormData) => {
           });
         }
 
-        if (!["male", "female", "both"].includes(formData.genderPreference)) {
+        // Gender preference is not required for commercial properties
+        if (
+          formData.type !== "commercial" &&
+          !["male", "female", "both"].includes(formData.genderPreference)
+        ) {
           newErrors.genderPreference = true;
           newErrors.general ||= "Please select a valid gender preference";
         }

@@ -82,10 +82,22 @@ export const propertyTypes = [
       { id: "1rk", label: "1 RK" },
     ],
   },
+  {
+    id: "commercial",
+    label: "Commercial Properties",
+    subTypes: [
+      { id: "office-space", label: "Office Space" },
+      { id: "shop", label: "Shop/Retail" },
+      { id: "warehouse", label: "Warehouse" },
+      { id: "restaurant", label: "Restaurant" },
+      { id: "clinic", label: "Medical Clinic" },
+    ],
+  },
 ];
 
 export const initialErrors: ValidationErrors = {
   pgName: false,
+  primaryLine: false,
   monthlyRent: false,
   additionalDetails: false,
   rulesAndRegulations: false,
@@ -108,12 +120,14 @@ export const initialErrors: ValidationErrors = {
 export const initialFormData: PGFormData = {
   id: "",
   pgName: "",
+  primaryLine: "",
   type: "",
   subType: "",
   roomTypes: [
     {
       type: "",
       numberOfRooms: 0,
+      availableRooms: 0,
       capacityPerRoom: 0,
       monthlyRent: 0,
       securityDeposit: 0,
@@ -153,6 +167,12 @@ export const initialFormData: PGFormData = {
   foodIncluded: false,
   electricityIncluded: false,
   maintenanceIncluded: false,
+  mealTimings: {
+    morning: { enabled: false, from: "07:00", to: "09:00" },
+    noon: { enabled: false, from: "12:00", to: "14:00" },
+    evening: { enabled: false, from: "18:00", to: "20:00" },
+    night: { enabled: false, from: "21:00", to: "23:00" },
+  },
   // New fields for payment
   planType: "free",
   paymentStatus: "pending",

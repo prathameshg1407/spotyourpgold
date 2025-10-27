@@ -5,7 +5,7 @@ import { jwtVerify } from "jose";
 const JWT_SECRET = process.env.JWT_SECRET!;
 const secret = new TextEncoder().encode(JWT_SECRET);
 
-export default async () => {
+const authUser = async () => {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
@@ -23,3 +23,6 @@ export default async () => {
     return null;
   }
 };
+
+export { authUser };
+export default authUser;

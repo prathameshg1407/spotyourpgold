@@ -19,6 +19,7 @@ interface FormInputProps {
   required?: boolean;
   rightElement?: React.ReactNode;
   onKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  maxLength?: number;
 }
 
 const itemVariants = {
@@ -42,6 +43,7 @@ export const FormInput = ({
   required = false,
   rightElement,
   onKeyPress,
+  maxLength,
 }: FormInputProps) => {
   return (
     <motion.div variants={itemVariants} className="w-full">
@@ -66,6 +68,7 @@ export const FormInput = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyPress={onKeyPress}
+          maxLength={maxLength}
           className={`h-11 pl-10 bg-white rounded-md text-[15px]
     ${hasError ? "border-red-400 border-2" : "border-gray-200"}
     ${rightElement ? "pr-10" : ""}

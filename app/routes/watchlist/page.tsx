@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import axios from "axios";
+import PgCard from "@/components/PgCard";
 import {
   Check,
   Trash2,
@@ -54,11 +55,27 @@ interface PGListing {
   pgName: string;
   city: string;
   minRent?: number;
+  primaryImage?: string;
+  images?: { url: string }[];
+  location?: {
+    area?: string;
+    city?: string;
+  };
+  primaryLine?: string;
+  genderPreference?: string;
+  type?: string;
+  distance?: number;
+  inWatchList?: boolean;
   ownerId: {
     _id: string;
     fullName: string;
   };
   amenities?: string[];
+  rentInclusions?: {
+    foodIncluded?: boolean;
+    electricityIncluded?: boolean;
+    maintenanceIncluded?: boolean;
+  };
   rating?: number;
   roomType?: string[];
   minSecurity?: number;
@@ -373,10 +390,14 @@ export default function WishlistCompare() {
   };
 
   return (
-    <div className="space-y-6 px-4 py-10 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">My Wishlist</h1>
-        <Button onClick={handleCompare} disabled={selected.length < 2}>
+    <div className="space-y-6 px-4 py-6 sm:py-10 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">My Wishlist</h1>
+        <Button
+          onClick={handleCompare}
+          disabled={selected.length < 2}
+          className="w-full sm:w-auto"
+        >
           Compare ({selected.length})
         </Button>
       </div>
@@ -390,58 +411,60 @@ export default function WishlistCompare() {
           <p className="text-gray-500 text-lg">No items in wishlist.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
           {listings.map((item) => (
-            <Card
-              key={item._id}
-              className={`transition-all duration-200 hover:shadow-md ${
-                selected.includes(item._id)
-                  ? "border-HG-500 bg-HG-400/10 shadow-md"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {item.pgName}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <User className="h-4 w-4" />
-                      <span>Owner: {item.ownerId?.fullName || "N/A"}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 ml-6">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(item._id)}
-                      onChange={() => toggleSelect(item._id)}
-                      className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-HG-500 text-HG-600 hover:bg-HG-50 hover:border-HG-600 bg-transparent"
-                      onClick={() => handleViewDetails(item)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-transparent"
-                      onClick={() => handleRemove(item._id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
+            <div key={item._id} className="relative group">
+              <PgCard
+                id={item._id}
+                image={item.primaryImage || item.images?.[0]?.url || ""}
+                images={item.images?.map((img: any) => img.url) || []}
+                area={item.location?.area || item.city}
+                pgName={item.pgName}
+                primaryLine={item.primaryLine}
+                ownerName={item.ownerId?.fullName}
+                price={item.minRent || 0}
+                genderPreference={item.genderPreference}
+                isWishlisted={item.inWatchList}
+                type={item.type}
+                distance={item.distance}
+                amenities={item.amenities || []}
+                rentInclusions={item.rentInclusions || {}}
+              />
+
+              {/* Overlay with action buttons */}
+              <div className="absolute top-2 left-2 right-2 flex flex-col sm:flex-row gap-2 z-20">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(item._id)}
+                    onChange={() => toggleSelect(item._id)}
+                    className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 rounded focus:ring-blue-500 bg-white shadow-md"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex gap-2 flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 sm:flex-none border-HG-500 text-HG-600 hover:bg-HG-50 hover:border-HG-600 bg-white shadow-md text-xs sm:text-sm"
+                    onClick={() => handleViewDetails(item)}
+                  >
+                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Details</span>
+                    <span className="sm:hidden">View</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 sm:flex-none border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-white shadow-md text-xs sm:text-sm"
+                    onClick={() => handleRemove(item._id)}
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden sm:inline">Remove</span>
+                    <span className="sm:hidden">Del</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -449,30 +472,34 @@ export default function WishlistCompare() {
       {/* Comparison Modal */}
       <Dialog open={compareModalOpen} onOpenChange={setCompareModalOpen}>
         <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-auto [scrollbar-width:none] p-0">
-          <DialogHeader className="p-6 pb-4 border-b">
-            <DialogTitle className="text-2xl font-bold">
+          <DialogHeader className="p-4 sm:p-6 pb-4 border-b">
+            <DialogTitle className="text-xl sm:text-2xl font-bold">
               Compare PG Accommodations ({selectedListings.length})
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-x-auto p-6">
+          <div className="overflow-x-auto p-4 sm:p-6">
             <div className="min-w-max">
               <table className="w-full border-collapse">
                 {/* Header Row */}
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="text-left p-4 font-bold text-gray-900 bg-gray-50 sticky left-0 z-10 min-w-[200px]">
-                      Feature
+                    <th className="text-left p-2 sm:p-4 font-bold text-gray-900 bg-gray-50 sticky left-0 z-10 min-w-[150px] sm:min-w-[200px]">
+                      <span className="text-sm sm:text-base">Feature</span>
                     </th>
                     {selectedListings.map((item) => (
                       <th
                         key={item._id}
-                        className="text-center p-4 font-bold text-gray-900 bg-gray-50 min-w-[250px]"
+                        className="text-center p-2 sm:p-4 font-bold text-gray-900 bg-gray-50 min-w-[200px] sm:min-w-[250px]"
                       >
-                        <div className="space-y-2">
-                          <div className="text-lg">{item.pgName}</div>
-                          <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
+                        <div className="space-y-1 sm:space-y-2">
+                          <div className="text-sm sm:text-lg font-semibold line-clamp-2">
+                            {item.pgName}
+                          </div>
+                          <div className="flex items-center justify-center gap-1 text-xs sm:text-sm text-gray-600">
                             <User className="h-3 w-3" />
-                            <span>{item.ownerId?.fullName}</span>
+                            <span className="truncate">
+                              {item.ownerId?.fullName}
+                            </span>
                           </div>
                         </div>
                       </th>
@@ -487,15 +514,19 @@ export default function WishlistCompare() {
                         key={field.key}
                         className="border-b border-gray-100 hover:bg-gray-50"
                       >
-                        <td className="p-4 font-semibold text-gray-900 bg-white sticky left-0 z-10 border-r border-gray-200">
-                          <div className="flex items-center gap-2">
-                            <IconComponent className="h-4 w-4" />
-                            {field.label}
+                        <td className="p-2 sm:p-4 font-semibold text-gray-900 bg-white sticky left-0 z-10 border-r border-gray-200">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <IconComponent className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">
+                              {field.label}
+                            </span>
                           </div>
                         </td>
                         {selectedListings.map((item) => (
-                          <td key={item._id} className="p-4 text-center">
-                            {renderComparisonValue(field.key, item)}
+                          <td key={item._id} className="p-2 sm:p-4 text-center">
+                            <div className="text-xs sm:text-sm">
+                              {renderComparisonValue(field.key, item)}
+                            </div>
                           </td>
                         ))}
                       </tr>
@@ -510,9 +541,9 @@ export default function WishlistCompare() {
 
       {/* Detail Modal */}
       <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
+            <DialogTitle className="text-xl sm:text-2xl font-bold">
               {selectedListing?.pgName}
             </DialogTitle>
           </DialogHeader>
@@ -602,7 +633,7 @@ export default function WishlistCompare() {
                 selectedListing.amenities.length > 0 && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-lg mb-3">Amenities</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
                       {selectedListing.amenities.map((amenity, index) => {
                         const IconComponent =
                           amenityIcons[amenity.toLowerCase()] || Home;

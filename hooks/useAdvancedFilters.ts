@@ -14,11 +14,11 @@ export interface FilterState {
   genderPreference: string;
   amenities: string[];
   roomTypes: string[];
-  location: string;
-  city: string;
-  area: string;
   nearbyPlaces: string[];
   visible: string[];
+  sortBy: string;
+  lat: string;
+  lng: string;
 }
 
 export interface UseAdvancedFiltersReturn {
@@ -48,11 +48,11 @@ const initialFilters: FilterState = {
   genderPreference: "",
   amenities: [],
   roomTypes: [],
-  location: "",
-  city: "",
-  area: "",
   nearbyPlaces: [],
   visible: [],
+  sortBy: "",
+  lat: "",
+  lng: "",
 };
 
 export const useAdvancedFilters = (
@@ -82,12 +82,12 @@ export const useAdvancedFilters = (
         searchParams.get("amenities")?.split(",").filter(Boolean) || [],
       roomTypes:
         searchParams.get("roomTypes")?.split(",").filter(Boolean) || [],
-      location: searchParams.get("location") || "",
-      city: searchParams.get("city") || "",
-      area: searchParams.get("area") || "",
       nearbyPlaces:
         searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [],
       visible: searchParams.get("visible")?.split(",").filter(Boolean) || [],
+      sortBy: searchParams.get("sortBy") || "",
+      lat: searchParams.get("lat") || "",
+      lng: searchParams.get("lng") || "",
     };
 
     setFilters(urlFilters);
@@ -122,13 +122,13 @@ export const useAdvancedFilters = (
         params.set("amenities", filterState.amenities.join(","));
       if (filterState.roomTypes.length > 0)
         params.set("roomTypes", filterState.roomTypes.join(","));
-      if (filterState.location) params.set("location", filterState.location);
-      if (filterState.city) params.set("city", filterState.city);
-      if (filterState.area) params.set("area", filterState.area);
       if (filterState.nearbyPlaces.length > 0)
         params.set("nearbyPlaces", filterState.nearbyPlaces.join(","));
       if (filterState.visible.length > 0)
         params.set("visible", filterState.visible.join(","));
+      if (filterState.sortBy) params.set("sortBy", filterState.sortBy);
+      if (filterState.lat) params.set("lat", filterState.lat);
+      if (filterState.lng) params.set("lng", filterState.lng);
 
       params.set("page", page.toString());
       params.set("per_page", perPage.toString());
@@ -140,7 +140,11 @@ export const useAdvancedFilters = (
 
   // Search function
   const searchWithFilters = useCallback(
-    async (customFilters?: Partial<FilterState>, forceSearch?: boolean) => {
+    async (
+      customFilters?: Partial<FilterState>,
+      forceSearch?: boolean,
+      page?: number
+    ): Promise<void> => {
       const searchFilters = customFilters
         ? { ...filters, ...customFilters }
         : filters;
@@ -151,16 +155,28 @@ export const useAdvancedFilters = (
         }
       );
 
+      // Special handling for location-based search
+      const hasLocationSearch = searchFilters.lat && searchFilters.lng;
+
       console.log("searchWithFilters called:", {
         searchFilters,
         hasActiveFilters,
+        hasLocationSearch,
         forceSearch,
         query: searchFilters.query,
+        lat: searchFilters.lat,
+        lng: searchFilters.lng,
+        page: page || currentPage,
       });
 
-      // Don't search if no filters are active and not query, unless forced
-      if (!hasActiveFilters && !searchFilters.query && !forceSearch) {
-        console.log("No search - no active filters or query");
+      // Don't search if no filters are active and not query and no location, unless forced
+      if (
+        !hasActiveFilters &&
+        !searchFilters.query &&
+        !hasLocationSearch &&
+        !forceSearch
+      ) {
+        console.log("No search - no active filters, query, or location");
         setListings([]);
         setTotal(0);
         setTotalPages(1);
@@ -170,7 +186,10 @@ export const useAdvancedFilters = (
       setLoading(true);
 
       try {
-        const searchParams = buildSearchParams(searchFilters, currentPage);
+        const searchParams = buildSearchParams(
+          searchFilters,
+          page || currentPage
+        );
         console.log(
           "Making search API call:",
           `/api/listing/search?${searchParams.toString()}`
@@ -218,7 +237,7 @@ export const useAdvancedFilters = (
 
       return () => clearTimeout(timer);
     }
-  }, [filters, currentPage, autoSearch, searchWithFilters]);
+  }, [filters, autoSearch, searchWithFilters]);
 
   // Update single filter
   const updateFilter = useCallback((key: keyof FilterState, value: any) => {

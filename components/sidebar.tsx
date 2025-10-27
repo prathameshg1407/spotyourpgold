@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Bell,
   X,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,7 @@ export const iconMap = {
   TrendingUp,
   Wallet,
   Settings,
+  DollarSign,
 };
 export type IconName = keyof typeof iconMap;
 
@@ -121,7 +123,7 @@ export function Sidebar() {
             className="ml-auto hover:bg-transparent lg:hidden"
             onClick={toggle}
           > */}
-            <X onClick={toggle} className="h-5 w-5 md:hidden" />
+          <X onClick={toggle} className="h-5 w-5 md:hidden" />
           {/* </Button> */}
         </div>
 
@@ -144,7 +146,7 @@ export function Sidebar() {
                     )}
                   >
                     <IconComponent className="h-5 w-5" />
-                    
+
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -169,35 +171,32 @@ export function Sidebar() {
 
               </Link> */}
               <div
+                onClick={async () => {
+                  const loadingToast = toast.loading("logging out...", {
+                    closeButton: true,
+                  });
 
-
-  onClick={async () => {
-                    const loadingToast = toast.loading("logging out...", {
-                      closeButton: true,
-                    });
-
-                    const res = await axios.post("/api/auth/logout");
-                     toast.dismiss(loadingToast);
-                     if (res && res?.data && res?.data?.success) {
-                      toast.dismiss(loadingToast);
-                      setUser(null);
-                      router.push("/");
-                      toast.success(
-                        res?.data?.message || "Logged out successfully.",
-                        {
-                          closeButton: true,
-                          duration: 2000,
-                        }
-                      );
-                    } else {
-                      toast.dismiss(loadingToast);
-                      toast.error(res.data?.message || "Failed to logout.", {
+                  const res = await axios.post("/api/auth/logout");
+                  toast.dismiss(loadingToast);
+                  if (res && res?.data && res?.data?.success) {
+                    toast.dismiss(loadingToast);
+                    setUser(null);
+                    router.push("/");
+                    toast.success(
+                      res?.data?.message || "Logged out successfully.",
+                      {
                         closeButton: true,
                         duration: 2000,
-                      });
-                    }
-                  }}
-
+                      }
+                    );
+                  } else {
+                    toast.dismiss(loadingToast);
+                    toast.error(res.data?.message || "Failed to logout.", {
+                      closeButton: true,
+                      duration: 2000,
+                    });
+                  }
+                }}
                 className="flex cursor-pointer items-center gap-3 rounded-md px-4 py-4 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
                 <LogOut className="h-5 w-5" />

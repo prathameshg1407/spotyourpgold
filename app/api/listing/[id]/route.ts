@@ -54,11 +54,13 @@ export async function GET(
         `
         ownerId
         pgName
+        primaryLine
         roomTypes
         genderPreference
         amenities
         additionalDetails
         rentInclusions
+        mealTimings
         rulesAndRegulations
         detailedRules
         images.url
@@ -116,12 +118,14 @@ export async function GET(
             createdAt: ownerProfile?.createdAt || listing.createdAt,
           },
           pgName: listing.pgName,
+          primaryLine: listing.primaryLine,
           minRent,
           roomTypes: listing.roomTypes,
           genderPreference: listing.genderPreference,
           amenities: listing.amenities,
           additionalDetails: listing.additionalDetails,
           rentInclusions: listing.rentInclusions,
+          mealTimings: listing.mealTimings,
           rulesAndRegulations: listing.rulesAndRegulations,
           detailedRules: listing.detailedRules,
           images: listing.images?.map((img) => ({ url: img.url })) || [],

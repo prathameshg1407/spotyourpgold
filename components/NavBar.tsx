@@ -17,12 +17,13 @@ import axios from "axios";
 import { IconCrown } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X, Filter, MapPin } from "lucide-react";
 import { useAdvancedFilters } from "@/hooks/useAdvancedFilters";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import AdvancedFilter from "./AdvancedFilter";
 import { Badge } from "./ui/badge";
 import SearchDropdown from "./SearchDropdown";
+import EnhancedSearchDropdown from "./EnhancedSearchDropdown";
 
 const NavBar = () => {
   const { user, setUser } = useUserStore();
@@ -118,24 +119,33 @@ const NavBar = () => {
 
         {/* Search Section - Hidden on mobile */}
         <div className="hidden md:flex flex-1 max-w-xl mx-8">
-          <SearchDropdown
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onClear={handleClearSearch}
-            onSelectProperty={(property) => {
-              // Navigate to property details page
-              router.push(`/routes/pg-details/${property._id}`);
-            }}
-            onSelectLocation={(location) => {
-              // Update filters based on location type
-              if (location.type === "city") {
-                updateFilter("city", location.name);
-              } else {
-                updateFilter("area", location.name);
-              }
-            }}
-            placeholder="Search by location, PG name, or owner name..."
-          />
+          <div className="flex gap-2 w-full">
+            <div className="flex-1">
+              <EnhancedSearchDropdown
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onClear={handleClearSearch}
+                onSelectProperty={(property) => {
+                  // Navigate to property details page
+                  router.push(`/routes/pg-details/${property._id}`);
+                }}
+                onSelectLocation={(location) => {
+                  // Update query filter with location name
+                  updateFilter("query", location.name);
+                }}
+                placeholder="Search by location, PG name, or nearby..."
+                showNearbyOption={true}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/routes/location-search")}
+              className="px-4 border-HG-500 text-HG-500 hover:bg-HG-50"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Location
+            </Button>
+          </div>
 
           {/* Advanced Filter Button - directly opens sidebar */}
           {/* <AdvancedFilter
@@ -236,7 +246,7 @@ const NavBar = () => {
         <div className="flex gap-2 items-center">
           {/* Search Bar - takes most of the space */}
           <div className="flex-1">
-            <SearchDropdown
+            <EnhancedSearchDropdown
               value={searchQuery}
               onChange={handleSearchChange}
               onClear={handleClearSearch}
@@ -245,16 +255,22 @@ const NavBar = () => {
                 router.push(`/routes/pg-details/${property._id}`);
               }}
               onSelectLocation={(location) => {
-                // Update filters based on location type
-                if (location.type === "city") {
-                  updateFilter("city", location.name);
-                } else {
-                  updateFilter("area", location.name);
-                }
+                // Update query filter with location name
+                updateFilter("query", location.name);
               }}
-              placeholder="Search PGs..."
+              placeholder="Search PGs, locations, or nearby..."
+              showNearbyOption={true}
             />
           </div>
+
+          {/* Location Search Button */}
+          <Button
+            variant="outline"
+            onClick={() => router.push("/routes/location-search")}
+            className="px-3 border-HG-500 text-HG-500 hover:bg-HG-50"
+          >
+            <MapPin className="w-4 h-4" />
+          </Button>
 
           {/* Mobile Advanced Filter Button - Icon only on the right */}
           {/* <div className="[&>button]:p-2 [&>button]:bg-white/80 [&>button]:backdrop-blur-md [&>button]:border-white/20 [&>button]:hover:bg-white/90 [&>button]:aspect-square [&>button>span]:hidden">
@@ -286,18 +302,6 @@ const NavBar = () => {
                 Search: {filters.query}
                 <button
                   onClick={() => removeFilter("query")}
-                  className="ml-1 hover:text-red-500"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-
-            {filters.city && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                City: {filters.city}
-                <button
-                  onClick={() => removeFilter("city")}
                   className="ml-1 hover:text-red-500"
                 >
                   <X className="h-3 w-3" />
