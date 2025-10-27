@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
-import { useBookingStore, BookingRequest } from "@/store/bookingStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,26 +35,52 @@ import {
 } from "lucide-react";
 import { BlurImage } from "@/components/BlurImage";
 
+interface BookingRequest {
+  _id: string;
+  userId: string;
+  listingId: {
+    _id: string;
+    pgName: string;
+    primaryImage: string;
+    location: {
+      area: string;
+      city: string;
+    };
+  };
+  roomType: string;
+  moveInDate: string;
+  duration: number;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  aadhaarNumber?: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  additionalRequirements?: string;
+  status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed";
+  paymentStatus: "pending" | "pending_cash_payment" | "completed_cash" | "failed" | "refunded";
+  amount: number;
+  securityDeposit: number;
+  ownerNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function BookingRequestsPage() {
   const router = useRouter();
 
-  // Zustand store
-  const {
-    bookings,
-    total,
-    totalPages,
-    currentPage,
-    activeTab,
-    loading,
-    error,
-    setCurrentPage,
-    setActiveTab,
-    updateBooking,
-    removeBooking,
-    fetchBookings,
-  } = useBookingStore();
-
   // Local state
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("pending");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(
     null
   );
@@ -64,9 +89,33 @@ export default function BookingRequestsPage() {
   const [cashPaymentProof, setCashPaymentProof] = useState("");
   const [cashCollectedBy, setCashCollectedBy] = useState("");
 
+  const fetchBookings = async (status: string, page: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(
+        `/api/booking/owner-requests?status=${
+          status === "all" ? "all" : status
+        }&page=${page}&per_page=20`
+      );
+      if (response.data.success) {
+        setBookings(response.data.data);
+        setTotal(response.data.total);
+        setTotalPages(response.data.totalPages);
+      } else {
+        setError(response.data.message || "Failed to fetch bookings");
+      }
+    } catch (error) {
+      console.error("Failed to fetch booking requests:", error);
+      setError("Failed to fetch booking requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchBookings(activeTab, currentPage);
-  }, [activeTab, currentPage, fetchBookings]);
+  }, [activeTab, currentPage]);
 
   const handleBookingAction = async (
     bookingId: string,
@@ -85,11 +134,14 @@ export default function BookingRequestsPage() {
         setOwnerNotes("");
         setSelectedBooking(null);
 
-        // Update the booking in store
-        updateBooking(bookingId, {
-          status: action,
-          ownerNotes: ownerNotes.trim() || undefined,
-        });
+        // Update the booking in local state
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking._id === bookingId
+              ? { ...booking, status: action, ownerNotes: ownerNotes.trim() || undefined }
+              : booking
+          )
+        );
       }
     } catch (error) {
       console.error(`Failed to ${action} booking:`, error);
@@ -117,10 +169,14 @@ export default function BookingRequestsPage() {
         setCashCollectedBy("");
         setSelectedBooking(null);
 
-        // Update the booking in store
-        updateBooking(bookingId, {
-          paymentStatus: "completed_cash",
-        });
+        // Update the booking in local state
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking._id === bookingId
+              ? { ...booking, paymentStatus: "completed_cash" }
+              : booking
+          )
+        );
       }
     } catch (error) {
       console.error("Failed to confirm cash payment:", error);
@@ -140,8 +196,11 @@ export default function BookingRequestsPage() {
         toast.success("Booking request deleted successfully");
         setSelectedBooking(null);
 
-        // Remove the booking from store
-        removeBooking(bookingId);
+        // Remove the booking from local state
+        setBookings(prevBookings =>
+          prevBookings.filter(booking => booking._id !== bookingId)
+        );
+        setTotal(prevTotal => prevTotal - 1);
       }
     } catch (error) {
       console.error("Failed to delete booking:", error);

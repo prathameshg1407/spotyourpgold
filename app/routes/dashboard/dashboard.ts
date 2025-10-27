@@ -219,6 +219,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Building2",
         },
         {
+          name: "Booking Requests",
+          href: "/routes/dashboard/admin/booking-requests",
+          icon: "Calendar",
+        },
+        {
           name: "Cash Payments",
           href: "/routes/dashboard/admin/cash-payments",
           icon: "DollarSign",
@@ -227,6 +232,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "Commissions",
           href: "/routes/dashboard/admin/commissions",
           icon: "TrendingUp",
+        },
+        {
+          name: "Coupon Management",
+          href: "/routes/dashboard/admin/coupons",
+          icon: "Megaphone",
         },
         {
           name: "Visit Requests",

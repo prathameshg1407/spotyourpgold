@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import Booking from "@/models/booking";
 import Listing from "@/models/listing";
 import Notification from "@/models/notification";
+import Coupon from "@/models/coupon";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       aadhaarNumber,
       additionalRequirements,
       termsAccepted,
+      couponCode,
     } = body;
 
     // Validate required fields
@@ -67,9 +69,58 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate and apply coupon if provided
+    let discountAmount = 0;
+    let appliedCoupon = null;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({
+        name: couponCode.toUpperCase(),
+        isActive: true,
+      });
+
+      if (!coupon) {
+        return NextResponse.json(
+          { success: false, message: "Invalid coupon code" },
+          { status: 400 }
+        );
+      }
+
+      // Check if coupon is expired
+      if (coupon.validUntil && new Date() > new Date(coupon.validUntil)) {
+        return NextResponse.json(
+          { success: false, message: "Coupon has expired" },
+          { status: 400 }
+        );
+      }
+
+      // Check if coupon is not yet valid
+      if (coupon.validFrom && new Date() < new Date(coupon.validFrom)) {
+        return NextResponse.json(
+          { success: false, message: "Coupon is not yet valid" },
+          { status: 400 }
+        );
+      }
+
+      // Check usage limit
+      if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
+        return NextResponse.json(
+          { success: false, message: "Coupon usage limit exceeded" },
+          { status: 400 }
+        );
+      }
+
+      // Calculate discount
+      discountAmount = Math.round(
+        (selectedRoom.monthlyRent * coupon.percentage) / 100
+      );
+      appliedCoupon = coupon;
+    }
+
     // Calculate amounts - only charge first month's rent
     const durationMonths = parseInt(duration);
-    const amount = selectedRoom.monthlyRent; // Only first month's rent
+    const originalAmount = selectedRoom.monthlyRent;
+    const amount = originalAmount - discountAmount; // Apply discount
     const securityDeposit = selectedRoom.securityDeposit;
 
     // Create booking request (pending owner approval)
@@ -91,9 +142,19 @@ export async function POST(req: NextRequest) {
       status: "pending", // Booking request pending owner approval
       paymentStatus: "pending", // Payment will be pending until approved
       paymentMethod: "cash", // Cash payment only
+      couponCode: couponCode || null,
+      discountAmount: discountAmount,
+      originalAmount: originalAmount,
     });
 
     await booking.save();
+
+    // Increment coupon usage count if coupon was applied
+    if (appliedCoupon) {
+      await Coupon.findByIdAndUpdate(appliedCoupon._id, {
+        $inc: { usageCount: 1 },
+      });
+    }
 
     // Create notification for owner
     await Notification.create({

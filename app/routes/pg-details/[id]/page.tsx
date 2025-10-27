@@ -633,12 +633,24 @@ export default function ProductPage() {
     aadhaarNumber: "",
     additionalRequirements: "",
     termsAccepted: false,
+    couponCode: "",
   });
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: "",
   });
   const [hoverRating, setHoverRating] = useState(0);
+
+  // Coupon state
+  const [couponData, setCouponData] = useState<{
+    name: string;
+    percentage: number;
+    usageCount: number;
+    maxUsage: number | null;
+    validUntil: string | null;
+  } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [listing, setListing] = useState<ListingDetails>({
     inWatchList: false,
@@ -964,7 +976,11 @@ export default function ProductPage() {
       aadhaarNumber: "",
       additionalRequirements: "",
       termsAccepted: false,
+      couponCode: "",
     });
+    // Reset coupon state
+    setCouponData(null);
+    setCouponError(null);
   };
 
   const handleBookingSuccess = async () => {
@@ -992,6 +1008,7 @@ export default function ProductPage() {
         aadhaarNumber: bookingForm.aadhaarNumber,
         additionalRequirements: bookingForm.additionalRequirements,
         termsAccepted: bookingForm.termsAccepted,
+        couponCode: bookingForm.couponCode || null,
       });
 
       if (response.data.success) {
@@ -1032,6 +1049,76 @@ export default function ProductPage() {
         [field as keyof typeof prev]: value,
       }));
     }
+  };
+
+  const validateCoupon = async (couponCode: string) => {
+    if (!couponCode.trim()) {
+      setCouponData(null);
+      setCouponError(null);
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponError(null);
+
+      const response = await fetch("/api/coupon-validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ couponCode }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCouponData(data.data);
+        setCouponError(null);
+      } else {
+        setCouponData(null);
+        setCouponError(data.message || "Invalid coupon code");
+      }
+    } catch (error) {
+      console.error("Error validating coupon:", error);
+      setCouponData(null);
+      setCouponError("Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleCouponChange = (value: string) => {
+    setBookingForm((prev) => ({
+      ...prev,
+      couponCode: value.toUpperCase(),
+    }));
+
+    // Clear previous validation results when user types
+    if (couponData || couponError) {
+      setCouponData(null);
+      setCouponError(null);
+    }
+  };
+
+  const handleCheckCoupon = () => {
+    if (bookingForm.couponCode.trim()) {
+      validateCoupon(bookingForm.couponCode);
+    }
+  };
+
+  const calculateDiscount = () => {
+    if (!couponData || !selectedRoomType) return 0;
+    return Math.round(
+      (selectedRoomType.monthlyRent * couponData.percentage) / 100
+    );
+  };
+
+  const calculateFinalAmount = () => {
+    if (!selectedRoomType) return 0;
+    const originalAmount = selectedRoomType.monthlyRent;
+    const discount = calculateDiscount();
+    return originalAmount - discount;
   };
 
   const validateStep1 = () => {
@@ -2746,6 +2833,57 @@ export default function ProductPage() {
                 <div className="space-y-6">
                   <div>
                     <h4 className="font-semibold text-lg mb-4">
+                      Coupon Code (Optional)
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={bookingForm.couponCode}
+                          onChange={(e) => handleCouponChange(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent uppercase"
+                          placeholder="Enter coupon code"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCheckCoupon}
+                          disabled={
+                            !bookingForm.couponCode.trim() || couponLoading
+                          }
+                          className="px-4 py-2 bg-HG-500 text-white rounded-lg hover:bg-HG-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {couponLoading ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Checking...</span>
+                            </div>
+                          ) : (
+                            "Check"
+                          )}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-red-500 text-sm">{couponError}</p>
+                      )}
+                      {couponData && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-green-800 font-medium">
+                              {couponData.name} - {couponData.percentage}%
+                              discount applied!
+                            </span>
+                          </div>
+                          <p className="text-green-700 text-sm mt-1">
+                            You save ₹{calculateDiscount().toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">
                       Booking Summary
                     </h4>
                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -2761,6 +2899,14 @@ export default function ProductPage() {
                           ₹{selectedRoomType?.monthlyRent?.toLocaleString()}
                         </span>
                       </div>
+                      {couponData && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Discount ({couponData.percentage}%):</span>
+                          <span className="font-medium">
+                            -₹{calculateDiscount().toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-gray-600">Duration:</span>
                         <span className="font-medium">
@@ -2785,7 +2931,7 @@ export default function ProductPage() {
                       <div className="flex justify-between font-bold text-lg">
                         <span>Amount to Pay Now:</span>
                         <span className="text-HG-600">
-                          ₹{selectedRoomType?.monthlyRent?.toLocaleString()}
+                          ₹{calculateFinalAmount().toLocaleString()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-600 mt-2">
@@ -2814,7 +2960,13 @@ export default function ProductPage() {
                         </div>
                         <label className="font-medium text-HG-700">
                           Pay First Month&apos;s Rent (₹
-                          {selectedRoomType?.monthlyRent?.toLocaleString()})
+                          {calculateFinalAmount().toLocaleString()}
+                          {couponData && (
+                            <span className="text-green-600">
+                              {" "}
+                              (After {couponData.percentage}% discount)
+                            </span>
+                          )}
                         </label>
                       </div>
                       <div className="text-sm text-gray-600 mt-2 ml-8 space-y-1">

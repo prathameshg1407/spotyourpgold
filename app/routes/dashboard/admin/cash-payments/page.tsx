@@ -198,17 +198,13 @@ export default function CashPaymentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  Commission Due
+                  Verified Payments
                 </p>
-                <p className="text-2xl font-bold text-red-600">
-                  ₹
-                  {Math.round(
-                    payments.reduce((sum, payment) => sum + payment.amount, 0) *
-                      0.05
-                  ).toLocaleString()}
+                <p className="text-2xl font-bold text-green-600">
+                  {payments.filter((p) => p.adminVerifiedAt).length}
                 </p>
               </div>
-              <Shield className="h-8 w-8 text-red-600" />
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -310,9 +306,9 @@ export default function CashPaymentsPage() {
 
                     <div className="flex items-center justify-between pt-2 border-t">
                       <div className="text-sm">
-                        <span className="text-gray-500">Commission (5%): </span>
-                        <span className="font-semibold text-red-600">
-                          ₹{Math.round(payment.amount * 0.05).toLocaleString()}
+                        <span className="text-gray-500">Payment Status: </span>
+                        <span className="font-semibold text-green-600">
+                          Cash Payment Completed
                         </span>
                       </div>
 
@@ -373,13 +369,10 @@ export default function CashPaymentsPage() {
                                   </div>
                                   <div>
                                     <label className="text-sm font-medium text-gray-500">
-                                      Commission (5%)
+                                      Payment Method
                                     </label>
-                                    <p className="font-medium text-red-600">
-                                      ₹
-                                      {Math.round(
-                                        selectedPayment.amount * 0.05
-                                      ).toLocaleString()}
+                                    <p className="font-medium text-green-600">
+                                      Cash Payment
                                     </p>
                                   </div>
                                   <div>
