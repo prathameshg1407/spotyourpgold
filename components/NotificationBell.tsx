@@ -49,7 +49,6 @@ export function NotificationBell() {
         );
       }
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +62,6 @@ export function NotificationBell() {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
     }
   };
 
@@ -74,7 +72,6 @@ export function NotificationBell() {
       setUnreadCount(0);
       toast.success("All notifications marked as read");
     } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
       toast.error("Failed to mark all notifications as read");
     }
   };

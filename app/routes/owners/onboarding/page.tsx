@@ -424,7 +424,6 @@ export default function OnboardingPage() {
           setCurrentStep("identity");
         }
       } catch (error) {
-        console.error("Error fetching owner profile:", error);
         // If there's an error and no user, go to auth
         if (!user) {
           setCurrentStep("auth");
@@ -693,7 +692,6 @@ export default function OnboardingPage() {
         }
       }
     } catch (error) {
-      console.error("Auth error:", error);
       setErrors((prev) => ({
         ...prev,
         general: "Authentication failed. Please try again.",
@@ -749,7 +747,6 @@ export default function OnboardingPage() {
         documents: documentsBase64,
       });
 
-      console.log(res);
 
       toast.dismiss(loadingToast);
 
@@ -773,7 +770,6 @@ export default function OnboardingPage() {
         }));
       }
     } catch (error) {
-      console.error("submitIdentityStep error:", error);
       toast.dismiss(loadingToast);
       toast.error("Failed to submit identity. Try again.", {
         duration: 3000,
@@ -869,7 +865,6 @@ export default function OnboardingPage() {
         });
       }
     } catch (error) {
-      console.error("Skip bank details error:", error);
       toast.error("Failed to skip bank details. Please try again.", {
         duration: 3000,
       });

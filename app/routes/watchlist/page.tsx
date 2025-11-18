@@ -292,7 +292,6 @@ export default function WishlistCompare() {
         });
       }
     } catch (error) {
-      console.error("Toggle watchlist error:", error);
       toast.error("Failed to update watchlist. Try again.", {
         closeButton: true,
         duration: 2000,

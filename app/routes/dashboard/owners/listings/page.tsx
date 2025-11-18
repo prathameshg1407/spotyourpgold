@@ -113,7 +113,6 @@ export default function MyListingsPage() {
         });
       }
     } catch (error) {
-      console.error("Status toggle error:", error);
       toast.error("Failed to update listing status", {
         closeButton: true,
         duration: 2000,
@@ -148,7 +147,6 @@ export default function MyListingsPage() {
         });
       }
     } catch (error) {
-      console.error("Delete PG error:", error);
       toast.dismiss(loadingToast);
       toast.error("Failed to delete PG. Try again.", {
         closeButton: true,

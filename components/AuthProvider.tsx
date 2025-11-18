@@ -29,13 +29,11 @@ const AuthProvider = () => {
               role: user.role,
             });
           } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
             // Continue with existing user data if refresh fails
           }
         }
         setUser(user);
       } catch (error) {
-        console.error("Failed to fetch user", error);
         setUser(null);
       } finally {
         setLoading(false);

@@ -108,7 +108,6 @@ function AllListingsContent() {
           });
         },
         (err) => {
-          console.warn("Geolocation denied or unavailable", err);
           setLocationDenied(true);
         }
       );
@@ -150,7 +149,6 @@ function AllListingsContent() {
           toast.error(res?.data?.message || "Something went wrong");
         }
       } catch (error) {
-        console.error("Nearby listings fetch error", error);
         toast.error("Failed to fetch nearby listings");
       } finally {
         setNearbyLoading(false);
@@ -214,7 +212,6 @@ function AllListingsContent() {
           toast.error(res?.data?.message || "Something went wrong");
         }
       } catch (error) {
-        console.error("Category listings fetch error", error);
         toast.error("Failed to fetch category listings");
       } finally {
         setCategoryLoading(false);
@@ -242,7 +239,6 @@ function AllListingsContent() {
         setCategoryCounts(res.data.categoryCounts);
       }
     } catch (error) {
-      console.error("Failed to fetch category counts:", error);
     }
   }, [lat, lng]);
 
@@ -280,7 +276,6 @@ function AllListingsContent() {
           toast.error(res?.data?.message || "Something went wrong");
         }
       } catch (error) {
-        console.error("Location category listings fetch error", error);
         toast.error("Failed to fetch listings");
       } finally {
         setCategoryLoading(false);

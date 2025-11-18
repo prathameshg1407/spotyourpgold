@@ -65,7 +65,6 @@ const HomeContainer = ({
         }
       } catch (error) {
         if (!ignore) {
-          console.error("listing fetch error", error);
           toast.error("Failed to fetch PG listings", { duration: 1500 });
           router.replace("/not-found");
         }

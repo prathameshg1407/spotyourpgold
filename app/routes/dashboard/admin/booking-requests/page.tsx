@@ -116,7 +116,6 @@ export default function AdminBookingRequestsPage() {
         setError(response.data.message || "Failed to fetch bookings");
       }
     } catch (error) {
-      console.error("Error fetching bookings:", error);
       setError("Failed to fetch booking requests");
     } finally {
       setLoading(false);
@@ -138,7 +137,6 @@ export default function AdminBookingRequestsPage() {
         toast.error(response.data.message || "Failed to delete booking");
       }
     } catch (error) {
-      console.error("Error deleting booking:", error);
       toast.error("Failed to delete booking request");
     } finally {
       setDeleteLoading(null);

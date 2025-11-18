@@ -61,7 +61,6 @@ export const useVideoUpload = (
 
           validFiles.push(compressedFile);
         } catch (compressionError) {
-          console.error("Video compression failed:", compressionError);
           errorMessage = `Failed to process video ${file.name}`;
           break;
         }
@@ -87,7 +86,6 @@ export const useVideoUpload = (
         videos: [...prev.videos, ...trimmedFiles],
       }));
     } catch (error) {
-      console.error("Video upload error:", error);
       setErrors((prev: any) => ({
         ...prev,
         videos: true,

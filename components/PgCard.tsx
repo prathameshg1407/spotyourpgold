@@ -23,7 +23,7 @@ import {
   Droplets,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { BlurImage } from "./BlurImage";
 import { useLoadingStore } from "@/store/loading";
 import { toast } from "sonner";
@@ -69,17 +69,15 @@ const PgCard = ({
   amenities = [],
   rentInclusions = {},
 }: PgCardProps) => {
-  // Debug log for primaryLine
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      `PgCard Debug - ID: ${id}, PG Name: ${pgName}, Primary Line: "${primaryLine}"`
-    );
-  }
   const [wishlisted, setWishlisted] = useState(isWishlisted);
   const [loading, setLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [prevImageIndex, setPrevImageIndex] = useState(0);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -137,15 +135,44 @@ const PgCard = ({
     .slice(0, 3);
   const hasMultipleImages = allImages.length > 1;
 
+  // Trigger animation after state update
+  useEffect(() => {
+    if (isTransitioning) {
+      // Small delay to ensure new image is rendered at starting position
+      const timer = setTimeout(() => {
+        setShouldAnimate(true);
+      }, 10);
+      return () => clearTimeout(timer);
+    } else {
+      setShouldAnimate(false);
+    }
+  }, [isTransitioning, currentImageIndex]);
+
   const nextImage = useCallback(() => {
+    if (isTransitioning) return;
+    setSlideDirection("left");
+    setPrevImageIndex(currentImageIndex);
+    setShouldAnimate(false);
+    setIsTransitioning(true);
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  }, [allImages.length]);
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
+  }, [allImages.length, isTransitioning, currentImageIndex]);
 
   const prevImage = useCallback(() => {
+    if (isTransitioning) return;
+    setSlideDirection("right");
+    setPrevImageIndex(currentImageIndex);
+    setShouldAnimate(false);
+    setIsTransitioning(true);
     setCurrentImageIndex(
       (prev) => (prev - 1 + allImages.length) % allImages.length
     );
-  }, [allImages.length]);
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
+  }, [allImages.length, isTransitioning, currentImageIndex]);
 
   // Touch handlers for mobile swipe
   const onTouchStart = (e: React.TouchEvent) => {
@@ -219,7 +246,6 @@ const PgCard = ({
         });
       }
     } catch (error) {
-      console.error("Toggle watchlist error:", error);
       toast.error("Failed to update watchlist. Try again.", {
         closeButton: true,
         duration: 2000,
@@ -287,18 +313,56 @@ const PgCard = ({
     >
       <div className="flex relative items-center justify-center rounded-b-2xl">
         <div
-          className="w-full h-44 overflow-hidden"
+          className="w-full h-44 overflow-hidden relative"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <BlurImage
-            className="object-cover w-full h-44"
-            src={allImages[currentImageIndex] || ""}
-            width={400}
-            height={176}
-            alt={pgName}
-          />
+          {/* Previous image - fading out and sliding */}
+          {isTransitioning && (
+            <div
+              className="absolute inset-0 transition-all duration-500 ease-in-out"
+              style={{
+                transform:
+                  slideDirection === "left"
+                    ? "translateX(-20px)"
+                    : "translateX(20px)",
+                opacity: 0,
+              }}
+            >
+              <BlurImage
+                className="object-cover w-full h-44"
+                src={allImages[prevImageIndex] || ""}
+                width={400}
+                height={176}
+                alt={pgName}
+              />
+            </div>
+          )}
+
+          {/* Current image - fading in and sliding */}
+          <div
+            key={`img-${currentImageIndex}`}
+            data-image-key={`img-${currentImageIndex}`}
+            className="absolute inset-0 transition-all duration-500 ease-in-out"
+            style={{
+              transform:
+                isTransitioning && !shouldAnimate && slideDirection === "left"
+                  ? "translateX(20px)"
+                  : isTransitioning && !shouldAnimate && slideDirection === "right"
+                  ? "translateX(-20px)"
+                  : "translateX(0)",
+              opacity: isTransitioning && !shouldAnimate ? 0 : 1,
+            }}
+          >
+            <BlurImage
+              className="object-cover w-full h-44"
+              src={allImages[currentImageIndex] || ""}
+              width={400}
+              height={176}
+              alt={pgName}
+            />
+          </div>
         </div>
 
         {/* Share Icon - Top Left Corner */}

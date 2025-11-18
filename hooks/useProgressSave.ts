@@ -35,20 +35,15 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
   // Load existing progress on mount
   const loadProgress = useCallback(async () => {
     try {
-      console.log("🔄 Loading progress...");
       const response = await axios.get("/api/listing/progress");
-      console.log("📥 Progress response:", response.data);
 
       if (response.data.success && response.data.data) {
         setSavedProgress(response.data.data);
         setLastSaved(new Date(response.data.data.lastSavedAt));
-        console.log("✅ Progress loaded successfully:", response.data.data);
         return response.data.data;
-      } else {
-        console.log("ℹ️ No saved progress found");
       }
     } catch (error) {
-      console.error("❌ Failed to load progress:", error);
+      // Error handled silently
     }
     return null;
   }, []);
@@ -57,15 +52,12 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
   const saveProgress = useCallback(
     async (data: ProgressData) => {
       if (isSaving) {
-        console.log("⏳ Already saving, skipping...");
         return; // Prevent multiple simultaneous saves
       }
 
-      console.log("💾 Saving progress:", data);
       setIsSaving(true);
       try {
         const response = await axios.post("/api/listing/progress", data);
-        console.log("📤 Save response:", response.data);
 
         if (response.data.success) {
           setLastSaved(new Date());
@@ -80,13 +72,11 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
             toast.success("Progress saved successfully!");
           }
 
-          console.log("✅ Progress saved successfully");
           return response.data.data;
         } else {
           throw new Error(response.data.message || "Failed to save progress");
         }
       } catch (error: any) {
-        console.error("❌ Save progress error:", error);
         onSaveError?.(error);
 
         // Show error toast
@@ -104,11 +94,8 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
   const autoSave = useCallback(
     (data: ProgressData) => {
       if (!enableAutoSave || data.isCompleted) {
-        console.log("⏸️ Auto-save disabled or form completed");
         return;
       }
-
-      console.log("⏰ Setting auto-save timeout...");
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -120,11 +107,8 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
 
         // Only save if data has changed
         if (currentDataString !== lastSavedDataRef.current) {
-          console.log("🔄 Data changed, triggering auto-save...");
           setHasUnsavedChanges(true);
-          saveProgress(data).catch(console.error);
-        } else {
-          console.log("ℹ️ No changes detected, skipping auto-save");
+          saveProgress(data).catch(() => {});
         }
       }, autoSaveDelay);
     },
@@ -154,7 +138,6 @@ export const useProgressSave = (options: UseProgressSaveOptions = {}) => {
       lastSavedDataRef.current = "";
       toast.success("Progress cleared successfully");
     } catch (error) {
-      console.error("Failed to clear progress:", error);
       toast.error("Failed to clear progress");
     }
   }, []);

@@ -158,17 +158,6 @@ export const useAdvancedFilters = (
       // Special handling for location-based search
       const hasLocationSearch = searchFilters.lat && searchFilters.lng;
 
-      console.log("searchWithFilters called:", {
-        searchFilters,
-        hasActiveFilters,
-        hasLocationSearch,
-        forceSearch,
-        query: searchFilters.query,
-        lat: searchFilters.lat,
-        lng: searchFilters.lng,
-        page: page || currentPage,
-      });
-
       // Don't search if no filters are active and not query and no location, unless forced
       if (
         !hasActiveFilters &&
@@ -176,7 +165,6 @@ export const useAdvancedFilters = (
         !hasLocationSearch &&
         !forceSearch
       ) {
-        console.log("No search - no active filters, query, or location");
         setListings([]);
         setTotal(0);
         setTotalPages(1);
@@ -190,25 +178,14 @@ export const useAdvancedFilters = (
           searchFilters,
           page || currentPage
         );
-        console.log(
-          "Making search API call:",
-          `/api/listing/search?${searchParams.toString()}`
-        );
         const response = await axios.get(
           `/api/listing/search?${searchParams.toString()}`
         );
-
-        console.log("Search API response:", response.data);
 
         if (response.data.success) {
           setListings(response.data.data);
           setTotal(response.data.total);
           setTotalPages(response.data.totalPages);
-          console.log(
-            "Search results set:",
-            response.data.data.length,
-            "items"
-          );
         } else {
           toast.error(response.data.message || "Search failed");
           setListings([]);
@@ -216,7 +193,6 @@ export const useAdvancedFilters = (
           setTotalPages(1);
         }
       } catch (error: any) {
-        console.error("Search error:", error);
         toast.error("Failed to search properties");
         setListings([]);
         setTotal(0);

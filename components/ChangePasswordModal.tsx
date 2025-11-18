@@ -104,7 +104,6 @@ export default function ChangePasswordModal({
         toast.error(response.data.message || "Failed to change password");
       }
     } catch (error: any) {
-      console.error("Change password error:", error);
       toast.error(error.response?.data?.message || "Failed to change password");
     } finally {
       setLoading(false);

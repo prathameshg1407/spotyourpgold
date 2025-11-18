@@ -101,7 +101,6 @@ export default function SearchDropdown({
       }
       return null;
     } catch (error) {
-      console.error("Geocoding failed:", error);
       return null;
     }
   }, []);
@@ -208,15 +207,9 @@ export default function SearchDropdown({
       try {
         // Check if this looks like a location query and geocode it
         const isLocation = isLocationQuery(query);
-        console.log("SearchDropdown - Query analysis:", {
-          query,
-          isLocation,
-          detectedLocation,
-        });
 
         if (isLocation) {
           const locationData = await geocodeLocation(query);
-          console.log("SearchDropdown - Geocoding result:", locationData);
           if (locationData) {
             setDetectedLocation(locationData);
           }
@@ -238,7 +231,6 @@ export default function SearchDropdown({
           );
         }
       } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
         setSuggestions({ properties: [], locations: [] });
         setDetectedLocation(null);
         setIsOpen(false);
@@ -306,11 +298,6 @@ export default function SearchDropdown({
               }&lng=${detectedLocation.lng}`
             : `/routes/all-listings?q=${encodeURIComponent(value)}`;
 
-          console.log("SearchDropdown - Navigation:", {
-            value,
-            detectedLocation,
-            searchUrl,
-          });
 
           router.push(searchUrl);
         }

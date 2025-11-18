@@ -1,770 +1,2914 @@
 [
   {
-    "name": "Rajwada Palace",
-    "displayName": "Rajwada Palace, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "360Degree Coaching Institute",
+    "displayName": "360Degree Coaching Institute Indore",
+    "lat": 22.6957053,
+    "lng": 75.8655694,
     "city": "Indore",
-    "aliases": ["Holkar Palace", "Rajwada"]
+    "aliases": ["360 Degree", "360Degree"]
   },
   {
-    "name": "Lal Bagh Palace",
-    "displayName": "Lal Bagh Palace, Indore",
-    "lat": 22.7057,
-    "lng": 75.8338,
+    "name": "5/78 Sky Bar",
+    "displayName": "5/78 SKY BAR",
+    "lat": 22.7640165,
+    "lng": 75.8857571,
     "city": "Indore",
-    "aliases": ["Lalbagh Palace"]
+    "aliases": ["Sky Bar Scheme 78", "Brilliant Convention Center"]
   },
   {
-    "name": "Khajrana Ganesh Temple",
-    "displayName": "Khajrana Ganesh Temple, Indore",
-    "lat": 22.7193,
-    "lng": 75.879,
+    "name": "510 Pink City",
+    "displayName": "510 , PINK CITY",
+    "lat": 22.7811303,
+    "lng": 75.8884105,
     "city": "Indore",
-    "aliases": ["Khajrana Temple"]
+    "aliases": ["Apartment 510", "Pink City Sector A"]
   },
   {
-    "name": "Sarafa Bazaar",
-    "displayName": "Sarafa Bazaar, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "584 Pink City",
+    "displayName": "584 Pink City",
+    "lat": 22.7803312,
+    "lng": 75.8883801,
     "city": "Indore",
-    "aliases": ["Sarafa Market"]
+    "aliases": ["House 584", "Niranjanpur"]
   },
   {
-    "name": "Chhappan Dukan",
-    "displayName": "Chhappan Dukan, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "588 Pink City",
+    "displayName": "588 PINK CITY",
+    "lat": 22.7801183,
+    "lng": 75.8884424,
     "city": "Indore",
-    "aliases": ["56 Dukan"]
+    "aliases": ["Apartment 588", "Scheme 78 Complex"]
   },
   {
-    "name": "Bombay Hospital",
-    "displayName": "Bombay Hospital, Indore",
-    "lat": 22.7196,
-    "lng": 75.888,
+    "name": "AAYAM Career Institute",
+    "displayName": "AAYAM Career Institute Pvt. Ltd.",
+    "lat": 22.7232738,
+    "lng": 75.8910067,
     "city": "Indore",
-    "aliases": ["Bombay Hospital Indore"]
+    "aliases": ["AAYAM", "Aayam"]
   },
   {
-    "name": "Choithram Hospital",
-    "displayName": "Choithram Hospital, Indore",
-    "lat": 22.705,
-    "lng": 75.88,
+    "name": "AB Road",
+    "displayName": "AB Road, Indore",
+    "lat": 22.725834,
+    "lng": 75.887392,
     "city": "Indore",
-    "aliases": ["Choithram Hospital & Research Centre"]
+    "aliases": ["AB Road Main", ""]
   },
   {
-    "name": "Apollo Hospital",
-    "displayName": "Apollo Hospital, Indore",
-    "lat": 22.73,
-    "lng": 75.89,
+    "name": "ABC INSTITUTE",
+    "displayName": "ABC INSTITUTE",
+    "lat": 22.7234567,
+    "lng": 75.8765432,
     "city": "Indore",
-    "aliases": ["Apollo Indore"]
+    "aliases": ["ABC", "ABC Coaching"]
   },
   {
-    "name": "Fortis Hospital",
-    "displayName": "Fortis Hospital, Indore",
-    "lat": 22.74,
-    "lng": 75.9,
+    "name": "ALLEN Career Institute",
+    "displayName": "ALLEN Career Institute, South Tukoganj Campus (H.O.), Indore",
+    "lat": 22.7187393,
+    "lng": 75.8756278,
     "city": "Indore",
-    "aliases": ["Fortis Indore"]
+    "aliases": ["ALLEN", "ALLEN Indore"]
   },
   {
-    "name": "Medanta Hospital",
-    "displayName": "Medanta Hospital, Indore",
-    "lat": 22.75,
-    "lng": 75.91,
+    "name": "ASSEMBLE CAREER INSTITUTE",
+    "displayName": "ASSEMBLE CAREER INSTITUTE NEET-UG",
+    "lat": 22.7198765,
+    "lng": 75.8723456,
     "city": "Indore",
-    "aliases": ["Medanta Indore"]
+    "aliases": ["ASSEMBLE", "Assemble Institute"]
   },
   {
-    "name": "AIIMS Indore",
-    "displayName": "AIIMS Indore",
-    "lat": 22.76,
-    "lng": 75.92,
+    "name": "AVP HOSPITAL",
+    "displayName": "AVP HOSPITAL",
+    "lat": 22.7025362,
+    "lng": 75.861853,
     "city": "Indore",
-    "aliases": ["All India Institute of Medical Sciences Indore"]
+    "aliases": ["AVP", "AVP Hospital Bhanwar Kuan"]
   },
   {
-    "name": "Maharaja Yeshwantrao Hospital",
-    "displayName": "Maharaja Yeshwantrao Hospital, Indore",
-    "lat": 22.72,
-    "lng": 75.86,
+    "name": "Aakash Institute Geeta Bhawan",
+    "displayName": "Aakash Institute, Geeta Bhawan (Indore)",
+    "lat": 22.7186829,
+    "lng": 75.8837976,
     "city": "Indore",
-    "aliases": ["MY Hospital", "M.Y. Hospital"]
+    "aliases": ["Aakash", "Aakash Indore"]
   },
   {
-    "name": "Indore Christian Hospital",
-    "displayName": "Indore Christian Hospital, Indore",
+    "name": "Aarambh Restaurant",
+    "displayName": "Aarambh Restaurant and Banquet",
+    "lat": 22.7025,
+    "lng": 75.8695,
+    "city": "Indore",
+    "aliases": ["Aarambh", "Banquet Hall"]
+  },
+  {
+    "name": "Abhinay Kala Samaj",
+    "displayName": "Abhinay Kala Samaj, Indore",
+    "lat": 22.7234,
+    "lng": 75.8589,
+    "city": "Indore",
+    "aliases": ["Kala Samaj", "Cultural Center"]
+  },
+  {
+    "name": "Achievers Career Institute",
+    "displayName": "Achievers Career Institute",
+    "lat": 22.7556413,
+    "lng": 75.8697473,
+    "city": "Indore",
+    "aliases": ["Achievers", "Achievers Institute"]
+  },
+  {
+    "name": "Agrasen Nagar",
+    "displayName": "Agrasen Nagar Locality, Indore",
+    "lat": 22.705123,
+    "lng": 75.865789,
+    "city": "Indore",
+    "aliases": ["Agrasen Nagar Area", ""]
+  },
+  {
+    "name": "Allen Career Institute Palasia",
+    "displayName": "Allen Career Institute, Palasia Campus, Indore",
+    "lat": 22.7230808,
+    "lng": 75.8870118,
+    "city": "Indore",
+    "aliases": ["ALLEN Palasia", "ALLEN Old Palasia"]
+  },
+  {
+    "name": "Ambika Market",
+    "displayName": "Ambika Market",
     "lat": 22.71,
-    "lng": 75.85,
-    "city": "Indore",
-    "aliases": ["Christian Hospital"]
-  },
-  {
-    "name": "Sri Aurobindo Institute of Medical Sciences",
-    "displayName": "Sri Aurobindo Institute of Medical Sciences, Indore",
-    "lat": 22.77,
-    "lng": 75.93,
-    "city": "Indore",
-    "aliases": ["SAIMS", "Sri Aurobindo Medical College"]
-  },
-  {
-    "name": "Indore Institute of Medical Sciences",
-    "displayName": "Indore Institute of Medical Sciences, Indore",
-    "lat": 22.78,
-    "lng": 75.94,
-    "city": "Indore",
-    "aliases": ["IIMS", "Indore Medical College"]
-  },
-  {
-    "name": "Government Medical College Indore",
-    "displayName": "Government Medical College Indore",
-    "lat": 22.79,
-    "lng": 75.95,
-    "city": "Indore",
-    "aliases": ["GMC Indore", "Government Medical College"]
-  },
-  {
-    "name": "Devi Ahilya Vishwavidyalaya",
-    "displayName": "Devi Ahilya Vishwavidyalaya, Indore",
-    "lat": 22.6866,
-    "lng": 75.879,
-    "city": "Indore",
-    "aliases": ["DAVV", "Indore University"]
-  },
-  {
-    "name": "IIM Indore",
-    "displayName": "IIM Indore",
-    "lat": 22.52,
-    "lng": 75.92,
-    "city": "Indore",
-    "aliases": ["IIMI", "Indian Institute of Management Indore"]
-  },
-  {
-    "name": "IIT Indore",
-    "displayName": "IIT Indore",
-    "lat": 22.53,
-    "lng": 75.93,
-    "city": "Indore",
-    "aliases": ["Indian Institute of Technology Indore"]
-  },
-  {
-    "name": "NIT Indore",
-    "displayName": "NIT Indore",
-    "lat": 22.54,
-    "lng": 75.94,
-    "city": "Indore",
-    "aliases": ["National Institute of Technology Indore"]
-  },
-  {
-    "name": "Holkar Science College",
-    "displayName": "Holkar Science College, Indore",
-    "lat": 22.7,
     "lng": 75.87,
     "city": "Indore",
-    "aliases": ["Holkar College"]
+    "aliases": ["Ambika Bazaar"]
   },
   {
-    "name": "Government Holkar Science College",
-    "displayName": "Government Holkar Science College, Indore",
-    "lat": 22.71,
-    "lng": 75.88,
+    "name": "Angaraa Restaurant",
+    "displayName": "Angaraa - Best Rooftop Restaurant in Indore",
+    "lat": 22.7257073,
+    "lng": 75.8941202,
     "city": "Indore",
-    "aliases": ["Government Holkar College"]
-  },
-  {
-    "name": "Daly College",
-    "displayName": "Daly College, Indore",
-    "lat": 22.72,
-    "lng": 75.89,
-    "city": "Indore",
-    "aliases": ["Daly College Indore"]
-  },
-  {
-    "name": "St. Paul Higher Secondary School",
-    "displayName": "St. Paul Higher Secondary School, Indore",
-    "lat": 22.73,
-    "lng": 75.9,
-    "city": "Indore",
-    "aliases": ["St. Paul School"]
-  },
-  {
-    "name": "Kendriya Vidyalaya Indore",
-    "displayName": "Kendriya Vidyalaya Indore",
-    "lat": 22.74,
-    "lng": 75.91,
-    "city": "Indore",
-    "aliases": ["KV Indore"]
-  },
-  {
-    "name": "Delhi Public School Indore",
-    "displayName": "Delhi Public School Indore",
-    "lat": 22.75,
-    "lng": 75.92,
-    "city": "Indore",
-    "aliases": ["DPS Indore"]
-  },
-  {
-    "name": "The Emerald Heights International School",
-    "displayName": "The Emerald Heights International School, Indore",
-    "lat": 22.76,
-    "lng": 75.93,
-    "city": "Indore",
-    "aliases": ["Emerald Heights", "EHIS"]
-  },
-  {
-    "name": "Choithram School",
-    "displayName": "Choithram School, Indore",
-    "lat": 22.77,
-    "lng": 75.94,
-    "city": "Indore",
-    "aliases": ["Choithram School Indore"]
-  },
-  {
-    "name": "C21 Mall",
-    "displayName": "C21 Mall, Indore",
-    "lat": 22.75,
-    "lng": 75.9,
-    "city": "Indore",
-    "aliases": ["Century 21 Mall"]
-  },
-  {
-    "name": "Treasure Island Mall",
-    "displayName": "Treasure Island Mall, Indore",
-    "lat": 22.72,
-    "lng": 75.88,
-    "city": "Indore",
-    "aliases": ["TI Mall"]
-  },
-  {
-    "name": "Phoenix Citadel Mall",
-    "displayName": "Phoenix Citadel Mall, Indore",
-    "lat": 22.73,
-    "lng": 75.89,
-    "city": "Indore",
-    "aliases": ["Phoenix Mall", "Citadel Mall"]
-  },
-  {
-    "name": "Crystal Palm Mall",
-    "displayName": "Crystal Palm Mall, Indore",
-    "lat": 22.74,
-    "lng": 75.9,
-    "city": "Indore",
-    "aliases": ["Crystal Palm"]
-  },
-  {
-    "name": "Malhar Mega Mall",
-    "displayName": "Malhar Mega Mall, Indore",
-    "lat": 22.75,
-    "lng": 75.91,
-    "city": "Indore",
-    "aliases": ["Malhar Mall"]
-  },
-  {
-    "name": "Central Mall Indore",
-    "displayName": "Central Mall Indore",
-    "lat": 22.76,
-    "lng": 75.92,
-    "city": "Indore",
-    "aliases": ["Central Mall"]
-  },
-  {
-    "name": "Indore Junction Railway Station",
-    "displayName": "Indore Junction Railway Station",
-    "lat": 22.72,
-    "lng": 75.87,
-    "city": "Indore",
-    "aliases": ["Indore Railway Station"]
-  },
-  {
-    "name": "Devi Ahilya Bai Holkar Airport",
-    "displayName": "Devi Ahilya Bai Holkar Airport, Indore",
-    "lat": 22.72,
-    "lng": 75.8,
-    "city": "Indore",
-    "aliases": ["Indore Airport"]
-  },
-  {
-    "name": "Indore Bus Stand",
-    "displayName": "Indore Bus Stand",
-    "lat": 22.71,
-    "lng": 75.86,
-    "city": "Indore",
-    "aliases": ["Indore Bus Station", "City Bus Stand"]
-  },
-  {
-    "name": "Sarafa Metro Station",
-    "displayName": "Sarafa Metro Station, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
-    "city": "Indore",
-    "aliases": ["Sarafa Metro"]
-  },
-  {
-    "name": "Rajwada Metro Station",
-    "displayName": "Rajwada Metro Station, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
-    "city": "Indore",
-    "aliases": ["Rajwada Metro"]
-  },
-  {
-    "name": "Vijay Nagar Metro Station",
-    "displayName": "Vijay Nagar Metro Station, Indore",
-    "lat": 22.73,
-    "lng": 75.87,
-    "city": "Indore",
-    "aliases": ["Vijay Nagar Metro"]
-  },
-  {
-    "name": "Palasia Metro Station",
-    "displayName": "Palasia Metro Station, Indore",
-    "lat": 22.74,
-    "lng": 75.88,
-    "city": "Indore",
-    "aliases": ["Palasia Metro"]
-  },
-  {
-    "name": "Bhawarkuan Metro Station",
-    "displayName": "Bhawarkuan Metro Station, Indore",
-    "lat": 22.75,
-    "lng": 75.89,
-    "city": "Indore",
-    "aliases": ["Bhawarkuan Metro"]
-  },
-  {
-    "name": "Indore Central Museum",
-    "displayName": "Indore Central Museum",
-    "lat": 22.7196,
-    "lng": 75.8577,
-    "city": "Indore",
-    "aliases": ["Central Museum"]
-  },
-  {
-    "name": "Patalpani Waterfall",
-    "displayName": "Patalpani Waterfall, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
-    "city": "Indore",
-    "aliases": ["Patalpani"]
+    "aliases": ["Angaraa", "Rooftop Restaurant"]
   },
   {
     "name": "Annapurna Temple",
-    "displayName": "Annapurna Temple, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "displayName": "Annapurna Mandir, Indore",
+    "lat": 22.730123,
+    "lng": 75.854789,
     "city": "Indore",
-    "aliases": ["Annapurna Mandir"]
+    "aliases": ["Annapurna Mandir", ""]
   },
   {
-    "name": "Ralamandal Wildlife Sanctuary",
-    "displayName": "Ralamandal Wildlife Sanctuary, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "Anoop Nagar",
+    "displayName": "Anoop Nagar, Indore, Madhya Pradesh 452011",
+    "lat": 22.7312,
+    "lng": 75.8876,
     "city": "Indore",
-    "aliases": ["Ralamandal Sanctuary"]
+    "aliases": ["Anoop", "Road No 2"]
   },
   {
-    "name": "Shree Bada Ganpati Mandir",
-    "displayName": "Shree Bada Ganpati Mandir, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "Anoop Nagar",
+    "displayName": "Anoop Nagar Locality, Indore",
+    "lat": 22.708567,
+    "lng": 75.873456,
     "city": "Indore",
-    "aliases": ["Bada Ganpati Temple"]
+    "aliases": ["Anoop Nagar Area", ""]
   },
   {
-    "name": "ISKCON Radha Govind Temple",
-    "displayName": "ISKCON Radha Govind Temple, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "Anuradha Nagar",
+    "displayName": "Anuradha Nagar Locality, Indore",
+    "lat": 22.712345,
+    "lng": 75.859876,
     "city": "Indore",
-    "aliases": ["ISKCON Temple"]
+    "aliases": ["Anuradha Nagar Area", ""]
+  },
+  {
+    "name": "Apex Studio Unisex Saloon",
+    "displayName": "Apex studio Unisex saloon",
+    "lat": 22.7,
+    "lng": 75.8672,
+    "city": "Indore",
+    "aliases": ["Apex Salon", "Unisex Salon"]
+  },
+  {
+    "name": "Apne Ram Ka Nirala Dham",
+    "displayName": "Apne Ram Ka Nirala Dham Ram ravan mandir",
+    "lat": 22.7238041,
+    "lng": 75.9157842,
+    "city": "Indore",
+    "aliases": ["Ram Mandir", "Nirala Dham"]
+  },
+  {
+    "name": "Apollo Hospitals",
+    "displayName": "Apollo Hospitals Indore - New Block",
+    "lat": 22.759,
+    "lng": 75.884,
+    "city": "Indore",
+    "aliases": ["Apollo", "Apollo Hospital Vijay Nagar"]
+  },
+  {
+    "name": "Apple Hospital",
+    "displayName": "Apple Hospital",
+    "lat": 22.6939541,
+    "lng": 75.8665271,
+    "city": "Indore",
+    "aliases": ["Apple Multispeciality Hospital"]
+  },
+  {
+    "name": "Apple Hospital Indore",
+    "displayName": "Apple hospital indore",
+    "lat": 22.6878923,
+    "lng": 75.861318,
+    "city": "Indore",
+    "aliases": ["Apple Hospital"]
+  },
+  {
+    "name": "Aranya Nagar",
+    "displayName": "Aranya Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7198,
+    "lng": 75.8745,
+    "city": "Indore",
+    "aliases": ["Aranya", "Extension"]
+  },
+  {
+    "name": "Ashirwad Complex",
+    "displayName": "Ashirwad Complex",
+    "lat": 22.7213359,
+    "lng": 75.9014441,
+    "city": "Indore",
+    "aliases": ["Ashirwad", "Residential Complex"]
+  },
+  {
+    "name": "Atala Bazar Chor Bazar",
+    "displayName": "Atala Bazar Chor Bazar",
+    "lat": 22.7173316,
+    "lng": 75.8550177,
+    "city": "Indore",
+    "aliases": ["Atala Bazar", "Chor Bazar"]
+  },
+  {
+    "name": "Atulya IT Park",
+    "displayName": "Atulya IT Park, Indrapuri Colony",
+    "lat": 22.686889,
+    "lng": 75.871277,
+    "city": "Indore",
+    "aliases": ["Atulya Park", "Bhanwar Kuwa IT"]
+  },
+  {
+    "name": "Azad Nagar",
+    "displayName": "Azad Nagar, Indore, Madhya Pradesh 452001",
+    "lat": 22.696264,
+    "lng": 75.8875248,
+    "city": "Indore",
+    "aliases": ["Azad", "A.B. Road"]
+  },
+  {
+    "name": "BCM Kokilaben Hospital",
+    "displayName": "BCM Kokilaben Dhirubhai Ambani Hospital, Indore",
+    "lat": 22.7522398,
+    "lng": 75.9256119,
+    "city": "Indore",
+    "aliases": ["Kokilaben Hospital", "BCM Hospital"]
+  },
+  {
+    "name": "Bada Ganapati",
+    "displayName": "Bada Ganapati Temple, Indore",
+    "lat": 22.717634,
+    "lng": 75.861234,
+    "city": "Indore",
+    "aliases": ["Big Ganesha", ""]
+  },
+  {
+    "name": "Balaji Tutorials",
+    "displayName": "Balaji Tutorials",
+    "lat": 22.6934584,
+    "lng": 75.8668757,
+    "city": "Indore",
+    "aliases": ["Balaji", "Balaji Tutorial"]
+  },
+  {
+    "name": "Bapu Ki Kutia",
+    "displayName": "Bapu Ki Kutia (since 1964)",
+    "lat": 22.7288138,
+    "lng": 75.8879449,
+    "city": "Indore",
+    "aliases": ["Bapu Kutia", "Bapu Ki Kutiya"]
+  },
+  {
+    "name": "Bapu Ki Kutia",
+    "displayName": "Bapu Ki Kutia (since 1964)",
+    "lat": 22.6991821,
+    "lng": 75.866321,
+    "city": "Indore",
+    "aliases": ["Bapu Kutia", "Inox Restaurant"]
+  },
+  {
+    "name": "Bhandari Hospital",
+    "displayName": "Bhandari Hospital and Research Centre",
+    "lat": 22.7527509,
+    "lng": 75.8890385,
+    "city": "Indore",
+    "aliases": ["BHRC", "Bhandari Research Centre"]
+  },
+  {
+    "name": "Bhandari Hospital",
+    "displayName": "Bhandari Hospital and Research Centre",
+    "lat": 22.745,
+    "lng": 75.895,
+    "city": "Indore",
+    "aliases": ["BHRC", "Bhandari Medical"]
+  },
+  {
+    "name": "Bharat Sanchar Nigam Limited",
+    "displayName": "Bharat Sanchar Nigam Limited, Indore",
+    "lat": 22.7289,
+    "lng": 75.8745,
+    "city": "Indore",
+    "aliases": ["BSNL", "Telecom Office"]
+  },
+  {
+    "name": "Bhawarkua Square",
+    "displayName": "Bhawarkua Square",
+    "lat": 22.692,
+    "lng": 75.866,
+    "city": "Indore",
+    "aliases": ["Bhanwarkua Square", "Bhawarkuan", "Bhanwar Kuwa"]
+  },
+  {
+    "name": "Bhawti",
+    "displayName": "Bhawti",
+    "lat": 22.6896932,
+    "lng": 75.8638197,
+    "city": "Indore",
+    "aliases": ["Bhawti Coaching"]
+  },
+  {
+    "name": "Bholaram",
+    "displayName": "Bholaram",
+    "lat": 22.6859407,
+    "lng": 75.8636355,
+    "city": "Indore",
+    "aliases": ["Bholaram Area"]
+  },
+  {
+    "name": "Bhool Bhulaiyya",
+    "displayName": "Bhool Bhulaiyya",
+    "lat": 22.6775292,
+    "lng": 75.8577978,
+    "city": "Indore",
+    "aliases": ["Bhool Bhulaiya"]
+  },
+  {
+    "name": "Bhopal Bakehouse and Cafe",
+    "displayName": "Bhopal Bakehouse and Cafe",
+    "lat": 22.7238662,
+    "lng": 75.8949733,
+    "city": "Indore",
+    "aliases": ["Bhopal Bakery", "Bakehouse Cafe"]
+  },
+  {
+    "name": "Bhupendra Neema Classes",
+    "displayName": "Bhupendra Neema Classes",
+    "lat": 22.6945678,
+    "lng": 75.8689012,
+    "city": "Indore",
+    "aliases": ["Neema Classes", "Bhupendra Neema"]
+  },
+  {
+    "name": "Bijalpur",
+    "displayName": "Bijalpur, Indore, Madhya Pradesh",
+    "lat": 22.7045,
+    "lng": 75.8423,
+    "city": "Indore",
+    "aliases": ["Bijalpur East", "West"]
+  },
+  {
+    "name": "Bijalpur Square",
+    "displayName": "Bijalpur Square",
+    "lat": 22.6715025,
+    "lng": 75.8346567,
+    "city": "Indore",
+    "aliases": ["Bijalpur", "Bijalpur Chauraha"]
+  },
+  {
+    "name": "Birthday Party Wala",
+    "displayName": "Birthday Party Wala",
+    "lat": 22.721086,
+    "lng": 75.8976996,
+    "city": "Indore",
+    "aliases": ["Party Store", "Sanvid Nagar"]
+  },
+  {
+    "name": "Blue Bells Hotel",
+    "displayName": "Blue Bells Hotel",
+    "lat": 22.6910375,
+    "lng": 75.8648352,
+    "city": "Indore",
+    "aliases": ["Blue Bells", "3 Star Hotel"]
+  },
+  {
+    "name": "Blue Leaf by Papaya Tree",
+    "displayName": "Blue Leaf by Papaya Tree",
+    "lat": 22.699043,
+    "lng": 75.924731,
+    "city": "Indore",
+    "aliases": ["Blue Leaf", "Papaya Tree"]
+  },
+  {
+    "name": "Bombay Hospital",
+    "displayName": "Bombay Hospital, Vijay Nagar",
+    "lat": 22.725123,
+    "lng": 75.850678,
+    "city": "Indore",
+    "aliases": ["Bombay Hospital Indore", ""]
+  },
+  {
+    "name": "Bombay Hospital",
+    "displayName": "Bombay Hospital",
+    "lat": 22.75,
+    "lng": 75.901,
+    "city": "Indore",
+    "aliases": ["Bombay Multispeciality", "Bombay Medical"]
+  },
+  {
+    "name": "Brilliant Convention Center",
+    "displayName": "Brilliant Convention Center",
+    "lat": 22.7640165,
+    "lng": 75.8857571,
+    "city": "Indore",
+    "aliases": ["Convention Park", "Scheme 78 Business"]
+  },
+  {
+    "name": "Bunk Cafe",
+    "displayName": "BUNK CAFE @ Sch No 78 Vijay Nagar",
+    "lat": 22.7627917,
+    "lng": 75.8854382,
+    "city": "Indore",
+    "aliases": ["Bunk Cafe Vijay Nagar", "Scheme 78 Cafe"]
+  },
+  {
+    "name": "C Square Coaching Institute",
+    "displayName": "C Square Coaching Institute",
+    "lat": 22.6974195,
+    "lng": 75.8653674,
+    "city": "Indore",
+    "aliases": ["C Square", "C2 Coaching"]
+  },
+  {
+    "name": "C21 Mall",
+    "displayName": "C21 Mall, AB Road",
+    "lat": 22.723456,
+    "lng": 75.860123,
+    "city": "Indore",
+    "aliases": ["C21 Shopping Mall", ""]
+  },
+  {
+    "name": "CARE CHL Hospitals",
+    "displayName": "CARE CHL Hospitals Indore",
+    "lat": 22.733,
+    "lng": 75.8895,
+    "city": "Indore",
+    "aliases": ["CHL Hospital", "CARE Hospital"]
+  },
+  {
+    "name": "Cafe Disney",
+    "displayName": "Cafe Disney",
+    "lat": 22.6995,
+    "lng": 75.8665,
+    "city": "Indore",
+    "aliases": ["Disney Cafe", "Cartoon Cafe"]
+  },
+  {
+    "name": "Cafe Kono",
+    "displayName": "Cafe Kono",
+    "lat": 22.6998889,
+    "lng": 75.868479,
+    "city": "Indore",
+    "aliases": ["Kono Cafe", "Sapna Sangeeta Cafe"]
+  },
+  {
+    "name": "Cafe Udupi",
+    "displayName": "Cafe Udupi",
+    "lat": 22.722,
+    "lng": 75.8885,
+    "city": "Indore",
+    "aliases": ["Udupi Cafe"]
+  },
+  {
+    "name": "Career Classes",
+    "displayName": "Career Classes",
+    "lat": 22.7089012,
+    "lng": 75.8778901,
+    "city": "Indore",
+    "aliases": ["Career", "Career Coaching"]
+  },
+  {
+    "name": "Career Launcher",
+    "displayName": "Career Launcher",
+    "lat": 22.7233212,
+    "lng": 75.8831776,
+    "city": "Indore",
+    "aliases": ["CL Indore", "Career Launcher Palasia"]
+  },
+  {
+    "name": "Career Solution Computer",
+    "displayName": "Career solution computer - CPCT | Advance Excel | Tally with GST | Java |C &C++ | PHP | computer Classes in Bholaram",
+    "lat": 22.6873543,
+    "lng": 75.8632491,
+    "city": "Indore",
+    "aliases": ["Career Solution", "CPCT Coaching"]
+  },
+  {
+    "name": "Cask 78",
+    "displayName": "Cask 78",
+    "lat": 22.763,
+    "lng": 75.886,
+    "city": "Indore",
+    "aliases": ["Cask Scheme 78", "The Hub Mall Restaurant"]
+  },
+  {
+    "name": "Central Museum",
+    "displayName": "Central Museum of Indore",
+    "lat": 22.721234,
+    "lng": 75.862145,
+    "city": "Indore",
+    "aliases": ["Indore Museum", ""]
+  },
+  {
+    "name": "Central Museum Indore",
+    "displayName": "Central Museum, Indore",
+    "lat": 22.7052254,
+    "lng": 75.8789564,
+    "city": "Indore",
+    "aliases": ["Central Museum", "Indore Museum"]
+  },
+  {
+    "name": "Chandan Nagar",
+    "displayName": "Chandan Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7225,
+    "lng": 75.8452,
+    "city": "Indore",
+    "aliases": ["Chandan", "North"]
+  },
+  {
+    "name": "Chappan Dukan",
+    "displayName": "Chappan Dukan Market, Indore",
+    "lat": 22.724567,
+    "lng": 75.858234,
+    "city": "Indore",
+    "aliases": ["56 Shops", ""]
+  },
+  {
+    "name": "Chatrapati Shivaji Maharaj Vatika",
+    "displayName": "Chatrapati Shivaji Maharaj Vatika",
+    "lat": 22.7109457,
+    "lng": 75.8827732,
+    "city": "Indore",
+    "aliases": ["Shivaji Vatika", "Chhatrapati Park"]
+  },
+  {
+    "name": "Chennai Cafes",
+    "displayName": "CHENNAI CAFES (Scheme No 78 Part 2 Branch) | Chinese Dine in Restaurant",
+    "lat": 22.7630661,
+    "lng": 75.8854608,
+    "city": "Indore",
+    "aliases": ["Chennai Cafe", "Chinese Restaurant Scheme 78"]
+  },
+  {
+    "name": "Chhappan Dukan",
+    "displayName": "Chhappan Dukan Indore",
+    "lat": 22.7240232,
+    "lng": 75.8842574,
+    "city": "Indore",
+    "aliases": ["56 Dukan", "Chappan", "56 Shops"]
+  },
+  {
+    "name": "Chhappan Dukan Indore",
+    "displayName": "Chhappan Dukan Indore",
+    "lat": 22.7240232,
+    "lng": 75.8842574,
+    "city": "Indore",
+    "aliases": ["Chappan Dukan", "56 Dukan", "Chhappan"]
+  },
+  {
+    "name": "Choral Dam",
+    "displayName": "Choral Dam, Indore",
+    "lat": 22.785612,
+    "lng": 75.832145,
+    "city": "Indore",
+    "aliases": ["Choral Reservoir", ""]
+  },
+  {
+    "name": "Cocktails and Dreams",
+    "displayName": "Cocktails and Dreams Indore",
+    "lat": 22.7645,
+    "lng": 75.892,
+    "city": "Indore",
+    "aliases": ["Cocktails Dreams", "Bar Scheme 78"]
+  },
+  {
+    "name": "Cosmopolitan Hotel",
+    "displayName": "Cosmopolitan Hotel Indore",
+    "lat": 22.7177658,
+    "lng": 75.8688646,
+    "city": "Indore",
+    "aliases": ["Cosmopolitan", "Budget Hotel"]
+  },
+  {
+    "name": "Creative Edge",
+    "displayName": "Creative Edge [UCEED, NID, NIFT, CEED, NATA & JEE B.Arch] Coaching Center",
+    "lat": 22.726789,
+    "lng": 75.8812345,
+    "city": "Indore",
+    "aliases": ["Creative Edge", "Top Rankers Creative Edge"]
+  },
+  {
+    "name": "Crystal IT Park",
+    "displayName": "Crystal IT Park, Indore",
+    "lat": 22.684965,
+    "lng": 75.871298,
+    "city": "Indore",
+    "aliases": ["IT Park", "Crystal Park"]
+  },
+  {
+    "name": "Culina Foods Indore",
+    "displayName": "culina foods indore",
+    "lat": 22.6861204,
+    "lng": 75.8634356,
+    "city": "Indore",
+    "aliases": ["Culina", "Culina Foods"]
+  },
+  {
+    "name": "D & B restaurant",
+    "displayName": "D & B restaurant",
+    "lat": 22.6850168,
+    "lng": 75.8639455,
+    "city": "Indore",
+    "aliases": ["D&B", "D and B"]
+  },
+  {
+    "name": "Dada Nirbhaya Hospital",
+    "displayName": "Dada Nirbhaya Hospital",
+    "lat": 22.6843828,
+    "lng": 75.8641449,
+    "city": "Indore",
+    "aliases": ["Dada Nirbhaya", "Nirbhaya Hospital"]
+  },
+  {
+    "name": "Devi Ahilya Airport",
+    "displayName": "Devi Ahilya Bai Holkar International Airport",
+    "lat": 22.698456,
+    "lng": 75.800234,
+    "city": "Indore",
+    "aliases": ["Indore Airport", ""]
+  },
+  {
+    "name": "Dewas Naka",
+    "displayName": "Dewas Naka, Indore, Madhya Pradesh",
+    "lat": 22.7089,
+    "lng": 75.8345,
+    "city": "Indore",
+    "aliases": ["Dewas Road", "Naka"]
+  },
+  {
+    "name": "Dhaneshwar Medical Store",
+    "displayName": "Dhaneshwar medical Store",
+    "lat": 22.6842646,
+    "lng": 75.8639104,
+    "city": "Indore",
+    "aliases": ["Dhaneshwar", "Dhaneshwar Pharmacy"]
+  },
+  {
+    "name": "Dharmishta Medical & Surgical Store",
+    "displayName": "Dharmishta medical & surgical store",
+    "lat": 22.6872717,
+    "lng": 75.8672952,
+    "city": "Indore",
+    "aliases": ["Dharmishta", "Dharmishta Medical"]
+  },
+  {
+    "name": "Disha Computer Institute Bholaram",
+    "displayName": "Disha Computer Institute, Bholaram Branch, Indore",
+    "lat": 22.6868583,
+    "lng": 75.8633321,
+    "city": "Indore",
+    "aliases": ["Disha", "Disha Bholaram"]
+  },
+  {
+    "name": "District Court Indore",
+    "displayName": "District Court Indore, New Siyaganj",
+    "lat": 22.7156,
+    "lng": 75.8534,
+    "city": "Indore",
+    "aliases": ["Court House", "Judicial Complex"]
+  },
+  {
+    "name": "Doshi Honda",
+    "displayName": "Doshi Honda",
+    "lat": 22.756,
+    "lng": 75.8965,
+    "city": "Indore",
+    "aliases": ["Honda Showroom", "Doshi Motors"]
+  },
+  {
+    "name": "Dwarkapuri",
+    "displayName": "Dwarkapuri, Indore, Madhya Pradesh",
+    "lat": 22.6867,
+    "lng": 75.8234,
+    "city": "Indore",
+    "aliases": ["Dwarka", "Puri"]
+  },
+  {
+    "name": "Essentia Luxury Hotel",
+    "displayName": "Essentia Luxury Hotel Indore",
+    "lat": 22.7101305,
+    "lng": 75.9039031,
+    "city": "Indore",
+    "aliases": ["Essentia Hotel", "Luxury Hotel Indore"]
+  },
+  {
+    "name": "Ethnix by Raymond",
+    "displayName": "Ethnix by Raymond",
+    "lat": 22.7015,
+    "lng": 75.868,
+    "city": "Indore",
+    "aliases": ["Ethnix", "Raymond Clothing"]
+  },
+  {
+    "name": "FabHotel Swan Paradise",
+    "displayName": "FabHotel Swan Paradise",
+    "lat": 22.686018,
+    "lng": 75.861572,
+    "city": "Indore",
+    "aliases": ["FabHotel", "Swan Paradise"]
+  },
+  {
+    "name": "Fairfield by Marriott",
+    "displayName": "Fairfield by Marriott Indore",
+    "lat": 22.747945,
+    "lng": 75.90382,
+    "city": "Indore",
+    "aliases": ["Marriott Indore", "Fairfield Hotel"]
+  },
+  {
+    "name": "Fairfield by Marriott Indore",
+    "displayName": "Fairfield by Marriott Indore",
+    "lat": 22.747945,
+    "lng": 75.90382,
+    "city": "Indore",
+    "aliases": ["Marriott Indore", "Fairfield"]
+  },
+  {
+    "name": "Feast Lane",
+    "displayName": "Feast Lane",
+    "lat": 22.7290218,
+    "lng": 75.8857051,
+    "city": "Indore",
+    "aliases": ["Feast Lane Palasia"]
+  },
+  {
+    "name": "Firangi Cafe and Bar",
+    "displayName": "Firangi Cafe and Bar",
+    "lat": 22.7625728,
+    "lng": 75.8855242,
+    "city": "Indore",
+    "aliases": ["Firangi Cafe", "Lifecare Hospital Cafe"]
+  },
+  {
+    "name": "Force Defence Academy",
+    "displayName": "Force Defence Academy",
+    "lat": 22.694547,
+    "lng": 75.8803683,
+    "city": "Indore",
+    "aliases": ["Force", "Force Academy"]
+  },
+  {
+    "name": "GPO Square",
+    "displayName": "GPO Square",
+    "lat": 22.7073831,
+    "lng": 75.8787576,
+    "city": "Indore",
+    "aliases": ["GPO", "General Post Office Square"]
+  },
+  {
+    "name": "GT Turf & Food Court",
+    "displayName": "GT Turf & Food Court",
+    "lat": 22.7275464,
+    "lng": 75.9270766,
+    "city": "Indore",
+    "aliases": ["GT Turf", "Food Court Kanadia"]
+  },
+  {
+    "name": "GYANDA INSTITUTE",
+    "displayName": "GYANDA INSTITUTE",
+    "lat": 22.7633349,
+    "lng": 75.9240503,
+    "city": "Indore",
+    "aliases": ["Gyanda", "GYANDA"]
   },
   {
     "name": "Gandhi Hall",
     "displayName": "Gandhi Hall, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "lat": 22.7195,
+    "lng": 75.8627,
     "city": "Indore",
-    "aliases": ["Town Hall"]
+    "aliases": ["Gandhi", "Community Hall"]
   },
   {
-    "name": "Indore White Church",
-    "displayName": "Indore White Church",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "name": "Gandhi Hall",
+    "displayName": "Gandhi Hall",
+    "lat": 22.7202778,
+    "lng": 75.8669444,
     "city": "Indore",
-    "aliases": ["White Church"]
+    "aliases": ["Gandhi Hall Indore"]
+  },
+  {
+    "name": "Garden Of All Taste (G.O.A.T)",
+    "displayName": "Garden Of All Taste (G.O.A.T)",
+    "lat": 22.6856395,
+    "lng": 75.8630579,
+    "city": "Indore",
+    "aliases": ["GOAT", "Garden Of All Taste"]
+  },
+  {
+    "name": "Gaurav Saxena Classes",
+    "displayName": "GAURAV SAXENA CLASSES OF COMMERCE AND MANAGEMENT",
+    "lat": 22.6978901,
+    "lng": 75.8745678,
+    "city": "Indore",
+    "aliases": ["Gaurav Saxena", "GS Classes"]
+  },
+  {
+    "name": "Geeta Bhawan",
+    "displayName": "Geeta Bhawan, Indore",
+    "lat": 22.712345,
+    "lng": 75.870123,
+    "city": "Indore",
+    "aliases": ["Geeta Bhawan Temple", ""]
+  },
+  {
+    "name": "Geeta Bhawan Temple",
+    "displayName": "Geeta Bhawan Temple",
+    "lat": 22.7179885,
+    "lng": 75.8878902,
+    "city": "Indore",
+    "aliases": ["Geeta Bhawan", "Gita Bhawan Mandir"]
+  },
+  {
+    "name": "Genius Academy",
+    "displayName": "Genius Academy",
+    "lat": 22.6931152,
+    "lng": 75.8678933,
+    "city": "Indore",
+    "aliases": ["Genius", "Genius Academy Indore"]
+  },
+  {
+    "name": "Ginger Indore",
+    "displayName": "Ginger Indore",
+    "lat": 22.7360128,
+    "lng": 75.8915819,
+    "city": "Indore",
+    "aliases": ["Ginger Hotel", "Shoppers Stop Hotel"]
+  },
+  {
+    "name": "Gokul Chaat",
+    "displayName": "Gokul chaat",
+    "lat": 22.7225016,
+    "lng": 75.9166386,
+    "city": "Indore",
+    "aliases": ["Gokul", "Chaat Corner"]
+  },
+  {
+    "name": "Gol Roti Restaurant",
+    "displayName": "Gol Roti Restaurant & Cafe",
+    "lat": 22.699944,
+    "lng": 75.866621,
+    "city": "Indore",
+    "aliases": ["Gol Roti", "Roti Restaurant"]
+  },
+  {
+    "name": "Gommatagiri Temple",
+    "displayName": "Gommatagiri Digambar Jain Temple",
+    "lat": 22.722567,
+    "lng": 75.855234,
+    "city": "Indore",
+    "aliases": ["Gommatagiri Jain Temple", ""]
+  },
+  {
+    "name": "Gopal Market",
+    "displayName": "Gopal Market",
+    "lat": 22.6817153,
+    "lng": 75.8286533,
+    "city": "Indore",
+    "aliases": ["Gopal Bazaar"]
+  },
+  {
+    "name": "Gorgeous Beauty Parlour",
+    "displayName": "Gorgeous Beauty Parlour",
+    "lat": 22.757,
+    "lng": 75.898,
+    "city": "Indore",
+    "aliases": ["Gorgeous Parlour", "Beauty Salon Scheme 78"]
+  },
+  {
+    "name": "Goyal Nagar",
+    "displayName": "Goyal Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7201,
+    "lng": 75.7876,
+    "city": "Indore",
+    "aliases": ["Goyal", "Extension"]
+  },
+  {
+    "name": "Green Park Colony",
+    "displayName": "Green Park Colony, Indore, Madhya Pradesh",
+    "lat": 22.6834,
+    "lng": 75.8156,
+    "city": "Indore",
+    "aliases": ["Green Park", "Sector"]
+  },
+  {
+    "name": "Gurjar Hospital",
+    "displayName": "Gurjar Hospital",
+    "lat": 22.6919473,
+    "lng": 75.8660795,
+    "city": "Indore",
+    "aliases": ["Gurjar", "Gurjar Hospital Bhawarkua"]
+  },
+  {
+    "name": "Guru Shankar Nagar",
+    "displayName": "Guru Shankar Nagar, Indore, Madhya Pradesh",
+    "lat": 22.6934,
+    "lng": 75.8256,
+    "city": "Indore",
+    "aliases": ["Guru Shankar", "Nagar"]
+  },
+  {
+    "name": "Gurudwara Topkhana Saheb",
+    "displayName": "Gurudwara Topkhana Saheb, Indore",
+    "lat": 22.7178,
+    "lng": 75.8523,
+    "city": "Indore",
+    "aliases": ["Topkhana Gurudwara", "Sikh Temple"]
+  },
+  {
+    "name": "Gyaniji Ka Khalsa Dhaba",
+    "displayName": "Gyaniji Ka Khalsa Dhaba",
+    "lat": 22.6928519,
+    "lng": 75.8671428,
+    "city": "Indore",
+    "aliases": ["Khalsa Dhaba", "Gyaniji Dhaba"]
+  },
+  {
+    "name": "HDFC Bank",
+    "displayName": "HDFC Bank",
+    "lat": 22.6998878,
+    "lng": 75.8672327,
+    "city": "Indore",
+    "aliases": ["HDFC", "Sapna Sangeeta Bank"]
+  },
+  {
+    "name": "HOTEL-PTC",
+    "displayName": "HOTEL-PTC, Indore",
+    "lat": 22.7289,
+    "lng": 75.8678,
+    "city": "Indore",
+    "aliases": ["Hotel PTC", "Accommodation"]
+  },
+  {
+    "name": "HRJ Sarovar Portico",
+    "displayName": "HRJ Sarovar Portico, Indore",
+    "lat": 22.7204306,
+    "lng": 75.8709932,
+    "city": "Indore",
+    "aliases": ["Sarovar Portico", "HRJ Hotel"]
+  },
+  {
+    "name": "Habit Coffee Lounge",
+    "displayName": "Habit - Coffee Lounge",
+    "lat": 22.7255,
+    "lng": 75.8835,
+    "city": "Indore",
+    "aliases": ["Habit", "Habit Lounge"]
+  },
+  {
+    "name": "Holkar Cricket Stadium",
+    "displayName": "Holkar Cricket Stadium, Indore",
+    "lat": 22.708234,
+    "lng": 75.870456,
+    "city": "Indore",
+    "aliases": ["Nehru Stadium", ""]
+  },
+  {
+    "name": "Hotel Apna Avenue",
+    "displayName": "Hotel Apna Avenue",
+    "lat": 22.7270612,
+    "lng": 75.8811255,
+    "city": "Indore",
+    "aliases": ["Apna Avenue"]
+  },
+  {
+    "name": "Hotel Grand Suites",
+    "displayName": "Hotel Grand Suites",
+    "lat": 22.753744,
+    "lng": 75.9026256,
+    "city": "Indore",
+    "aliases": ["Grand Suites", "Grand Hotel Indore"]
+  },
+  {
+    "name": "Hotel Kanchan",
+    "displayName": "Hotel Kanchan",
+    "lat": 22.7165869,
+    "lng": 75.8764694,
+    "city": "Indore",
+    "aliases": ["Kanchan Hotel"]
+  },
+  {
+    "name": "Hotel Kanchan Tilak",
+    "displayName": "Hotel Kanchan Tilak",
+    "lat": 22.7239393,
+    "lng": 75.8854759,
+    "city": "Indore",
+    "aliases": ["Kanchan Tilak"]
+  },
+  {
+    "name": "Hotel Meritel Grande",
+    "displayName": "Hotel Meritel Grande, Indore",
+    "lat": 22.7710282,
+    "lng": 75.8963174,
+    "city": "Indore",
+    "aliases": ["Meritel Grande", "Meritel Hotel"]
+  },
+  {
+    "name": "Hotel Mumbai House LIG",
+    "displayName": "Hotel Mumbai House LIG,Behind CHL Hospital",
+    "lat": 22.7336431,
+    "lng": 75.8890484,
+    "city": "Indore",
+    "aliases": ["Mumbai House", "Mumbai House Hotel"]
+  },
+  {
+    "name": "Hotel New Sunder",
+    "displayName": "Hotel New Sunder",
+    "lat": 22.7151352,
+    "lng": 75.8728136,
+    "city": "Indore",
+    "aliases": ["New Sunder", "Sunder Hotel"]
+  },
+  {
+    "name": "Hotel President",
+    "displayName": "Hotel President",
+    "lat": 22.7146252,
+    "lng": 75.8742233,
+    "city": "Indore",
+    "aliases": ["President Hotel"]
+  },
+  {
+    "name": "Hotel Princes' Palace",
+    "displayName": "Hotel Princes' Palace",
+    "lat": 22.7189979,
+    "lng": 75.8764502,
+    "city": "Indore",
+    "aliases": ["Princes Palace", "Princes Hotel"]
+  },
+  {
+    "name": "Hotel Shree Leela",
+    "displayName": "Hotel Shree Leela",
+    "lat": 22.6997614,
+    "lng": 75.8668299,
+    "city": "Indore",
+    "aliases": ["Shree Leela", "Leela Restaurant"]
+  },
+  {
+    "name": "Hotel Sonash By Golden Treat",
+    "displayName": "Hotel Sonash By Golden Treat",
+    "lat": 22.6886604,
+    "lng": 75.8637714,
+    "city": "Indore",
+    "aliases": ["Sonash", "Golden Treat Hotel"]
+  },
+  {
+    "name": "Hotel Staywell",
+    "displayName": "Hotel Staywell",
+    "lat": 22.75678,
+    "lng": 75.88365,
+    "city": "Indore",
+    "aliases": ["Staywell Hotel", "Staywell Indore"]
+  },
+  {
+    "name": "Hotel Uday Palace",
+    "displayName": "Hotel Uday Palace",
+    "lat": 22.7136937,
+    "lng": 75.872788,
+    "city": "Indore",
+    "aliases": ["Uday Palace"]
+  },
+  {
+    "name": "I Love Indore Selfie Point",
+    "displayName": "I Love Indore Selfie Point",
+    "lat": 22.7242624,
+    "lng": 75.8872726,
+    "city": "Indore",
+    "aliases": ["I Love Indore", "Selfie Point Palasia"]
+  },
+  {
+    "name": "ICAI Bhawan",
+    "displayName": "ICAI Bhawan, Scheme No. 78, Indore",
+    "lat": 22.765,
+    "lng": 75.88528,
+    "city": "Indore",
+    "aliases": ["CA Bhawan", "ICAI Indore"]
+  },
+  {
+    "name": "ICP Institute",
+    "displayName": "ICP institute \u2013 Best Coaching in Indore",
+    "lat": 22.7453864,
+    "lng": 75.8819428,
+    "city": "Indore",
+    "aliases": ["ICP", "ICP Coaching"]
+  },
+  {
+    "name": "IIM Indore",
+    "displayName": "Indian Institute of Management Indore",
+    "lat": 22.718234,
+    "lng": 75.880567,
+    "city": "Indore",
+    "aliases": ["IIM Indore", ""]
+  },
+  {
+    "name": "IIT-PULSE",
+    "displayName": "IIT-PULSE | Top IIT-JEE / NEET Institute in INDORE | Best Coaching",
+    "lat": 22.7197499,
+    "lng": 75.8842657,
+    "city": "Indore",
+    "aliases": ["IIT PULSE", "PULSE"]
+  },
+  {
+    "name": "IT Park Square",
+    "displayName": "IT Park Square, Vijay Nagar",
+    "lat": 22.68472,
+    "lng": 75.87306,
+    "city": "Indore",
+    "aliases": ["IT Square", "NRK Business Park"]
+  },
+  {
+    "name": "Idli Hut",
+    "displayName": "Idli Hut",
+    "lat": 22.6992,
+    "lng": 75.865,
+    "city": "Indore",
+    "aliases": ["Idli Restaurant", "South Indian Hut"]
+  },
+  {
+    "name": "Indore Drug House",
+    "displayName": "indore drug house.(A retail medical store)",
+    "lat": 22.6844673,
+    "lng": 75.8640701,
+    "city": "Indore",
+    "aliases": ["Indore Drug House", "Drug House"]
+  },
+  {
+    "name": "Indore Junction",
+    "displayName": "Indore Railway Junction",
+    "lat": 22.709876,
+    "lng": 75.852345,
+    "city": "Indore",
+    "aliases": ["Indore Railway Station", ""]
+  },
+  {
+    "name": "Indore Railway Station",
+    "displayName": "Indore Railway Station, PVF9+C95, New Siyaganj, Indore, Madhya Pradesh 452003",
+    "lat": 22.7235029,
+    "lng": 75.8684697,
+    "city": "Indore",
+    "aliases": ["Railway Station", "Central Railway Station"]
+  },
+  {
+    "name": "Indore Zoo",
+    "displayName": "Indore Zoo, Navlakha",
+    "lat": 22.712567,
+    "lng": 75.868945,
+    "city": "Indore",
+    "aliases": ["Indore Zoological Park", ""]
+  },
+  {
+    "name": "Inox Theatre",
+    "displayName": "Inox Sapna Sangeeta",
+    "lat": 22.6998,
+    "lng": 75.8668,
+    "city": "Indore",
+    "aliases": ["Inox", "Cinema Hall"]
+  },
+  {
+    "name": "JMC Hotel S Grande",
+    "displayName": "JMC Hotel S Grande",
+    "lat": 22.6891144,
+    "lng": 75.8642291,
+    "city": "Indore",
+    "aliases": ["JMC Hotel", "S Grande"]
+  },
+  {
+    "name": "June Bakehouse & Deli",
+    "displayName": "June Bakehouse & Deli",
+    "lat": 22.722,
+    "lng": 75.895,
+    "city": "Indore",
+    "aliases": ["June Bakery", "June Deli"]
+  },
+  {
+    "name": "KALKI Indore",
+    "displayName": "KALKI Indore",
+    "lat": 22.758,
+    "lng": 75.895,
+    "city": "Indore",
+    "aliases": ["Kalki", "Kalki Store"]
+  },
+  {
+    "name": "KINGS PARK HOTEL",
+    "displayName": "KINGS PARK HOTEL",
+    "lat": 22.689421,
+    "lng": 75.863541,
+    "city": "Indore",
+    "aliases": ["Kings Park", "Kings Hotel"]
+  },
+  {
+    "name": "Kamla Nehru Zoo",
+    "displayName": "Kamla Nehru Zoo",
+    "lat": 22.7041708,
+    "lng": 75.8778976,
+    "city": "Indore",
+    "aliases": ["Kamla Nehru Prani Sangrahalaya", "Indore Zoo", "Chhawani Zoo"]
+  },
+  {
+    "name": "Kanadia Road",
+    "displayName": "Kanadia Main Road, Indore",
+    "lat": 22.7190001,
+    "lng": 75.9090374,
+    "city": "Indore",
+    "aliases": ["Kanadia Main Rd", "Kanadiya Road"]
   },
   {
     "name": "Kanch Mandir",
-    "displayName": "Kanch Mandir, Indore",
-    "lat": 22.7196,
-    "lng": 75.8577,
+    "displayName": "Kanch Mandir (Glass Temple), Indore",
+    "lat": 22.718945,
+    "lng": 75.863214,
     "city": "Indore",
-    "aliases": ["Glass Temple"]
+    "aliases": ["Glass Temple", ""]
   },
   {
-    "name": "Lotus Hospital",
-    "displayName": "Lotus Hospital, Indore",
-    "lat": 22.68,
-    "lng": 75.85,
+    "name": "Kapil Aquatech",
+    "displayName": "Kapil Aquatech Indore",
+    "lat": 22.764,
+    "lng": 75.883,
     "city": "Indore",
-    "aliases": ["Lotus Hospital Indore"]
+    "aliases": ["Aquatech", "Kapil Water Solutions"]
   },
   {
-    "name": "Life Care Hospital",
-    "displayName": "Life Care Hospital, Indore",
-    "lat": 22.69,
-    "lng": 75.86,
+    "name": "Karnawat Restaurant",
+    "displayName": "Karnawat restaurent",
+    "lat": 22.6876778,
+    "lng": 75.8630224,
     "city": "Indore",
-    "aliases": ["Life Care Indore"]
+    "aliases": ["Karnawat", "Karnawat Dhaba"]
   },
   {
-    "name": "Shri Mahakal Hospital",
-    "displayName": "Shri Mahakal Hospital, Indore",
-    "lat": 22.7,
-    "lng": 75.87,
+    "name": "Kautilya Academy",
+    "displayName": "kautilya Academy",
+    "lat": 22.6929228,
+    "lng": 75.8662749,
     "city": "Indore",
-    "aliases": ["Mahakal Hospital"]
+    "aliases": ["Kautilya", "Kautilya Bhawarkua"]
   },
   {
-    "name": "Indore Eye Hospital",
-    "displayName": "Indore Eye Hospital, Indore",
-    "lat": 22.71,
-    "lng": 75.88,
+    "name": "Khajrana Ganesh Temple",
+    "displayName": "Khajrana Ganesh Temple, Indore",
+    "lat": 22.731457,
+    "lng": 75.914391,
     "city": "Indore",
-    "aliases": ["Eye Hospital Indore"]
+    "aliases": ["Khajrana Mandir", ""]
   },
   {
-    "name": "Sai Hospital",
-    "displayName": "Sai Hospital, Indore",
-    "lat": 22.72,
+    "name": "Khajrana Locality",
+    "displayName": "Khajrana Neighborhood, Indore",
+    "lat": 22.732145,
+    "lng": 75.890456,
+    "city": "Indore",
+    "aliases": ["Khajrana Area", ""]
+  },
+  {
+    "name": "Kitchen 78",
+    "displayName": "KITCHEN 78",
+    "lat": 22.7655,
+    "lng": 75.886,
+    "city": "Indore",
+    "aliases": ["Kitchen", "Kitchen Scheme 78"]
+  },
+  {
+    "name": "Kiwi Inn Hotel",
+    "displayName": "Kiwi Inn Hotel Vijay Nagar, Scheme No.78",
+    "lat": 22.7616767,
+    "lng": 75.8876741,
+    "city": "Indore",
+    "aliases": ["Kiwi Hotel", "Scheme 78 Hotel"]
+  },
+  {
+    "name": "Koffee King",
+    "displayName": "Koffee King",
+    "lat": 22.699,
+    "lng": 75.8658,
+    "city": "Indore",
+    "aliases": ["Coffee King", "Koffee Shop"]
+  },
+  {
+    "name": "Kothari Market",
+    "displayName": "Kothari market",
+    "lat": 22.7199013,
+    "lng": 75.8621297,
+    "city": "Indore",
+    "aliases": ["Kothari", "Kothari Shopping"]
+  },
+  {
+    "name": "Krishna Pura Chhatri",
+    "displayName": "Krishna Pura Chhatri, Indore",
+    "lat": 22.7187802,
+    "lng": 75.8580255,
+    "city": "Indore",
+    "aliases": ["Krishna Pura", "Chhatri"]
+  },
+  {
+    "name": "Krishnapura Chhatris",
+    "displayName": "Krishnapura Chhatris, Indore",
+    "lat": 22.708567,
+    "lng": 75.840123,
+    "city": "Indore",
+    "aliases": ["Krishnapura Cenotaphs", ""]
+  },
+  {
+    "name": "L.I.G. Square",
+    "displayName": "L.I.G. Square",
+    "lat": 22.7336871,
+    "lng": 75.8901158,
+    "city": "Indore",
+    "aliases": ["LIG Square", "LIG"]
+  },
+  {
+    "name": "Lal Bagh Palace",
+    "displayName": "Lal Bagh Palace, Indore",
+    "lat": 22.731234,
+    "lng": 75.847892,
+    "city": "Indore",
+    "aliases": ["Lalbagh Palace", ""]
+  },
+  {
+    "name": "Late Bholaram Ustad Marg Gate",
+    "displayName": "Late Bholaram Ustad Marg Gate",
+    "lat": 22.6878087,
+    "lng": 75.8627958,
+    "city": "Indore",
+    "aliases": ["Bholaram Gate", "Bholaram Ustad Marg"]
+  },
+  {
+    "name": "LegalEdge CLAT Coaching",
+    "displayName": "LegalEdge | CLAT Coaching Centre",
+    "lat": 22.7278901,
+    "lng": 75.8834567,
+    "city": "Indore",
+    "aliases": ["LegalEdge", "Legal Edge"]
+  },
+  {
+    "name": "Lemon Tree Hotel",
+    "displayName": "Lemon Tree Hotel, Indore",
+    "lat": 22.7180092,
+    "lng": 75.8725537,
+    "city": "Indore",
+    "aliases": ["Lemon Tree", "Lemon Tree Chhawani"]
+  },
+  {
+    "name": "Lokmanya Nagar",
+    "displayName": "Lokmanya Nagar, Indore, Madhya Pradesh 452009",
+    "lat": 22.6893,
+    "lng": 75.8312,
+    "city": "Indore",
+    "aliases": ["Lokmanya", "Nagar"]
+  },
+  {
+    "name": "Lord Petrick Coffee",
+    "displayName": "Lord Petrick Coffee & Burgers",
+    "lat": 22.762,
+    "lng": 75.885,
+    "city": "Indore",
+    "aliases": ["Lord Petrick", "Petrick Coffee"]
+  },
+  {
+    "name": "MG Road",
+    "displayName": "Mahatma Gandhi Road, Indore",
+    "lat": 22.720567,
+    "lng": 75.84789,
+    "city": "Indore",
+    "aliases": ["Gandhi Road", ""]
+  },
+  {
+    "name": "MGCI NEET Coaching",
+    "displayName": "MGCI | NEET Coaching | IIT-JEE Institute in Indore",
+    "lat": 22.7123456,
+    "lng": 75.8756789,
+    "city": "Indore",
+    "aliases": ["MGCI", "MG Coaching Institute"]
+  },
+  {
+    "name": "MR-10 Road",
+    "displayName": "MR-10 Road, Indore",
+    "lat": 22.744034,
+    "lng": 75.923145,
+    "city": "Indore",
+    "aliases": ["MR 10", ""]
+  },
+  {
+    "name": "MR-9 Road",
+    "displayName": "MR-9 Road, Indore",
+    "lat": 22.741885,
+    "lng": 75.898984,
+    "city": "Indore",
+    "aliases": ["MR 9", ""]
+  },
+  {
+    "name": "MR10 Road",
+    "displayName": "MR10 Road (Kushabhau Thakre Marg)",
+    "lat": 22.744534,
+    "lng": 75.931421,
+    "city": "Indore",
+    "aliases": ["Super Corridor", "Kushabhau Thakre Marg"]
+  },
+  {
+    "name": "MR10 Shyam Nagar",
+    "displayName": "MR 10 Road, Shyam Nagar Annex",
+    "lat": 22.7657232,
+    "lng": 75.8688026,
+    "city": "Indore",
+    "aliases": ["Shyam Nagar MR10", "Sukhlia"]
+  },
+  {
+    "name": "MR10 Square",
+    "displayName": "MR-10 Square",
+    "lat": 22.785,
+    "lng": 75.8525,
+    "city": "Indore",
+    "aliases": ["MR10 Chowk", "Sukhliya Square"]
+  },
+  {
+    "name": "Maa Vaishno Dham Mandir Lal Bagh",
+    "displayName": "Maa Vaishno Dham Mandir Lal Bagh Indore",
+    "lat": 22.7021003,
+    "lng": 75.8501445,
+    "city": "Indore",
+    "aliases": ["Vaishno Dham", "Lal Bagh Mandir"]
+  },
+  {
+    "name": "Madhumilan Square",
+    "displayName": "Madhumilan Square",
+    "lat": 22.7141613,
+    "lng": 75.8743715,
+    "city": "Indore",
+    "aliases": ["Madhu Milan Square", "Madhumilan Chauraha"]
+  },
+  {
+    "name": "Mahalaxmi",
+    "displayName": "Mahalaxmi, Indore, Madhya Pradesh",
+    "lat": 22.7289,
+    "lng": 75.8908,
+    "city": "Indore",
+    "aliases": ["Mahalaxmi Nagar", "Parisar"]
+  },
+  {
+    "name": "Mahalaxmi English Institute",
+    "displayName": "Mahalaxmi English Institute",
+    "lat": 22.6912345,
+    "lng": 75.8712345,
+    "city": "Indore",
+    "aliases": ["Mahalaxmi", "Mahalaxmi Classes"]
+  },
+  {
+    "name": "Maharaja Yashwant Rao Statue",
+    "displayName": "Maharaja Yashwant Rao Statue",
+    "lat": 22.7190001,
+    "lng": 75.9090374,
+    "city": "Indore",
+    "aliases": ["Yashwant Statue", "Kanadia Statue"]
+  },
+  {
+    "name": "Maharana Chattrasal",
+    "displayName": "Maharana Chattrasal",
+    "lat": 22.751,
+    "lng": 75.902,
+    "city": "Indore",
+    "aliases": ["Chattrasal", "Maharana Square"]
+  },
+  {
+    "name": "Mahendra's Institute",
+    "displayName": "Mahendra's Institute - Indore for Banking SSC State Exam Railway Teaching and CUET",
+    "lat": 22.6915423,
+    "lng": 75.8667367,
+    "city": "Indore",
+    "aliases": ["Mahendra", "Mahendras"]
+  },
+  {
+    "name": "Maheshwari Institute",
+    "displayName": "Maheshwari Institute - CFA | Financial Modeling | Stock Market Course",
+    "lat": 22.7023456,
+    "lng": 75.8689012,
+    "city": "Indore",
+    "aliases": ["Maheshwari", "Maheshwari CFA"]
+  },
+  {
+    "name": "Mahindra Somya Vehicles",
+    "displayName": "Mahindra Somya Vehicles - SUV & Cars Showroom",
+    "lat": 22.7655,
     "lng": 75.89,
     "city": "Indore",
-    "aliases": ["Sai Hospital Indore"]
+    "aliases": ["Mahindra Showroom", "Somya Vehicles"]
   },
   {
-    "name": "Gokuldas Hospital",
-    "displayName": "Gokuldas Hospital, Indore",
-    "lat": 22.73,
-    "lng": 75.9,
+    "name": "Malhar Mega Mall",
+    "displayName": "Malhar Mega Mall, AB Road",
+    "lat": 22.72789,
+    "lng": 75.862345,
     "city": "Indore",
-    "aliases": ["Gokuldas Indore"]
+    "aliases": ["Malhar Mall", ""]
   },
   {
-    "name": "Shree Ganesh Hospital",
-    "displayName": "Shree Ganesh Hospital, Indore",
-    "lat": 22.74,
-    "lng": 75.91,
+    "name": "Malviya Nagar Square",
+    "displayName": "Malviya Nagar Square / MR-9 Square",
+    "lat": 22.7425685,
+    "lng": 75.8928255,
     "city": "Indore",
-    "aliases": ["Ganesh Hospital"]
+    "aliases": ["MR-9 Square", "MR9", "Malviya Nagar"]
   },
   {
-    "name": "Indore Heart Hospital",
-    "displayName": "Indore Heart Hospital, Indore",
-    "lat": 22.75,
-    "lng": 75.92,
+    "name": "Mangal City Mall",
+    "displayName": "Mangal City Mall",
+    "lat": 22.747,
+    "lng": 75.896,
     "city": "Indore",
-    "aliases": ["Heart Hospital Indore"]
+    "aliases": ["Mangal Mall", "City Mall Vijay Nagar"]
   },
   {
-    "name": "City Hospital",
-    "displayName": "City Hospital, Indore",
-    "lat": 22.76,
+    "name": "Masala Medley Cafe",
+    "displayName": "Masala Medley Cafe",
+    "lat": 22.7004666,
+    "lng": 75.8688509,
+    "city": "Indore",
+    "aliases": ["Masala Cafe", "Medley Cafe"]
+  },
+  {
+    "name": "Medanta Super Specialty Hospital",
+    "displayName": "Medanta Super Specialty Hospital Indore",
+    "lat": 22.743,
+    "lng": 75.8955,
+    "city": "Indore",
+    "aliases": ["Medanta", "Medanta Indore"]
+  },
+  {
+    "name": "Medi-Square Hospital",
+    "displayName": "Medi-Square Hospital | Orthopedic Hospital in Indore",
+    "lat": 22.6905967,
+    "lng": 75.8646271,
+    "city": "Indore",
+    "aliases": ["Medi Square", "MediSquare Hospital"]
+  },
+  {
+    "name": "Medisquad Classes",
+    "displayName": "Medisquad classes indore",
+    "lat": 22.7056789,
+    "lng": 75.8798765,
+    "city": "Indore",
+    "aliases": ["Medisquad", "Medi Squad"]
+  },
+  {
+    "name": "Meera Path",
+    "displayName": "Meera Path, Indore",
+    "lat": 22.7267,
+    "lng": 75.8701,
+    "city": "Indore",
+    "aliases": ["Meera", "Main Road"]
+  },
+  {
+    "name": "Meghdoot Nagar",
+    "displayName": "Meghdoot Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7156,
+    "lng": 75.8745,
+    "city": "Indore",
+    "aliases": ["Meghdoot", "South"]
+  },
+  {
+    "name": "Mr. Beans",
+    "displayName": "Mr. Beans - Bohemian Coffee Shop",
+    "lat": 22.723283,
+    "lng": 75.896925,
+    "city": "Indore",
+    "aliases": ["Mr Beans", "Beans Cafe"]
+  },
+  {
+    "name": "NARAYANA IIT-JEE NEET FOUNDATION",
+    "displayName": "NARAYANA IIT-JEE/NEET/FOUNDATION",
+    "lat": 22.7156789,
+    "lng": 75.8798765,
+    "city": "Indore",
+    "aliases": ["Narayana", "Narayana Indore"]
+  },
+  {
+    "name": "Naag Mandir",
+    "displayName": "Naag Mandir - Temple",
+    "lat": 22.7232871,
+    "lng": 75.8947245,
+    "city": "Indore",
+    "aliases": ["Nag Temple", "Snake Temple", "Mahatma Gandhi Rd"]
+  },
+  {
+    "name": "Nafees Restaurant Palasia",
+    "displayName": "Nafees Restaurant",
+    "lat": 22.7258553,
+    "lng": 75.8879332,
+    "city": "Indore",
+    "aliases": ["Nafees", "Nafees Apollo"]
+  },
+  {
+    "name": "Nafees Restaurant Tantiya Bheel Square",
+    "displayName": "Nafees Restaurant, Tantiya Bheel Square",
+    "lat": 22.6943654,
+    "lng": 75.8669839,
+    "city": "Indore",
+    "aliases": ["Nafees", "Nafees Bhawarkua"]
+  },
+  {
+    "name": "Nahata Professional Academy",
+    "displayName": "Nahata Professional Academy, Indore",
+    "lat": 22.7195,
+    "lng": 75.8615,
+    "city": "Indore",
+    "aliases": ["Nahata Academy", "Professional Academy"]
+  },
+  {
+    "name": "Nahata Professional Academy",
+    "displayName": "Nahata Professional Academy",
+    "lat": 22.7230848,
+    "lng": 75.8652316,
+    "city": "Indore",
+    "aliases": ["Nahata", "NPA"]
+  },
+  {
+    "name": "Nanda Nagar",
+    "displayName": "Nanda Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7098,
+    "lng": 75.8876,
+    "city": "Indore",
+    "aliases": ["Nanda", "Main Road"]
+  },
+  {
+    "name": "Nature's Kitchen",
+    "displayName": "Nature's Kitchen Pluck & Dine",
+    "lat": 22.7625991,
+    "lng": 75.8847155,
+    "city": "Indore",
+    "aliases": ["Natures Kitchen", "Pluck and Dine"]
+  },
+  {
+    "name": "Navlakha",
+    "displayName": "Navlakha, Indore, Madhya Pradesh 452001",
+    "lat": 22.6986585,
+    "lng": 75.8817161,
+    "city": "Indore",
+    "aliases": ["Navlakha Chouraha", "Old City"]
+  },
+  {
+    "name": "Navlakha",
+    "displayName": "Navlakha Locality, Indore",
+    "lat": 22.715678,
+    "lng": 75.870123,
+    "city": "Indore",
+    "aliases": ["Navlakha Area", ""]
+  },
+  {
+    "name": "Nehru Park",
+    "displayName": "Nehru Park, Indore",
+    "lat": 22.710234,
+    "lng": 75.865789,
+    "city": "Indore",
+    "aliases": ["Nehru Park Indore", ""]
+  },
+  {
+    "name": "Nipania",
+    "displayName": "Nipania Locality, Indore",
+    "lat": 22.730456,
+    "lng": 75.878234,
+    "city": "Indore",
+    "aliases": ["Nipania Area", ""]
+  },
+  {
+    "name": "Niranjanpur",
+    "displayName": "Niranjanpur, Indore, Madhya Pradesh",
+    "lat": 22.7312,
+    "lng": 75.7954,
+    "city": "Indore",
+    "aliases": ["Niranjanpur Circle", "Main Area"]
+  },
+  {
+    "name": "Niranjanpur Square",
+    "displayName": "Niranjanpur Square",
+    "lat": 22.7715958,
+    "lng": 75.9016774,
+    "city": "Indore",
+    "aliases": ["Niranjanpur", "Niranjan Square"]
+  },
+  {
+    "name": "Noori Nagar",
+    "displayName": "Noori Nagar, Indore, Madhya Pradesh",
+    "lat": 22.6945,
+    "lng": 75.8234,
+    "city": "Indore",
+    "aliases": ["Noori", "Nagar"]
+  },
+  {
+    "name": "Notch Indore",
+    "displayName": "Notch Indore",
+    "lat": 22.765,
+    "lng": 75.8875,
+    "city": "Indore",
+    "aliases": ["Notch", "Notch Scheme 78"]
+  },
+  {
+    "name": "Nothing Before Coffee",
+    "displayName": "Nothing Before Coffee Sapna Sangeeta",
+    "lat": 22.7006077,
+    "lng": 75.865192,
+    "city": "Indore",
+    "aliases": ["NBC Cafe", "Coffee Sapna Sangeeta"]
+  },
+  {
+    "name": "Nothing Before Coffee Cafe",
+    "displayName": "Nothing Before Coffee Cafe - Indore",
+    "lat": 22.7299385,
+    "lng": 75.882618,
+    "city": "Indore",
+    "aliases": ["NBC Cafe", "Nothing Before Coffee"]
+  },
+  {
+    "name": "Novelty Market",
+    "displayName": "Novelty Market",
+    "lat": 22.720547,
+    "lng": 75.8616797,
+    "city": "Indore",
+    "aliases": ["Novelty", "Novelty Bazaar"]
+  },
+  {
+    "name": "Nucleum Career Institute",
+    "displayName": "Nucleum career institute",
+    "lat": 22.7234567,
+    "lng": 75.8834567,
+    "city": "Indore",
+    "aliases": ["Nucleum", "Nucleum Institute"]
+  },
+  {
+    "name": "Oh Indore Restaurant",
+    "displayName": "Oh Indore Restaurant and cafe",
+    "lat": 22.6997837,
+    "lng": 75.8667614,
+    "city": "Indore",
+    "aliases": ["Oh Indore", "Sapna Sangeeta Restaurant"]
+  },
+  {
+    "name": "Om Coaching Classes",
+    "displayName": "Om Coaching Classes",
+    "lat": 22.7030973,
+    "lng": 75.8601635,
+    "city": "Indore",
+    "aliases": ["Om Coaching", "Om Classes"]
+  },
+  {
+    "name": "Om Coaching Classes",
+    "displayName": "Om Coaching Classes",
+    "lat": 22.7402324,
+    "lng": 75.8369635,
+    "city": "Indore",
+    "aliases": ["Om Classes", "Om Coaching"]
+  },
+  {
+    "name": "Orlando Academy",
+    "displayName": "ORLANDO ACADEMY",
+    "lat": 22.7145678,
+    "lng": 75.8654321,
+    "city": "Indore",
+    "aliases": ["Orlando", "Orlando Classes"]
+  },
+  {
+    "name": "Osmium 76 Bar & Lounge",
+    "displayName": "Osmium 76 Bar & Lounge",
+    "lat": 22.7005,
+    "lng": 75.866,
+    "city": "Indore",
+    "aliases": ["Osmium Bar", "76 Lounge"]
+  },
+  {
+    "name": "PACE CA CS Coaching",
+    "displayName": "PACE | CA CS Coaching",
+    "lat": 22.7170881,
+    "lng": 75.8608685,
+    "city": "Indore",
+    "aliases": ["PACE", "PACE CA"]
+  },
+  {
+    "name": "PACE CA CS Coaching",
+    "displayName": "PACE | CA CS Coaching",
+    "lat": 22.7266874,
+    "lng": 75.8697717,
+    "city": "Indore",
+    "aliases": ["PACE", "PACE Indore"]
+  },
+  {
+    "name": "PATIDAR TRADING COMPANY",
+    "displayName": "PATIDAR TRADING COMPANY, Indore",
+    "lat": 22.7267,
+    "lng": 75.8612,
+    "city": "Indore",
+    "aliases": ["Patidar Trading", "Trading Company"]
+  },
+  {
+    "name": "PS Academy",
+    "displayName": "PS Academy",
+    "lat": 22.6931477,
+    "lng": 75.8669643,
+    "city": "Indore",
+    "aliases": ["PS", "PS Bhawarkua"]
+  },
+  {
+    "name": "Palasia",
+    "displayName": "Palasia, Indore, Madhya Pradesh",
+    "lat": 22.7174,
+    "lng": 75.8709,
+    "city": "Indore",
+    "aliases": ["Old Palasia", "Market Area"]
+  },
+  {
+    "name": "Palda",
+    "displayName": "Palda, Indore, Madhya Pradesh 452020",
+    "lat": 22.6876,
+    "lng": 75.8412,
+    "city": "Indore",
+    "aliases": ["Palda Town", "Census Town"]
+  },
+  {
+    "name": "Palda Naka Square",
+    "displayName": "Palda Naka Square",
+    "lat": 22.6853516,
+    "lng": 75.889402,
+    "city": "Indore",
+    "aliases": ["Palda Naka", "Palda"]
+  },
+  {
+    "name": "Palette Sapphire Star Chappan Market",
+    "displayName": "Palette Sapphire Star Chappan Market",
+    "lat": 22.7253188,
+    "lng": 75.8843206,
+    "city": "Indore",
+    "aliases": ["Palette Sapphire", "OYO Chappan"]
+  },
+  {
+    "name": "Pandey Villa Pink City",
+    "displayName": "Pandey villa pink city",
+    "lat": 22.7806267,
+    "lng": 75.8892772,
+    "city": "Indore",
+    "aliases": ["Pandey Villa", "Coaching Center Pink City"]
+  },
+  {
+    "name": "Patalpani Waterfall",
+    "displayName": "Patalpani Waterfall, Indore",
+    "lat": 22.645234,
+    "lng": 75.756789,
+    "city": "Indore",
+    "aliases": ["Patalpani Falls", ""]
+  },
+  {
+    "name": "Pawar Commerce Science Institute",
+    "displayName": "Pawar Commerce and Science Institute",
+    "lat": 22.7156789,
+    "lng": 75.8634567,
+    "city": "Indore",
+    "aliases": ["Pawar Institute", "Pawar Coaching"]
+  },
+  {
+    "name": "Physics Wallah Vidyapeeth",
+    "displayName": "Physics Wallah Vidyapeeth Indore",
+    "lat": 22.7345678,
+    "lng": 75.886789,
+    "city": "Indore",
+    "aliases": ["Physics Wallah", "PW Indore"]
+  },
+  {
+    "name": "Physics Wallah Vidyapeeth MG Road",
+    "displayName": "Physics Wallah Vidyapeeth Indore (MG Road) | IIT JEE, NEET & Foundation Classes",
+    "lat": 22.7221291,
+    "lng": 75.8787191,
+    "city": "Indore",
+    "aliases": ["PW Indore", "Physics Wallah MG Road"]
+  },
+  {
+    "name": "Pink City",
+    "displayName": "Pink City Indore",
+    "lat": 22.6954691,
+    "lng": 75.9033193,
+    "city": "Indore",
+    "aliases": ["Pink City Housing", "Pink City Ave"]
+  },
+  {
+    "name": "Pink City Chowk",
+    "displayName": "Pink City Chowk",
+    "lat": 22.7789085,
+    "lng": 75.8868597,
+    "city": "Indore",
+    "aliases": ["Pink City Square", "Chowk"]
+  },
+  {
+    "name": "Pink City Scheme 78",
+    "displayName": "Pink City, Scheme No 78",
+    "lat": 22.780705,
+    "lng": 75.8895603,
+    "city": "Indore",
+    "aliases": ["Pink City Part 3", "Scheme 78"]
+  },
+  {
+    "name": "Pipliyapala Park",
+    "displayName": "Pipliyapala Regional Park, Indore",
+    "lat": 22.705234,
+    "lng": 75.825678,
+    "city": "Indore",
+    "aliases": ["Pipliyapala Park", ""]
+  },
+  {
+    "name": "Pizza Hut Vijay Nagar",
+    "displayName": "Pizza Hut | Vijay Nagar, Indore",
+    "lat": 22.761,
+    "lng": 75.8845,
+    "city": "Indore",
+    "aliases": ["Pizza Hut", "PH Vijay Nagar"]
+  },
+  {
+    "name": "Pizzato",
+    "displayName": "Pizzato",
+    "lat": 22.7245,
+    "lng": 75.8795,
+    "city": "Indore",
+    "aliases": ["Pizzato Palasia"]
+  },
+  {
+    "name": "Playotel Premier Vijay Nagar",
+    "displayName": "Playotel Premier Vijay Nagar, Indore",
+    "lat": 22.754,
+    "lng": 75.8995,
+    "city": "Indore",
+    "aliases": ["Playotel", "Premier Hotel Vijay Nagar"]
+  },
+  {
+    "name": "Pool Side Cafe",
+    "displayName": "Pool Side Cafe",
+    "lat": 22.7285,
+    "lng": 75.8865,
+    "city": "Indore",
+    "aliases": ["Poolside", "Pool Side"]
+  },
+  {
+    "name": "Prachin Shri Siddheshwar Veer Hanuman Mandir",
+    "displayName": "Prachin Shri Siddheshwar Veer Hanuman Mandir Indore",
+    "lat": 22.7050705,
+    "lng": 75.8775852,
+    "city": "Indore",
+    "aliases": ["Siddheshwar Hanuman", "Veer Hanuman Mandir"]
+  },
+  {
+    "name": "Prajapat Nagar",
+    "displayName": "Prajapat Nagar, Indore, Madhya Pradesh",
+    "lat": 22.6923,
+    "lng": 75.8312,
+    "city": "Indore",
+    "aliases": ["Prajapat", "Nagar"]
+  },
+  {
+    "name": "Prashant Hotel",
+    "displayName": "Prashant Hotel",
+    "lat": 22.700781,
+    "lng": 75.875675,
+    "city": "Indore",
+    "aliases": ["Prashant", "Budget Hotel Indore"]
+  },
+  {
+    "name": "Punjabi Dhaba",
+    "displayName": "Punjabi Dhaba",
+    "lat": 22.6850244,
+    "lng": 75.8638348,
+    "city": "Indore",
+    "aliases": ["Punjabi Dhaba Bholaram"]
+  },
+  {
+    "name": "Punjabi Dhaba Bhawarkua",
+    "displayName": "Punjabi Dhaba",
+    "lat": 22.6850244,
+    "lng": 75.8638348,
+    "city": "Indore",
+    "aliases": ["Punjabi Dhaba"]
+  },
+  {
+    "name": "RARE Cafe & Resto",
+    "displayName": "RARE cafe & resto",
+    "lat": 22.7256534,
+    "lng": 75.9225973,
+    "city": "Indore",
+    "aliases": ["RARE Cafe", "Green Velly Cafe"]
+  },
+  {
+    "name": "Radisson Blu Hotel Indore",
+    "displayName": "Radisson Blu Hotel Indore",
+    "lat": 22.750089,
+    "lng": 75.902773,
+    "city": "Indore",
+    "aliases": ["Radisson Blu", "Radisson Indore"]
+  },
+  {
+    "name": "Radisson Square",
+    "displayName": "Radisson Square, \u0930\u0947\u0921\u093f\u0938\u0928 \u091a\u094c\u0930\u093e\u0939\u093e",
+    "lat": 22.7492961,
+    "lng": 75.9034718,
+    "city": "Indore",
+    "aliases": ["Radisson", "Radisson Chauraha"]
+  },
+  {
+    "name": "Railway Quarters",
+    "displayName": "Railway Quarters, Indore",
+    "lat": 22.7234,
+    "lng": 75.8834,
+    "city": "Indore",
+    "aliases": ["Rail Quarters", "Residential Quarters"]
+  },
+  {
+    "name": "Rajeev Gandhi Square",
+    "displayName": "Rajeev Gandhi Square",
+    "lat": 22.6828639,
+    "lng": 75.8572654,
+    "city": "Indore",
+    "aliases": ["RG Square", "Rajeev Square"]
+  },
+  {
+    "name": "Rajendra Nagar",
+    "displayName": "Rajendra Nagar, Indore, Madhya Pradesh 452012",
+    "lat": 22.6709179,
+    "lng": 75.8275244,
+    "city": "Indore",
+    "aliases": ["Rajendra", "Nagar Extension"]
+  },
+  {
+    "name": "Rajendra Nagar",
+    "displayName": "Rajendra Nagar Locality, Indore",
+    "lat": 22.705678,
+    "lng": 75.840234,
+    "city": "Indore",
+    "aliases": ["Rajendra Nagar Area", ""]
+  },
+  {
+    "name": "Rajendra Nagar",
+    "displayName": "Rajendra Nagar, Indore",
+    "lat": 22.68105,
+    "lng": 75.86245,
+    "city": "Indore",
+    "aliases": ["Rajendra Nagar Square", "RN Square"]
+  },
+  {
+    "name": "Rajendra Nagar Square",
+    "displayName": "Rajendra Nagar Square, Indore",
+    "lat": 22.670083,
+    "lng": 75.833333,
+    "city": "Indore",
+    "aliases": ["RN Square", "Rajendra Square"]
+  },
+  {
+    "name": "Rajpal Honda",
+    "displayName": "Rajpal Honda Indore",
+    "lat": 22.6995,
+    "lng": 75.8662,
+    "city": "Indore",
+    "aliases": ["Honda Showroom", "Rajpal Motors"]
+  },
+  {
+    "name": "Rajwada",
+    "displayName": "Rajwada Palace, Indore",
+    "lat": 22.718435,
+    "lng": 75.855217,
+    "city": "Indore",
+    "aliases": ["Old Palace", "Holkar Palace"]
+  },
+  {
+    "name": "Ralamandal Sanctuary",
+    "displayName": "Ralamandal Wildlife Sanctuary, Indore",
+    "lat": 22.780123,
+    "lng": 75.920456,
+    "city": "Indore",
+    "aliases": ["Ralamandal Wildlife", ""]
+  },
+  {
+    "name": "Rasoma Square",
+    "displayName": "Rasoma Square",
+    "lat": 22.7489114,
+    "lng": 75.8947942,
+    "city": "Indore",
+    "aliases": ["Rasoma", "Rasoma Chauraha"]
+  },
+  {
+    "name": "Rau Colony",
+    "displayName": "Rau Colony, Indore, Madhya Pradesh",
+    "lat": 22.6758,
+    "lng": 75.8654,
+    "city": "Indore",
+    "aliases": ["Rau", "Extension"]
+  },
+  {
+    "name": "Regional Park Indore",
+    "displayName": "Regional Park Indore",
+    "lat": 22.6776303,
+    "lng": 75.8558338,
+    "city": "Indore",
+    "aliases": ["Regional Park", "Indore Park"]
+  },
+  {
+    "name": "Renaissance College",
+    "displayName": "Renaissance College of Commerce & Management",
+    "lat": 22.7196,
+    "lng": 75.858,
+    "city": "Indore",
+    "aliases": ["Renaissance", "RCCM Indore", "Anurag Nagar College"]
+  },
+  {
+    "name": "Renaissance University",
+    "displayName": "Renaissance University",
+    "lat": 22.71,
     "lng": 75.93,
     "city": "Indore",
-    "aliases": ["City Hospital Indore"]
+    "aliases": ["Renaissance Uni", "Sanwer Road University"]
   },
   {
-    "name": "St. Raphael School",
-    "displayName": "St. Raphael School, Indore",
-    "lat": 22.77,
-    "lng": 75.94,
+    "name": "Ribosome",
+    "displayName": "Ribosome",
+    "lat": 22.685959,
+    "lng": 75.8593423,
     "city": "Indore",
-    "aliases": ["St. Raphael Indore"]
+    "aliases": ["Ribosome Institute"]
   },
   {
-    "name": "The Daly College Preparatory School",
-    "displayName": "The Daly College Preparatory School, Indore",
-    "lat": 22.78,
-    "lng": 75.95,
+    "name": "Ring Road",
+    "displayName": "Ring Road, Indore",
+    "lat": 22.725678,
+    "lng": 75.870123,
     "city": "Indore",
-    "aliases": ["Daly College Prep", "DCP"]
+    "aliases": ["Eastern Ring Road", ""]
   },
   {
-    "name": "Indore Public School",
-    "displayName": "Indore Public School, Indore",
-    "lat": 22.79,
-    "lng": 75.96,
+    "name": "S P Office",
+    "displayName": "S P Office, Indore",
+    "lat": 22.7312,
+    "lng": 75.8745,
     "city": "Indore",
-    "aliases": ["IPS Indore"]
+    "aliases": ["Police Office", "Superintendent Office"]
   },
   {
-    "name": "St. Mary's Convent School",
-    "displayName": "St. Mary's Convent School, Indore",
-    "lat": 22.8,
-    "lng": 75.97,
+    "name": "SGSITS",
+    "displayName": "Shri Govindram Seksaria Institute of Technology",
+    "lat": 22.710567,
+    "lng": 75.875234,
     "city": "Indore",
-    "aliases": ["St. Mary's Indore"]
+    "aliases": ["SGSITS Indore", ""]
   },
   {
-    "name": "Indore International School",
-    "displayName": "Indore International School, Indore",
-    "lat": 22.81,
-    "lng": 75.98,
+    "name": "SHAKTI IAS INSTITUTE",
+    "displayName": "SHAKTI IAS INSTITUTE",
+    "lat": 22.6909368,
+    "lng": 75.8651177,
     "city": "Indore",
-    "aliases": ["IIS Indore"]
+    "aliases": ["SHAKTI IAS", "Shakti Institute"]
   },
   {
-    "name": "The International School",
-    "displayName": "The International School, Indore",
-    "lat": 22.82,
-    "lng": 75.99,
+    "name": "SINGH INSTITUTE",
+    "displayName": "SINGH INSTITUTE - Commerce & Humanities Coaching",
+    "lat": 22.7257343,
+    "lng": 75.8915552,
     "city": "Indore",
-    "aliases": ["TIS Indore"]
+    "aliases": ["Singh Institute", "Singh Coaching"]
   },
   {
-    "name": "Indore Montessori School",
-    "displayName": "Indore Montessori School, Indore",
-    "lat": 22.83,
-    "lng": 76.0,
+    "name": "STUDY Career Institute",
+    "displayName": "STUDY career institute",
+    "lat": 22.6904355,
+    "lng": 75.8820759,
     "city": "Indore",
-    "aliases": ["Montessori Indore"]
+    "aliases": ["STUDY", "Study Career"]
   },
   {
-    "name": "Indore Cambridge School",
-    "displayName": "Indore Cambridge School, Indore",
-    "lat": 22.84,
-    "lng": 76.01,
+    "name": "SUPER MARKET Bhawarkua",
+    "displayName": "SUPER MARKET",
+    "lat": 22.6892335,
+    "lng": 75.86257,
     "city": "Indore",
-    "aliases": ["Cambridge Indore"]
+    "aliases": ["Super Market", "Supermarket Bhawarkua"]
   },
   {
-    "name": "Indore Central School",
-    "displayName": "Indore Central School, Indore",
-    "lat": 22.85,
-    "lng": 76.02,
+    "name": "Saket Square",
+    "displayName": "Saket Square",
+    "lat": 22.7254219,
+    "lng": 75.8946704,
     "city": "Indore",
-    "aliases": ["Central School Indore"]
+    "aliases": ["Saket", "Saket Chauraha"]
   },
   {
-    "name": "Rajwada Market",
-    "displayName": "Rajwada Market, Indore",
-    "lat": 22.86,
-    "lng": 76.03,
+    "name": "Samadhan Academy",
+    "displayName": "Samadhan Academy #Best Coaching",
+    "lat": 22.7498353,
+    "lng": 75.8968726,
     "city": "Indore",
-    "aliases": ["Rajwada Bazaar"]
+    "aliases": ["Samadhan", "Samadhan Academy Best Coaching"]
   },
   {
-    "name": "Cloth Market",
-    "displayName": "Cloth Market, Indore",
-    "lat": 22.87,
-    "lng": 76.04,
+    "name": "Samphire Institute",
+    "displayName": "Samphire Institute",
+    "lat": 22.7089123,
+    "lng": 75.8723456,
     "city": "Indore",
-    "aliases": ["Kapda Market"]
+    "aliases": ["Samphire", "Samphire Coaching"]
   },
   {
-    "name": "Fruit Market",
-    "displayName": "Fruit Market, Indore",
-    "lat": 22.88,
-    "lng": 76.05,
+    "name": "Sampurna Institute",
+    "displayName": "Sampurna Institute",
+    "lat": 22.6987654,
+    "lng": 75.8745678,
     "city": "Indore",
-    "aliases": ["Phal Mandi"]
+    "aliases": ["Sampurna", "Sampurna Coaching"]
   },
   {
-    "name": "Vegetable Market",
-    "displayName": "Vegetable Market, Indore",
-    "lat": 22.89,
-    "lng": 76.06,
+    "name": "Sanchar Nagar Main Park",
+    "displayName": "Sanchar Nagar Main Park",
+    "lat": 22.7214704,
+    "lng": 75.9181267,
     "city": "Indore",
-    "aliases": ["Sabzi Mandi"]
+    "aliases": ["Sanchar Park", "Main Park"]
   },
   {
-    "name": "Grain Market",
-    "displayName": "Grain Market, Indore",
-    "lat": 22.9,
-    "lng": 76.07,
+    "name": "Sapna Sangeeta",
+    "displayName": "Sapna Sangeeta, Indore",
+    "lat": 22.6997837,
+    "lng": 75.8667614,
     "city": "Indore",
-    "aliases": ["Anaj Mandi"]
+    "aliases": ["Sapna Sangeeta Mall", "Shopping Complex"]
   },
   {
-    "name": "Flower Market",
-    "displayName": "Flower Market, Indore",
-    "lat": 22.91,
-    "lng": 76.08,
+    "name": "Sapna Sangeeta Lumiere",
+    "displayName": "Sapna Sangeeta Lumiere",
+    "lat": 22.6985,
+    "lng": 75.8655,
     "city": "Indore",
-    "aliases": ["Phool Mandi"]
+    "aliases": ["Lumiere", "Sangeeta Mall"]
   },
   {
-    "name": "Jewelry Market",
-    "displayName": "Jewelry Market, Indore",
-    "lat": 22.92,
-    "lng": 76.09,
+    "name": "Sapna Sangita Sandwich",
+    "displayName": "Sapna Sangita Sandwich",
+    "lat": 22.7,
+    "lng": 75.867,
     "city": "Indore",
-    "aliases": ["Jewellery Market", "Jewelry Bazaar"]
+    "aliases": ["Sandwich Shop", "Sapna Sandwich"]
   },
   {
-    "name": "Electronics Market",
-    "displayName": "Electronics Market, Indore",
-    "lat": 22.93,
-    "lng": 76.1,
+    "name": "Sarafa Market",
+    "displayName": "Sarafa Bazaar, Indore",
+    "lat": 22.720156,
+    "lng": 75.858634,
     "city": "Indore",
-    "aliases": ["Electronic Market"]
+    "aliases": ["Sarafa Bazaar", ""]
   },
   {
-    "name": "Book Market",
-    "displayName": "Book Market, Indore",
-    "lat": 22.94,
-    "lng": 76.11,
+    "name": "Satyadhi Sharma Classes",
+    "displayName": "Satyadhi Sharma Classes",
+    "lat": 22.6941553,
+    "lng": 75.8807287,
     "city": "Indore",
-    "aliases": ["Book Bazaar"]
+    "aliases": ["Satyadhi", "Sharma Classes"]
   },
   {
-    "name": "Sarafa Bazaar Food Street",
-    "displayName": "Sarafa Bazaar Food Street, Indore",
-    "lat": 22.95,
-    "lng": 76.12,
+    "name": "Sayaji Hotel Indore",
+    "displayName": "Sayaji Hotel Indore",
+    "lat": 22.744,
+    "lng": 75.8945,
     "city": "Indore",
-    "aliases": ["Sarafa Food Street", "Food Street"]
+    "aliases": ["Sayaji", "Sayaji Luxury Hotel"]
   },
   {
-    "name": "Chappan Dukan Food Court",
-    "displayName": "Chappan Dukan Food Court, Indore",
-    "lat": 22.96,
-    "lng": 76.13,
+    "name": "Scheme 140",
+    "displayName": "Scheme 140 Area, Indore",
+    "lat": 22.708858,
+    "lng": 75.912654,
     "city": "Indore",
-    "aliases": ["56 Dukan Food Court"]
+    "aliases": ["Scheme No. 140", ""]
   },
   {
-    "name": "Indore Central Food Court",
-    "displayName": "Indore Central Food Court, Indore",
-    "lat": 22.97,
-    "lng": 76.14,
+    "name": "Scheme 54",
+    "displayName": "Scheme 54 Area, Indore",
+    "lat": 22.750741,
+    "lng": 75.89564,
     "city": "Indore",
-    "aliases": ["Central Food Court"]
+    "aliases": ["Scheme No. 54", ""]
   },
   {
-    "name": "Rajwada Food Plaza",
-    "displayName": "Rajwada Food Plaza, Indore",
-    "lat": 22.98,
-    "lng": 76.15,
+    "name": "Seeta Bagh Colony",
+    "displayName": "Seeta Bagh Colony Rd, Indore",
+    "lat": 22.7178,
+    "lng": 75.8734,
     "city": "Indore",
-    "aliases": ["Food Plaza"]
+    "aliases": ["Seeta Bagh", "Colony"]
   },
   {
-    "name": "Indore Street Food Market",
-    "displayName": "Indore Street Food Market, Indore",
-    "lat": 22.99,
-    "lng": 76.16,
+    "name": "Shalby Multi-Specialty Hospital",
+    "displayName": "Shalby Multi-Specialty Hospital, Indore",
+    "lat": 22.729,
+    "lng": 75.8825,
     "city": "Indore",
-    "aliases": ["Street Food Market"]
+    "aliases": ["Shalby Hospital", "Shalby Indore"]
   },
   {
-    "name": "Indore Restaurant Hub",
-    "displayName": "Indore Restaurant Hub, Indore",
-    "lat": 23.0,
-    "lng": 76.17,
+    "name": "Sharma Academy",
+    "displayName": "Sharma Academy Best UPSC IAS MPPSC Coaching in indore",
+    "lat": 22.690153,
+    "lng": 75.864335,
     "city": "Indore",
-    "aliases": ["Restaurant Hub"]
+    "aliases": ["Sharma", "Sharma Academy UPSC"]
   },
   {
-    "name": "Indore Food Center",
-    "displayName": "Indore Food Center, Indore",
-    "lat": 23.01,
-    "lng": 76.18,
+    "name": "Shraddhapuri",
+    "displayName": "Shraddhapuri, Indore, Madhya Pradesh",
+    "lat": 22.6912,
+    "lng": 75.8289,
     "city": "Indore",
-    "aliases": ["Food Center"]
+    "aliases": ["Shradha Puri", "Puri"]
   },
   {
-    "name": "Indore Dining District",
-    "displayName": "Indore Dining District, Indore",
-    "lat": 23.02,
-    "lng": 76.19,
+    "name": "Shree Atal Bihari Vajpayee Kshetriya Udyan",
+    "displayName": "Shree Atal Bihari Vajpayee Kshetriya Udyan",
+    "lat": 22.677488,
+    "lng": 75.8569905,
     "city": "Indore",
-    "aliases": ["Dining District"]
+    "aliases": ["Atal Bihari Park", "Vajpayee Udyan"]
   },
   {
-    "name": "Indore Cafe Street",
-    "displayName": "Indore Cafe Street, Indore",
-    "lat": 23.03,
-    "lng": 76.2,
+    "name": "Shree Sanyogitaganj Digamber Jain Panchayati Mandir",
+    "displayName": "Shree Sanyogitaganj Digamber Jain Panchayati Mandir Chhavani",
+    "lat": 22.7074849,
+    "lng": 75.8763288,
     "city": "Indore",
-    "aliases": ["Cafe Street"]
+    "aliases": ["Sanyogitaganj Jain Mandir", "Chhawani Jain Temple"]
   },
   {
-    "name": "Indore Metro Station",
-    "displayName": "Indore Metro Station, Indore",
-    "lat": 23.04,
-    "lng": 76.21,
+    "name": "Shri Mankameshwar Kaantafod Mandir",
+    "displayName": "Shri Mankameshwar kaantafod mandir",
+    "lat": 22.7040795,
+    "lng": 75.8734609,
     "city": "Indore",
-    "aliases": ["Indore Metro"]
+    "aliases": ["Mankameshwar", "Kantafod Mandir"]
   },
   {
-    "name": "Central Metro Station",
-    "displayName": "Central Metro Station, Indore",
-    "lat": 23.05,
-    "lng": 76.22,
+    "name": "Shri Satyasai School Square",
+    "displayName": "Shri Satyasai School Square",
+    "lat": 22.7555,
+    "lng": 75.8915,
     "city": "Indore",
-    "aliases": ["Central Metro"]
+    "aliases": ["Satyasai Square", "School Square"]
   },
   {
-    "name": "Airport Metro Station",
-    "displayName": "Airport Metro Station, Indore",
-    "lat": 23.06,
-    "lng": 76.23,
+    "name": "Shri Vedanta Academy",
+    "displayName": "Shri Vedanta Academy",
+    "lat": 22.6886923,
+    "lng": 75.8637429,
     "city": "Indore",
-    "aliases": ["Airport Metro"]
+    "aliases": ["Vedanta", "Shri Vedanta"]
   },
   {
-    "name": "Railway Metro Station",
-    "displayName": "Railway Metro Station, Indore",
-    "lat": 23.07,
-    "lng": 76.24,
+    "name": "Silicon City Square",
+    "displayName": "Silicon City Square, AB Road Indore",
+    "lat": 22.6486305,
+    "lng": 75.8202238,
     "city": "Indore",
-    "aliases": ["Railway Metro"]
+    "aliases": ["Silicon City", "Silicon Square"]
   },
   {
-    "name": "Bus Stand Metro Station",
-    "displayName": "Bus Stand Metro Station, Indore",
-    "lat": 23.08,
-    "lng": 76.25,
+    "name": "Sindhi Colony Market",
+    "displayName": "Sindhi colony market",
+    "lat": 22.7010571,
+    "lng": 75.8636115,
     "city": "Indore",
-    "aliases": ["Bus Stand Metro"]
+    "aliases": ["Sindhi Market", "Sindhi Colony Bazaar"]
   },
   {
-    "name": "Indore Central Bus Stand",
-    "displayName": "Indore Central Bus Stand, Indore",
-    "lat": 23.09,
-    "lng": 76.26,
+    "name": "Sindhi Colony Square",
+    "displayName": "Sindhi Colony Square",
+    "lat": 22.7008152,
+    "lng": 75.863117,
     "city": "Indore",
-    "aliases": ["Central Bus Stand"]
+    "aliases": ["Sindhi Square", "Sindhi Colony"]
   },
   {
-    "name": "Indore City Bus Terminal",
-    "displayName": "Indore City Bus Terminal, Indore",
-    "lat": 23.1,
-    "lng": 76.27,
+    "name": "Sirpur",
+    "displayName": "Sirpur, Indore, Madhya Pradesh",
+    "lat": 22.6756,
+    "lng": 75.8089,
     "city": "Indore",
-    "aliases": ["City Bus Terminal"]
+    "aliases": ["Sirpur Lake", "Main Area"]
   },
   {
-    "name": "Indore Inter State Bus Terminal",
-    "displayName": "Indore Inter State Bus Terminal, Indore",
-    "lat": 23.11,
-    "lng": 76.28,
+    "name": "Snehjeev Paradise",
+    "displayName": "Snehjeev Paradise",
+    "lat": 22.7246894,
+    "lng": 75.9386036,
     "city": "Indore",
-    "aliases": ["ISBT Indore", "Inter State Bus Terminal"]
+    "aliases": ["Paradise Farm", "Snehjeev"]
   },
   {
-    "name": "Indore Local Bus Stand",
-    "displayName": "Indore Local Bus Stand, Indore",
-    "lat": 23.12,
-    "lng": 76.29,
+    "name": "Spice Mantraa",
+    "displayName": "Spice Mantraa",
+    "lat": 22.7232349,
+    "lng": 75.9190695,
     "city": "Indore",
-    "aliases": ["Local Bus Stand"]
+    "aliases": ["Spice Restaurant", "Mantraa"]
+  },
+  {
+    "name": "St Arnold's Higher Secondary School",
+    "displayName": "St Arnold's Higher Secondary School",
+    "lat": 22.755,
+    "lng": 75.89,
+    "city": "Indore",
+    "aliases": ["St Arnolds", "Arnold School"]
+  },
+  {
+    "name": "Stalwart Career Institute",
+    "displayName": "Stalwart Career Institute CAT IPM CMAT CUET",
+    "lat": 22.6911872,
+    "lng": 75.8653606,
+    "city": "Indore",
+    "aliases": ["Stalwart", "Stalwart Institute"]
+  },
+  {
+    "name": "Star Square",
+    "displayName": "Star Square",
+    "lat": 22.7463556,
+    "lng": 75.9220709,
+    "city": "Indore",
+    "aliases": ["Star", "Star Chauraha"]
+  },
+  {
+    "name": "Success Computer Institute",
+    "displayName": "Success Computer Institute, Bholaram Ustad Marg, Indore",
+    "lat": 22.6864373,
+    "lng": 75.8635447,
+    "city": "Indore",
+    "aliases": ["Success Computer", "Success Institute"]
+  },
+  {
+    "name": "Success Point Institute",
+    "displayName": "Success Point Institute - NEET Coaching in Indore - Best coaching for NEET in Indore",
+    "lat": 22.7191027,
+    "lng": 75.8847735,
+    "city": "Indore",
+    "aliases": ["Success Point", "Success Point NEET"]
+  },
+  {
+    "name": "Sudama Nagar",
+    "displayName": "Sudama Nagar, Indore, Madhya Pradesh 452009",
+    "lat": 22.6917042,
+    "lng": 75.831393,
+    "city": "Indore",
+    "aliases": ["Sudama Nagar Sector B", "Sudama Sector D"]
+  },
+  {
+    "name": "Sukh Niwas Palace",
+    "displayName": "Sukh Niwas Palace, Indore",
+    "lat": 22.715234,
+    "lng": 75.870456,
+    "city": "Indore",
+    "aliases": ["Sukh Niwas", ""]
+  },
+  {
+    "name": "Sukhliya",
+    "displayName": "Sukhliya, Indore, Madhya Pradesh",
+    "lat": 22.7639831,
+    "lng": 75.8709186,
+    "city": "Indore",
+    "aliases": ["Sukhliya Main", "Sector A"]
+  },
+  {
+    "name": "Sukoon Signature",
+    "displayName": "Sukoon Signature",
+    "lat": 22.6842097,
+    "lng": 75.8579411,
+    "city": "Indore",
+    "aliases": ["Sukoon", "Sukoon Hotel"]
+  },
+  {
+    "name": "SuperGrads Coaching Center",
+    "displayName": "SuperGrads Coaching Center [IPMAT,CUET & CAT]",
+    "lat": 22.7030973,
+    "lng": 75.8601635,
+    "city": "Indore",
+    "aliases": ["SuperGrads", "Super Grads"]
+  },
+  {
+    "name": "SuperGrads Coaching Center",
+    "displayName": "SuperGrads Coaching Center [IPMAT,CUET & CAT]",
+    "lat": 22.7256024,
+    "lng": 75.8811511,
+    "city": "Indore",
+    "aliases": ["SuperGrads", "Super Grads"]
+  },
+  {
+    "name": "Swaraj Coaching Institute",
+    "displayName": "Swaraj Coaching Institute | Best Coaching For PAT, CUET & ICAR in Indore |",
+    "lat": 22.6975087,
+    "lng": 75.8771723,
+    "city": "Indore",
+    "aliases": ["Swaraj", "Swaraj Coaching"]
+  },
+  {
+    "name": "Swastik JEE-Main NEET Tutorial",
+    "displayName": "swastik jee-main neet tutorial",
+    "lat": 22.7554456,
+    "lng": 75.8883813,
+    "city": "Indore",
+    "aliases": ["Swastik Tutorial", "Swastik JEE NEET"]
+  },
+  {
+    "name": "Tanisha Jewellery",
+    "displayName": "Tanisha Jewellery - Indore - Sapna",
+    "lat": 22.701,
+    "lng": 75.8675,
+    "city": "Indore",
+    "aliases": ["Tanisha", "Jewellery Store"]
+  },
+  {
+    "name": "Taru Patang Wala",
+    "displayName": "Taru Patang Wala | Best Pujan Havan Samagri Bhandar In Indore",
+    "lat": 22.7080329,
+    "lng": 75.8757978,
+    "city": "Indore",
+    "aliases": ["Taru Patang", "Pujan Samagri Shop"]
+  },
+  {
+    "name": "Tea And Talk Cafe",
+    "displayName": "Tea And Talk Cafe",
+    "lat": 22.7015,
+    "lng": 75.871,
+    "city": "Indore",
+    "aliases": ["Tea Talk", "Chai Cafe"]
+  },
+  {
+    "name": "Tealogy Neo",
+    "displayName": "Tealogy Neo - Scheme No. 78",
+    "lat": 22.764429,
+    "lng": 75.8886973,
+    "city": "Indore",
+    "aliases": ["Tealogy Cafe", "Tea Lounge Scheme 78"]
+  },
+  {
+    "name": "Tealogy Sapna Sangeeta",
+    "displayName": "Tealogy Sapna Sangeeta",
+    "lat": 22.698,
+    "lng": 75.864,
+    "city": "Indore",
+    "aliases": ["Tealogy", "Tea Lounge"]
+  },
+  {
+    "name": "The Bagheli Tola",
+    "displayName": "The Bagheli Tola",
+    "lat": 22.6856608,
+    "lng": 75.8620114,
+    "city": "Indore",
+    "aliases": ["Bagheli Tola"]
+  },
+  {
+    "name": "The Excellence Institute",
+    "displayName": "The Excellence Institute of SPOKEN ENGLISH and Personal interview",
+    "lat": 22.6843556,
+    "lng": 75.8638863,
+    "city": "Indore",
+    "aliases": ["Excellence Institute", "Spoken English Institute"]
+  },
+  {
+    "name": "The Grand Tara",
+    "displayName": "THE GRAND TARA",
+    "lat": 22.7155832,
+    "lng": 75.8753177,
+    "city": "Indore",
+    "aliases": ["Grand Tara", "Tara Hotel"]
+  },
+  {
+    "name": "The Groundbaking Co",
+    "displayName": "The Groundbaking Co. - Pizzas & waffles in a simple eatery",
+    "lat": 22.758,
+    "lng": 75.889,
+    "city": "Indore",
+    "aliases": ["Groundbaking", "Pizza Waffles Cafe"]
+  },
+  {
+    "name": "The HighGarden Cafe",
+    "displayName": "The HighGarden Cafe",
+    "lat": 22.7230349,
+    "lng": 75.8912168,
+    "city": "Indore",
+    "aliases": ["HighGarden", "High Garden"]
+  },
+  {
+    "name": "The Mamta's Cafe",
+    "displayName": "The Mamta's Cafe",
+    "lat": 22.7231286,
+    "lng": 75.895614,
+    "city": "Indore",
+    "aliases": ["Mamta Cafe", "Patrakar Colony Cafe"]
+  },
+  {
+    "name": "The Monroe Cafe",
+    "displayName": "The Monroe Cafe",
+    "lat": 22.7266989,
+    "lng": 75.8841489,
+    "city": "Indore",
+    "aliases": ["Monroe", "Monroe Rooftop"]
+  },
+  {
+    "name": "The Tripti",
+    "displayName": "The Tripti (Hotel, Banquet Hall, Rooftop Lounge & Pure Veg Restaurant)",
+    "lat": 22.7628788,
+    "lng": 75.885985,
+    "city": "Indore",
+    "aliases": ["Tripti Hotel", "Rooftop Lounge Hotel"]
+  },
+  {
+    "name": "The Tripti Hotel",
+    "displayName": "The Tripti (Hotel, Banquet Hall, Rooftop Lounge & Pure Veg Restaurant)",
+    "lat": 22.7628788,
+    "lng": 75.885985,
+    "city": "Indore",
+    "aliases": ["Tripti Hotel", "Rooftop Lounge Scheme 78"]
+  },
+  {
+    "name": "The WiNNERS Institute",
+    "displayName": "The WiNNERS Institute \u2013 Best Coaching for SSC, MPPSC, MPSI, Railway, Banking, MPTET in Indore",
+    "lat": 22.6887898,
+    "lng": 75.8638694,
+    "city": "Indore",
+    "aliases": ["Winners Institute", "WiNNERS"]
+  },
+  {
+    "name": "The taste of village",
+    "displayName": "The taste of village",
+    "lat": 22.6875199,
+    "lng": 75.862876,
+    "city": "Indore",
+    "aliases": ["Taste of Village"]
+  },
+  {
+    "name": "Tilak Nagar",
+    "displayName": "Tilak Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7245,
+    "lng": 75.8298,
+    "city": "Indore",
+    "aliases": ["Tilak", "Main Road"]
+  },
+  {
+    "name": "Tilak Nagar",
+    "displayName": "Tilak Nagar, Indore",
+    "lat": 22.7183843,
+    "lng": 75.8987169,
+    "city": "Indore",
+    "aliases": ["Tilak Path", "TN Indore"]
+  },
+  {
+    "name": "Tilak Path",
+    "displayName": "Tilak Path, Rambag, Indore",
+    "lat": 22.718959,
+    "lng": 75.897201,
+    "city": "Indore",
+    "aliases": ["Tilak Nagar", "Rambag"]
+  },
+  {
+    "name": "Tinku's Bhawarkua",
+    "displayName": "Tinku's Bhawarkua",
+    "lat": 22.6931351,
+    "lng": 75.8670006,
+    "city": "Indore",
+    "aliases": ["Tinkus", "Tinku Restaurant"]
+  },
+  {
+    "name": "Tinkus New Palasia",
+    "displayName": "Tinkus New palasia",
+    "lat": 22.7275,
+    "lng": 75.885,
+    "city": "Indore",
+    "aliases": ["Tinkus Palasia"]
+  },
+  {
+    "name": "Treasure Island Mall",
+    "displayName": "Treasure Island Mall, MG Road",
+    "lat": 22.718512,
+    "lng": 75.848934,
+    "city": "Indore",
+    "aliases": ["TI Mall", ""]
+  },
+  {
+    "name": "Treasure Island Mall",
+    "displayName": "Treasure Island Mall (TI Mall)",
+    "lat": 22.725,
+    "lng": 75.882,
+    "city": "Indore",
+    "aliases": ["TI Mall", "T.I. Mall", "Treasure Island"]
+  },
+  {
+    "name": "Treasure Island Mall (TI Mall)",
+    "displayName": "Treasure Island Mall (TI Mall)",
+    "lat": 22.725,
+    "lng": 75.882,
+    "city": "Indore",
+    "aliases": ["TI Mall", "Treasure Island", "T.I. Mall"]
+  },
+  {
+    "name": "Treebo Cherry Tree",
+    "displayName": "Treebo Cherry Tree",
+    "lat": 22.7235,
+    "lng": 75.886,
+    "city": "Indore",
+    "aliases": ["Treebo", "Cherry Tree"]
+  },
+  {
+    "name": "Treebo Omni Palace",
+    "displayName": "Treebo Omni Palace - Hotel in Indore",
+    "lat": 22.7177374,
+    "lng": 75.8819186,
+    "city": "Indore",
+    "aliases": ["Omni Palace", "Treebo Hotel"]
+  },
+  {
+    "name": "Tukoganj",
+    "displayName": "Tukoganj Area, Indore",
+    "lat": 22.718901,
+    "lng": 75.848567,
+    "city": "Indore",
+    "aliases": ["South Tukoganj", ""]
+  },
+  {
+    "name": "Tulsi Nagar",
+    "displayName": "Tulsi Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7156,
+    "lng": 75.8201,
+    "city": "Indore",
+    "aliases": ["Tulsi", "Extension"]
+  },
+  {
+    "name": "Unnati Academy",
+    "displayName": "Unnati Academy Best SSC Coaching in indore",
+    "lat": 22.7392675,
+    "lng": 75.8822929,
+    "city": "Indore",
+    "aliases": ["Unnati", "Unnati SSC"]
+  },
+  {
+    "name": "Upvaas",
+    "displayName": "Upvaas",
+    "lat": 22.702,
+    "lng": 75.8678,
+    "city": "Indore",
+    "aliases": ["Upvaas Restaurant", "Fasting Food"]
+  },
+  {
+    "name": "Usha Nagar",
+    "displayName": "Usha Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7012,
+    "lng": 75.8145,
+    "city": "Indore",
+    "aliases": ["Usha", "Nagar"]
+  },
+  {
+    "name": "Utkarsh Classes Indore",
+    "displayName": "Utkarsh Classes Indore",
+    "lat": 22.6921321,
+    "lng": 75.8661954,
+    "city": "Indore",
+    "aliases": ["Utkarsh", "Utkarsh Classes"]
+  },
+  {
+    "name": "Vaishali Nagar",
+    "displayName": "Vaishali Nagar Locality, Indore",
+    "lat": 22.694833,
+    "lng": 75.853955,
+    "city": "Indore",
+    "aliases": ["Vaishali Nagar Area", ""]
+  },
+  {
+    "name": "Vallabh Nagar",
+    "displayName": "Vallabh Nagar, Indore, Madhya Pradesh",
+    "lat": 22.7089,
+    "lng": 75.8123,
+    "city": "Indore",
+    "aliases": ["Vallabh", "Nagar"]
+  },
+  {
+    "name": "Vansa Homes",
+    "displayName": "Vansa Homes PG for Boys",
+    "lat": 22.6975,
+    "lng": 75.8655,
+    "city": "Indore",
+    "aliases": ["Vansa PG", "Boys Hostel"]
+  },
+  {
+    "name": "Varma Union Hospital",
+    "displayName": "Varma Union Hospital",
+    "lat": 22.711952,
+    "lng": 75.838128,
+    "city": "Indore",
+    "aliases": ["Varma Hospital", "Union Hospital"]
+  },
+  {
+    "name": "Veg Bites Cafe",
+    "displayName": "Veg Bites Cafe & Restaurant",
+    "lat": 22.698578,
+    "lng": 75.8659869,
+    "city": "Indore",
+    "aliases": ["Veg Bites", "Mittal Chambers Cafe"]
+  },
+  {
+    "name": "Vidya Nagar Gurudwara",
+    "displayName": "Vidya Nagar Gurudwara",
+    "lat": 22.6982,
+    "lng": 75.8645,
+    "city": "Indore",
+    "aliases": ["Gurudwara", "Sikh Temple"]
+  },
+  {
+    "name": "Vijay Nagar",
+    "displayName": "Vijay Nagar, Indore, Madhya Pradesh 452010",
+    "lat": 22.724355,
+    "lng": 75.8838944,
+    "city": "Indore",
+    "aliases": ["Vijay", "Scheme No 54"]
+  },
+  {
+    "name": "Vijay Nagar Square",
+    "displayName": "Vijay Nagar Square, Indore",
+    "lat": 22.750741,
+    "lng": 75.89564,
+    "city": "Indore",
+    "aliases": ["Vijay Nagar Chowk", ""]
+  },
+  {
+    "name": "Vikram Tower",
+    "displayName": "Vikram Tower",
+    "lat": 22.703,
+    "lng": 75.87,
+    "city": "Indore",
+    "aliases": ["Vikram Complex", "Shopping Mall"]
+  },
+  {
+    "name": "Vipra Restaurant & Cafe",
+    "displayName": "Vipra Restaurant & Cafe",
+    "lat": 22.684845,
+    "lng": 75.8634944,
+    "city": "Indore",
+    "aliases": ["Vipra", "Vipra Cafe"]
+  },
+  {
+    "name": "Vrindavan Restaurant",
+    "displayName": "Vrindavan Restaurant",
+    "lat": 22.7616122,
+    "lng": 75.8863744,
+    "city": "Indore",
+    "aliases": ["Vrindavan", "Prestige Institute Restaurant"]
+  },
+  {
+    "name": "White Church",
+    "displayName": "Indore White Church",
+    "lat": 22.726345,
+    "lng": 75.861789,
+    "city": "Indore",
+    "aliases": ["Old Church", ""]
+  },
+  {
+    "name": "Wings Academy",
+    "displayName": "Wings academy",
+    "lat": 22.6912824,
+    "lng": 75.8651135,
+    "city": "Indore",
+    "aliases": ["Wings", "Wings Bhawarkua"]
+  },
+  {
+    "name": "Yeshwant Niwas",
+    "displayName": "Yeshwant Niwas Palace, Indore",
+    "lat": 22.720789,
+    "lng": 75.845123,
+    "city": "Indore",
+    "aliases": ["Yeshwant Palace", ""]
   }
 ]

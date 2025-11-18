@@ -115,7 +115,6 @@ export default function CommissionsPage() {
         throw new Error(response.data.message || "Failed to fetch commissions");
       }
     } catch (error) {
-      console.error("Failed to fetch commissions:", error);
       setError(
         error instanceof Error ? error.message : "Failed to fetch commissions"
       );
@@ -163,7 +162,6 @@ export default function CommissionsPage() {
         );
       }
     } catch (error) {
-      console.error("Failed to settle commission:", error);
       toast.error("Failed to settle commission");
     } finally {
       setActionLoading(null);

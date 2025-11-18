@@ -102,7 +102,6 @@ export default function FavoritesManagement() {
           toast.error("Failed to fetch users with watchlists");
         }
       } catch (error) {
-        console.error("Error fetching users:", error);
         toast.error("Something went wrong");
       } finally {
         setContainerLoading("userFavorites", false);

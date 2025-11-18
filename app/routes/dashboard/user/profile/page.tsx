@@ -69,7 +69,6 @@ export default function UserProfilePage() {
         });
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
       toast.error("Failed to fetch profile");
     } finally {
       setLoading(false);
@@ -125,7 +124,6 @@ export default function UserProfilePage() {
         toast.error("Failed to update profile");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
     } finally {
       setSaving(null);

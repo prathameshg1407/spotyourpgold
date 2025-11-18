@@ -41,7 +41,6 @@ function FeaturedListingsContent() {
         toast.error(res?.data?.message || "Failed to fetch listings");
       }
     } catch (error) {
-      console.error("Featured fetch error", error);
       toast.error("Failed to fetch featured listings");
     } finally {
       setLoading(false);

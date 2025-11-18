@@ -60,7 +60,6 @@ export const useDashboardMetrics = (role: string, userId?: string) => {
           setError(response.data.message || "Failed to fetch metrics");
         }
       } catch (err) {
-        console.error("Error fetching dashboard metrics:", err);
         setError("Failed to fetch dashboard metrics");
       } finally {
         setLoading(false);
@@ -98,7 +97,6 @@ export const useDashboardMetrics = (role: string, userId?: string) => {
               setError(response.data.message || "Failed to fetch metrics");
             }
           } catch (err) {
-            console.error("Error fetching dashboard metrics:", err);
             setError("Failed to fetch dashboard metrics");
           } finally {
             setLoading(false);

@@ -88,7 +88,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
           });
         },
         (err) => {
-          console.warn("Geolocation denied or unavailable", err);
           setLocationDenied(true);
         }
       );
@@ -109,13 +108,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
 
   // Handle search query changes
   useEffect(() => {
-    console.log("Search query change:", {
-      debouncedSearch,
-      currentFilterQuery: filters.query,
-      searchQuery,
-    });
     if (debouncedSearch !== filters.query) {
-      console.log("Updating filter query to:", debouncedSearch);
       updateFilter("query", debouncedSearch);
     }
   }, [debouncedSearch, filters.query, updateFilter, searchQuery]);
@@ -136,13 +129,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   // Trigger search when filters have values
   useEffect(() => {
     const hasActiveSearch = filters.query || activeFiltersCount > 0;
-    console.log("Search trigger check:", {
-      query: filters.query,
-      activeFiltersCount,
-      hasActiveSearch,
-    });
     if (hasActiveSearch) {
-      console.log("Triggering search with filters:", filters);
       searchWithFilters();
     }
   }, [filters, activeFiltersCount, searchWithFilters]);
@@ -178,7 +165,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         }
       } catch (error) {
         if (!ignore) {
-          console.error("Featured fetch error", error);
           toast.error("Failed to fetch featured listings", { duration: 1500 });
         }
       } finally {
@@ -223,7 +209,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         }
       } catch (error) {
         if (!ignore) {
-          console.error("All listings fetch error", error);
           toast.error("Failed to fetch listings", { duration: 1500 });
         }
       } finally {
@@ -264,7 +249,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
         }
       } catch (error) {
         if (!ignore) {
-          console.error("Nearby listings fetch error", error);
           toast.error("Failed to fetch nearby listings", { duration: 1500 });
         }
       } finally {
@@ -1035,7 +1019,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                             setLocationDenied(false);
                           },
                           (err) => {
-                            console.warn("Permission still denied", err);
                             setLocationDenied(true);
                           }
                         );

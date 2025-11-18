@@ -65,7 +65,6 @@ export const useImageUpload = (
 
           validFiles.push(compressedFile);
         } catch (compressionError) {
-          console.error("Image compression failed:", compressionError);
           errorMessage = `Failed to compress image ${file.name}`;
           break;
         }
@@ -91,7 +90,6 @@ export const useImageUpload = (
         images: [...prev.images, ...trimmedFiles],
       }));
     } catch (error) {
-      console.error("Image upload error:", error);
       setErrors((prev: any) => ({
         ...prev,
         images: true,

@@ -11,13 +11,11 @@ export default function JsonImportTest() {
       try {
         // Test dynamic import
         const indoreData = await import("@/data/indore-locations.json");
-        console.log("Dynamic import successful:", indoreData.default.length);
         setData(indoreData.default);
         setStatus(
           `✅ Dynamic import successful: ${indoreData.default.length} locations`
         );
       } catch (error) {
-        console.error("Dynamic import failed:", error);
         setStatus(`❌ Dynamic import failed: ${error}`);
       }
     };
