@@ -159,7 +159,6 @@ export const useIndoreLocationSearch = () => {
         // No fallback - only use Indore locations
         return null;
       } catch (error) {
-        console.error("Geocoding failed:", error);
         return null;
       } finally {
         setIsGeocoding(false);
@@ -212,7 +211,6 @@ export const useIndoreLocationSearch = () => {
         setLocationDenied(false);
       })
       .catch((error) => {
-        console.warn("Geolocation denied or unavailable:", error);
         setLocationDenied(true);
       });
   }, [getUserLocation]);

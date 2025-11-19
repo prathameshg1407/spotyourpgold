@@ -417,7 +417,6 @@ function InfiniteScrollListings({
         }
       }
     } catch (error) {
-      console.error("Error fetching more listings:", error);
     } finally {
       setLoading(false);
       setInitialLoad(true);
@@ -469,7 +468,6 @@ function InfiniteScrollListings({
         }
       }
     } catch (error) {
-      console.error("Error fetching initial listings:", error);
       // Fallback to regular listings if featured fails
       try {
         const fallbackResponse = await axios.get(
@@ -481,7 +479,6 @@ function InfiniteScrollListings({
           setHasMore(fallbackResponse.data.data.length === 12);
         }
       } catch (fallbackError) {
-        console.error("Fallback fetch also failed:", fallbackError);
       }
     } finally {
       setLoading(false);
@@ -771,7 +768,6 @@ export default function ProductPage() {
         }
       } catch (error) {
         if (!ignore) {
-          console.error("ownerPgs fetch error", error);
           toast.error("Failed to fetch owner listings", { duration: 1500 });
         }
       } finally {
@@ -806,7 +802,6 @@ export default function ProductPage() {
           }
         }
       } catch (error) {
-        console.log(error);
         if (!ignore) {
           toast.error("Failed to fetch listing (error)", { duration: 1500 });
           router.replace("/");
@@ -902,7 +897,6 @@ export default function ProductPage() {
         });
       }
     } catch (error) {
-      console.error("Toggle watchlist error:", error);
       toast.error("Failed to update watchlist. Try again.", {
         closeButton: true,
         duration: 2000,
@@ -1026,7 +1020,6 @@ export default function ProductPage() {
         toast.error(response.data.message || "Failed to submit booking");
       }
     } catch (error) {
-      console.error("Booking submission error:", error);
       toast.error("Failed to submit booking. Please try again.");
     }
   };
@@ -1080,7 +1073,6 @@ export default function ProductPage() {
         setCouponError(data.message || "Invalid coupon code");
       }
     } catch (error) {
-      console.error("Error validating coupon:", error);
       setCouponData(null);
       setCouponError("Failed to validate coupon");
     } finally {
@@ -1266,7 +1258,6 @@ export default function ProductPage() {
         });
       }
     } catch (error) {
-      console.log(error);
       toast.error("Failed to submit review. Try again.", {
         closeButton: true,
         duration: 2000,

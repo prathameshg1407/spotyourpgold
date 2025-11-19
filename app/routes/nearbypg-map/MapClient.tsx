@@ -71,7 +71,6 @@ const MapClient = () => {
           });
         },
         (err) => {
-          console.warn("Geolocation error:", err);
           setLocationDenied(true);
         }
       );
@@ -112,7 +111,6 @@ const MapClient = () => {
         }
       } catch (error) {
         if (!ignore) {
-          console.error("listing fetch error", error);
           toast.error("Failed to fetch PG listings");
           router.replace("/not-found");
         }

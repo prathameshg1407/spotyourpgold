@@ -139,7 +139,6 @@ export default function RoomManagementPage() {
         })
       }
     } catch (error) {
-      console.error("Update availability error:", error)
       toast.dismiss(loadingToast)
       toast.error("Failed to update room availability. Try again.", {
         closeButton: true,

@@ -216,7 +216,6 @@ export default function EnhancedSearchDropdown({
         setSuggestions(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch suggestions:", error);
       setSuggestions({ properties: [], locations: [] });
     } finally {
       setLoading(false);

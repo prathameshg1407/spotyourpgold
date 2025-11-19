@@ -9,7 +9,6 @@ export default function SimpleIndoreTest() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    console.log("Indore locations loaded:", indoreLocations.length);
     setIsLoaded(true);
   }, []);
 
@@ -29,7 +28,6 @@ export default function SimpleIndoreTest() {
     });
 
     setResults(matches.slice(0, 5));
-    console.log("Search results:", matches.length);
   };
 
   return (

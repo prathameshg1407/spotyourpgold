@@ -84,7 +84,6 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
         setBookings(response.data.data);
       }
     } catch (error) {
-      console.error("Error fetching bookings:", error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +97,6 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
         fetchBookings();
       }
     } catch (error) {
-      console.error("Error deleting booking:", error);
       toast.error("Failed to delete booking request");
     }
   };
@@ -134,7 +132,6 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
         toast.error("Failed to update booking");
       }
     } catch (error) {
-      console.error("Error updating booking:", error);
       toast.error("Failed to update booking");
     }
   };
@@ -295,10 +292,6 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
                                 fetchBookings();
                               }
                             } catch (error) {
-                              console.error(
-                                "Failed to mark cash payment:",
-                                error
-                              );
                               toast.error("Failed to mark cash payment");
                             }
                           }}

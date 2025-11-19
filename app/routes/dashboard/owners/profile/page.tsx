@@ -148,7 +148,6 @@ export default function OwnerProfilePage() {
         });
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
       toast.error("Failed to fetch profile");
     } finally {
       setLoading(false);
@@ -234,7 +233,6 @@ export default function OwnerProfilePage() {
         toast.error("Failed to update profile");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
     } finally {
       setSaving(null);
@@ -271,7 +269,6 @@ export default function OwnerProfilePage() {
         toast.error(response.data.message || "Failed to upload document");
       }
     } catch (error) {
-      console.error("Document upload error:", error);
       toast.error("Failed to upload document");
     } finally {
       setUploading(null);

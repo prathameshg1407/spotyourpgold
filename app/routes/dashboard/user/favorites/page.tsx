@@ -71,7 +71,6 @@ export default function UserFavoritesPage() {
         setFavorites(response.data.data);
       }
     } catch (error) {
-      console.error("Error fetching favorites:", error);
       toast.error("Failed to fetch favorites");
     } finally {
       setLoading(false);
@@ -92,7 +91,6 @@ export default function UserFavoritesPage() {
         toast.error("Failed to remove from favorites");
       }
     } catch (error) {
-      console.error("Error removing favorite:", error);
       toast.error("Failed to remove from favorites");
     }
   };

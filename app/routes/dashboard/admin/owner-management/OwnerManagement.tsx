@@ -909,14 +909,12 @@ const OwnerManagement = () => {
         setDeleteConfirmDialogOpen(false);
       }
     } catch (error: any) {
-      console.error("Delete error:", error);
       const errorMessage =
         error?.response?.data?.message || "Something went wrong";
       // Show error in dialog instead of toast
       setDeleteErrorMessage(errorMessage);
       setDeleteErrorDialogOpen(true);
       setDeleteConfirmDialogOpen(false);
-      console.log("Error response:", error?.response?.data);
     } finally {
       toast.dismiss();
       setDeleteLoading(false);

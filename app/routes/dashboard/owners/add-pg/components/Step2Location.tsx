@@ -144,7 +144,6 @@ export default function Step2Location({
           }));
         }
       } catch (error) {
-        console.error("Failed to get address:", error);
         setFormData((prev) => ({
           ...prev,
           location: {
@@ -198,7 +197,6 @@ export default function Step2Location({
         }
       }
     } catch (error) {
-      console.error("Failed to get coordinates:", error);
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +224,6 @@ export default function Step2Location({
         setIsLoading(false);
       },
       (error) => {
-        console.error("Error getting location:", error);
         alert("Unable to get your current location");
         setIsLoading(false);
       },
@@ -254,7 +251,6 @@ export default function Step2Location({
           }));
         },
         (err) => {
-          console.warn("Geolocation denied or unavailable", err);
         }
       );
     } else {

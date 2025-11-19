@@ -85,7 +85,6 @@ export default function CashPaymentsPage() {
         setPayments(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch cash payments:", error);
       toast.error("Failed to fetch cash payments");
     } finally {
       setLoading(false);
@@ -116,7 +115,6 @@ export default function CashPaymentsPage() {
         fetchCashPayments();
       }
     } catch (error) {
-      console.error(`Failed to ${action} payment:`, error);
       toast.error(`Failed to ${action} payment`);
     } finally {
       setActionLoading(null);

@@ -106,7 +106,6 @@ export default function BookingRequestsPage() {
         setError(response.data.message || "Failed to fetch bookings");
       }
     } catch (error) {
-      console.error("Failed to fetch booking requests:", error);
       setError("Failed to fetch booking requests");
     } finally {
       setLoading(false);
@@ -144,7 +143,6 @@ export default function BookingRequestsPage() {
         );
       }
     } catch (error) {
-      console.error(`Failed to ${action} booking:`, error);
       toast.error(`Failed to ${action} booking`);
     } finally {
       setActionLoading(null);
@@ -179,7 +177,6 @@ export default function BookingRequestsPage() {
         );
       }
     } catch (error) {
-      console.error("Failed to confirm cash payment:", error);
       toast.error("Failed to confirm cash payment");
     } finally {
       setActionLoading(null);
@@ -203,7 +200,6 @@ export default function BookingRequestsPage() {
         setTotal(prevTotal => prevTotal - 1);
       }
     } catch (error) {
-      console.error("Failed to delete booking:", error);
       toast.error("Failed to delete booking request");
     } finally {
       setActionLoading(null);

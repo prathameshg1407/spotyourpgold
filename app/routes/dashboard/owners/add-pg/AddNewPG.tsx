@@ -504,8 +504,7 @@
 //         }));
 //       }
 //     } catch (error) {
-//       console.error("submitPGStep error:", error);
-//       toast.error("Failed to submit PG. Try again.", {
+// //       toast.error("Failed to submit PG. Try again.", {
 //         duration: 3000,
 //         closeButton: true,
 //       });
@@ -2322,36 +2321,28 @@ export default function AddNewPG() {
     autoSaveDelay: 30000, // 30 seconds
     enableAutoSave: true,
     onSaveSuccess: (data) => {
-      console.log("Progress saved successfully:", data);
+      // Progress saved
     },
     onSaveError: (error) => {
-      console.error("Failed to save progress:", error);
+      // Error handled
     },
   });
 
   // Load saved progress on component mount
   useEffect(() => {
-    console.log("🚀 AddNewPG mounted, mode:", mode, "listingId:", listingId);
     if (mode !== "edit" && !listingId) {
-      console.log("📥 Loading progress for new listing...");
       loadProgress().then((progress) => {
         if (progress && progress.formData) {
-          console.log("✅ Progress loaded, updating form data:", progress);
           setFormData(progress.formData);
           setCurrentStep(progress.currentStep);
           toast.success("Previous progress loaded successfully!");
-        } else {
-          console.log("ℹ️ No progress to load");
         }
       });
-    } else {
-      console.log("⏭️ Skipping progress load (edit mode or existing listing)");
     }
   }, [mode, listingId, loadProgress]);
 
   // Auto-save progress when form data changes
   useEffect(() => {
-    console.log("🔄 Form data changed, checking for auto-save...");
     if (mode !== "edit" && !listingId) {
       const hasChanges = checkForChanges({
         formData,
@@ -2360,21 +2351,14 @@ export default function AddNewPG() {
         isCompleted: false,
       });
 
-      console.log("📊 Has changes:", hasChanges, "Form data:", formData);
-
       if (hasChanges) {
-        console.log("💾 Triggering auto-save...");
         autoSave({
           formData,
           currentStep,
           totalSteps,
           isCompleted: false,
         });
-      } else {
-        console.log("ℹ️ No changes detected, skipping auto-save");
       }
-    } else {
-      console.log("⏭️ Skipping auto-save (edit mode or existing listing)");
     }
   }, [formData, currentStep, mode, listingId, autoSave, checkForChanges]);
 
@@ -2396,13 +2380,6 @@ export default function AddNewPG() {
         if (res?.data?.success && res.data.data && !ignore) {
           const listing = res.data.data.listing;
 
-          // Debug log for edit form loading
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              "Edit Form Debug - Loaded listing primaryLine:",
-              listing?.primaryLine
-            );
-          }
 
           setFormData((prev: any) => ({
             ...prev,
@@ -2472,7 +2449,6 @@ export default function AddNewPG() {
           router.replace("/routes/dashboard/owners/listings");
         }
       } catch (error) {
-        console.error("Error fetching listing:", error);
         if (!ignore) {
           toast.error("Failed to fetch listing", { duration: 1500 });
           router.replace("/");
@@ -2527,7 +2503,6 @@ export default function AddNewPG() {
       setIsPaymentModalOpen(false);
       router.replace("/routes/dashboard/owners/listings");
     } catch (error) {
-      console.error("Payment handling failed:", error);
       setPaymentStatus("failed");
       toast.error("Payment failed. Please try again.");
     } finally {
@@ -2613,12 +2588,6 @@ export default function AddNewPG() {
       const payloadString = JSON.stringify(payload);
       const payloadSizeMB = new Blob([payloadString]).size / (1024 * 1024);
 
-      // Debug log for payload size
-      if (process.env.NODE_ENV === "development") {
-        console.log("Payload size:", payloadSizeMB.toFixed(2), "MB");
-        console.log("Images count:", allImages.length);
-        console.log("Videos count:", allVideos.length);
-      }
 
       // Check if payload is too large
       if (payloadSizeMB > 45) {
@@ -2676,7 +2645,6 @@ export default function AddNewPG() {
         }));
       }
     } catch (error: any) {
-      console.error("submitPGStep error:", error);
 
       let errorMessage = "Failed to submit form. Please try again.";
 

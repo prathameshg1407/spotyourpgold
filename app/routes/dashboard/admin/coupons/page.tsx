@@ -80,7 +80,6 @@ export default function CouponsPage() {
         setError(response.data.message || "Failed to fetch coupons");
       }
     } catch (error) {
-      console.error("Failed to fetch coupons:", error);
       setError("Failed to fetch coupons");
     } finally {
       setLoading(false);
@@ -110,7 +109,6 @@ export default function CouponsPage() {
         toast.error(response.data.message || "Failed to create coupon");
       }
     } catch (error: any) {
-      console.error("Failed to create coupon:", error);
       toast.error(error.response?.data?.message || "Failed to create coupon");
     } finally {
       setActionLoading(null);
@@ -142,7 +140,6 @@ export default function CouponsPage() {
         toast.error(response.data.message || "Failed to update coupon");
       }
     } catch (error: any) {
-      console.error("Failed to update coupon:", error);
       toast.error(error.response?.data?.message || "Failed to update coupon");
     } finally {
       setActionLoading(null);
@@ -167,7 +164,6 @@ export default function CouponsPage() {
         toast.error(response.data.message || "Failed to update coupon");
       }
     } catch (error: any) {
-      console.error("Failed to toggle coupon status:", error);
       toast.error(error.response?.data?.message || "Failed to update coupon");
     } finally {
       setActionLoading(null);
@@ -188,7 +184,6 @@ export default function CouponsPage() {
         toast.error(response.data.message || "Failed to delete coupon");
       }
     } catch (error: any) {
-      console.error("Failed to delete coupon:", error);
       toast.error(error.response?.data?.message || "Failed to delete coupon");
     } finally {
       setActionLoading(null);

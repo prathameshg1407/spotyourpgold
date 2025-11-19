@@ -50,7 +50,6 @@ export default function StaticJsonTest() {
     });
 
     setResults(matches);
-    console.log("Static search results:", matches.length);
   };
 
   return (

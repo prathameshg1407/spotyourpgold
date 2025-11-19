@@ -120,7 +120,6 @@ export default function UserVisitRequestsPage() {
         toast.error("Failed to fetch visit requests");
       }
     } catch (error) {
-      console.error("Error fetching visit requests:", error);
       toast.error("Failed to fetch visit requests");
     } finally {
       setLoading(false);
@@ -153,7 +152,6 @@ export default function UserVisitRequestsPage() {
         toast.error(response.data.message || "Failed to delete visit request");
       }
     } catch (error) {
-      console.error("Error deleting visit request:", error);
       toast.error("Failed to delete visit request");
     } finally {
       setDeletingId(null);

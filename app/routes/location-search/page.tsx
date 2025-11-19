@@ -121,7 +121,6 @@ function LocationSearchContent() {
         setCategoryCounts(countsRes.data.categoryCounts);
       }
     } catch (error) {
-      console.error("Failed to fetch listings:", error);
       toast.error("Failed to fetch listings");
     } finally {
       setLoading(false);

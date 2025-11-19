@@ -67,7 +67,6 @@ export default function UserReviewsPage() {
         toast.error(response.data.message || "Failed to fetch reviews");
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
       toast.error("Failed to fetch reviews");
     } finally {
       setLoading(false);
@@ -94,7 +93,6 @@ export default function UserReviewsPage() {
         toast.error("Failed to delete review");
       }
     } catch (error) {
-      console.error("Error deleting review:", error);
       toast.error("Failed to delete review");
     } finally {
       setIsDeleting(false);
@@ -146,7 +144,6 @@ export default function UserReviewsPage() {
         toast.error(response.data.message || "Failed to update review");
       }
     } catch (error) {
-      console.error("Error updating review:", error);
       toast.error("Failed to update review");
     } finally {
       setIsUpdating(false);

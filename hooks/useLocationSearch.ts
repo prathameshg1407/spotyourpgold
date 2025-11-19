@@ -120,7 +120,6 @@ export const useLocationSearch = () => {
         }
         return null;
       } catch (error) {
-        console.error("Geocoding failed:", error);
         return null;
       } finally {
         setIsGeocoding(false);
@@ -137,7 +136,6 @@ export const useLocationSearch = () => {
         setLocationDenied(false);
       })
       .catch((error) => {
-        console.warn("Geolocation denied or unavailable:", error);
         setLocationDenied(true);
       });
   }, [getUserLocation]);
