@@ -298,7 +298,6 @@ export default function SearchDropdown({
               }&lng=${detectedLocation.lng}`
             : `/routes/all-listings?q=${encodeURIComponent(value)}`;
 
-
           router.push(searchUrl);
         }
         break;

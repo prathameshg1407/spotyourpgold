@@ -20,7 +20,9 @@ function getSortObject(
       return { rating: 1 as 1, createdAt: -1 as -1 };
 
     default:
-      return { createdAt: -1 as -1 }; // Default: newest first
+      return hasLocationSearch
+        ? { distance: 1 as 1 } // sort by closest first
+        : { createdAt: -1 as -1 };
   }
 }
 
@@ -368,6 +370,7 @@ export async function GET(req: Request) {
           distanceField: "distance",
           spherical: true,
           query: query,
+          maxDistance: radius * 1000,
           distanceMultiplier: 0.001, // Convert meters to kilometers
         },
       });
@@ -440,6 +443,7 @@ export async function GET(req: Request) {
             distanceField: "distance",
             spherical: true,
             query: query,
+            maxDistance: radius * 1000,
           },
         },
         { $count: "total" },
@@ -526,6 +530,7 @@ export async function GET(req: Request) {
         categories,
         query: q,
         sortBy,
+        ...(lat !== null && lng !== null && { radius: `${radius}km` }),
       },
     };
 
