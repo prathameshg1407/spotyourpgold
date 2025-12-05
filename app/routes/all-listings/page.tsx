@@ -414,8 +414,14 @@ function AllListingsContent() {
 
   // Fetch location category listings when categories change
   useEffect(() => {
-    if (isNearbySearch && lat && lng && selectedCategories.length > 0) {
-      fetchLocationCategoryListings(1);
+    if (isNearbySearch && lat && lng) {
+      // Fetch whenever categories change, even if empty (to show all listings)
+      if (selectedCategories.length > 0) {
+        fetchLocationCategoryListings(1);
+      } else {
+        // When no categories selected, fetch nearby listings instead
+        fetchNearbyListings(1);
+      }
     }
   }, [
     isNearbySearch,
@@ -423,6 +429,7 @@ function AllListingsContent() {
     lng,
     selectedCategories,
     fetchLocationCategoryListings,
+    fetchNearbyListings,
   ]);
 
   // Handle page changes

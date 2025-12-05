@@ -79,7 +79,8 @@ function LocationSearchContent() {
   const fetchListings = async (
     location: LocationData,
     type: "in" | "around" = "in",
-    page: number = 1
+    page: number = 1,
+    categories?: string[] // Accept categories as parameter to avoid stale state
   ) => {
     setLoading(true);
     try {
@@ -94,9 +95,10 @@ function LocationSearchContent() {
         queryParams.set("radius", "10");
       }
 
-      // Add category filter if selected
-      if (selectedCategories.length > 0) {
-        queryParams.set("categories", selectedCategories.join(","));
+      // Add category filter if selected (use parameter if provided, otherwise use state)
+      const categoriesToUse = categories !== undefined ? categories : selectedCategories;
+      if (categoriesToUse.length > 0) {
+        queryParams.set("categories", categoriesToUse.join(","));
       }
 
       // Get category counts
@@ -147,7 +149,8 @@ function LocationSearchContent() {
   const handleCategoryChange = (categories: string[]) => {
     setSelectedCategories(categories);
     if (searchLocation) {
-      fetchListings(searchLocation, searchType, 1);
+      // Pass categories directly to avoid stale state issue
+      fetchListings(searchLocation, searchType, 1, categories);
     }
   };
 
@@ -162,7 +165,8 @@ function LocationSearchContent() {
   const handleClearAll = () => {
     setSelectedCategories([]);
     if (searchLocation) {
-      fetchListings(searchLocation, searchType, 1);
+      // Pass empty array directly to avoid stale state issue
+      fetchListings(searchLocation, searchType, 1, []);
     }
   };
 
@@ -257,7 +261,14 @@ function LocationSearchContent() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(categoryCounts).map(([category, count]) => (
+                  {/* Sort categories in a consistent order to prevent shuffling */}
+                  {Object.entries(categoryCounts)
+                    .sort(([a], [b]) => {
+                      // Define the desired order
+                      const order = ['pgs', 'hostels', 'rooms', 'flats', 'commercial'];
+                      return order.indexOf(a) - order.indexOf(b);
+                    })
+                    .map(([category, count]) => (
                     <Button
                       key={category}
                       variant={

@@ -103,7 +103,11 @@ export async function GET(req: Request) {
 
     // Build query object
     const query: any = {
-      $and: [{ isActive: true }, { isApproved: true }],
+      $and: [
+        { isActive: true }, 
+        { isApproved: true },
+        { type: { $ne: null, $exists: true } } // Exclude null types from all queries
+      ],
     };
 
     // Check if any search criteria is provided
@@ -466,7 +470,11 @@ export async function GET(req: Request) {
                   },
                   distanceField: "distance",
                   spherical: true,
-                  query: { isActive: true, isApproved: true },
+                  query: { 
+                    isActive: true, 
+                    isApproved: true,
+                    type: { $ne: null, $exists: true } // Exclude null types
+                  },
                   maxDistance: radius * 1000, // Convert km to meters
                 },
               },
@@ -478,7 +486,13 @@ export async function GET(req: Request) {
               },
             ]
           : [
-              { $match: { isActive: true, isApproved: true } },
+              { 
+                $match: { 
+                  isActive: true, 
+                  isApproved: true,
+                  type: { $ne: null, $exists: true } // Exclude null types
+                } 
+              },
               {
                 $group: {
                   _id: "$type",
@@ -490,8 +504,11 @@ export async function GET(req: Request) {
       const categoryCountResult = await Listing.aggregate(
         categoryCountPipeline
       );
+      // Filter out null, undefined, and empty string keys
       categoryCounts = categoryCountResult.reduce((acc, item) => {
-        acc[item._id] = item.count;
+        if (item._id && item._id !== null && item._id !== '') {
+          acc[item._id] = item.count;
+        }
         return acc;
       }, {});
     }
