@@ -176,6 +176,7 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   };
 
   const handleClear = () => {
+    // Preserve lat and lng from current filters to maintain location context
     const clearedFilters: FilterState = {
       query: "",
       type: "",
@@ -188,8 +189,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       nearbyPlaces: [],
       visible: [],
       sortBy: "",
-      lat: "",
-      lng: "",
+      lat: filters.lat, // Preserve location coordinates
+      lng: filters.lng, // Preserve location coordinates
     };
     setLocalFilters(clearedFilters);
     onFiltersChange(clearedFilters);

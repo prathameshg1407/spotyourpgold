@@ -97,7 +97,8 @@ export const useAdvancedFilters = (
   // Calculate active filters count
   const activeFiltersCount = Object.entries(filters).reduce(
     (count, [key, value]) => {
-      if (key === "query") return count; // Don't count query as a filter
+      // Don't count query, lat, and lng as filters - they're search context, not filters
+      if (key === "query" || key === "lat" || key === "lng") return count;
       if (Array.isArray(value)) {
         return count + (value.length > 0 ? 1 : 0);
       }
@@ -232,16 +233,29 @@ export const useAdvancedFilters = (
 
   // Clear all filters
   const clearFilters = useCallback(() => {
-    setFilters(initialFilters);
+    // Preserve lat and lng when clearing filters to maintain location context
+    setFilters({
+      ...initialFilters,
+      lat: filters.lat,
+      lng: filters.lng,
+    });
     setCurrentPage(1);
-    router.push(window.location.pathname);
+    
+    // Build URL preserving location parameters
+    const params = new URLSearchParams();
+    if (filters.lat) params.set("lat", filters.lat);
+    if (filters.lng) params.set("lng", filters.lng);
+    const urlPath = params.toString() 
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    router.push(urlPath);
 
     if (!autoSearch) {
       setListings([]);
       setTotal(0);
       setTotalPages(1);
     }
-  }, [router, autoSearch]);
+  }, [router, autoSearch, filters.lat, filters.lng]);
 
   return {
     filters,
