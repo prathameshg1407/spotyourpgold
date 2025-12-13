@@ -2,6 +2,7 @@ import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import { NextResponse } from "next/server";
 import indoreLocations from "@/data/indore-locations.json";
+import { encryptResponse } from "@/lib/encryption";
 
 export async function GET(req: Request) {
   try {
@@ -12,10 +13,11 @@ export async function GET(req: Request) {
     const limit = Math.min(Number(searchParams.get("limit") || 8), 20);
 
     if (!q || q.length < 2) {
-      return NextResponse.json({
+      const emptyResponse = {
         success: true,
         data: { properties: [], locations: [] },
-      });
+      };
+      return NextResponse.json(encryptResponse(emptyResponse));
     }
 
     // Create comprehensive search regex for all fields
@@ -301,7 +303,7 @@ export async function GET(req: Request) {
       propertyType: "property",
     }));
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         properties: formattedProperties,
@@ -323,16 +325,15 @@ export async function GET(req: Request) {
         ],
         optimized: true,
       },
-    });
+    };
+    return NextResponse.json(encryptResponse(responseData));
   } catch (error: any) {
     console.error("Ultra-fast search API Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Search failed",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      message: "Search failed",
+      error: error.message,
+    };
+    return NextResponse.json(encryptResponse(errorResponse), { status: 500 });
   }
 }

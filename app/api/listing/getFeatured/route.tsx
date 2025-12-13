@@ -3,6 +3,7 @@ import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
+import { encryptResponse } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   try {
@@ -167,7 +168,7 @@ export async function GET(req: NextRequest) {
       isWatchlisted: watchlistIds.includes(listing._id.toString()),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message:
         listingsWithWatchlist.length > 0
@@ -175,15 +176,15 @@ export async function GET(req: NextRequest) {
           : "No featured listings found",
       data: listingsWithWatchlist,
       total: listingsWithWatchlist.length,
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (error) {
     console.error("[getFeatured_API]", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Server error while fetching featured listings",
-      },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      message: "Server error while fetching featured listings",
+    };
+    return NextResponse.json(encryptResponse(errorResponse), { status: 500 });
   }
 }

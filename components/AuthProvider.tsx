@@ -4,6 +4,8 @@ import { useLoadingStore } from "@/store/loading";
 import { useUserStore } from "@/store/userStore";
 import axios from "axios";
 import { useEffect } from "react";
+// Initialize axios interceptor for response decryption
+import "@/lib/axios-config";
 
 const AuthProvider = () => {
   const { setLoading } = useLoadingStore();

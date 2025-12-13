@@ -343,7 +343,7 @@ export default function WishlistCompare() {
         );
       case "roomType":
         const roomTypes = item.roomType && item.roomType.length > 0
-          ? item.roomType.filter((rt: string) => rt && rt !== "0" && rt !== 0 && String(rt).trim() !== "")
+          ? item.roomType.filter((rt: string) => rt && rt !== "0" && String(rt).trim() !== "")
           : item.roomTypes && item.roomTypes.length > 0
           ? item.roomTypes
               .map((rt: any) => rt?.type)

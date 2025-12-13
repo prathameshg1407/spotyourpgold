@@ -6,6 +6,7 @@ import User from "@/models/user";
 import authUser from "@/actions/authUser";
 import OwnerProfile from "@/models/ownerProfile";
 import Review from "@/models/review";
+import { encryptResponse } from "@/lib/encryption";
 
 type ListingType = {
   _id: string;
@@ -74,10 +75,11 @@ export async function GET(
       .lean();
 
     if (!listing) {
-      return NextResponse.json({
+      const notFoundResponse = {
         success: false,
         message: "Listing not found",
-      });
+      };
+      return NextResponse.json(encryptResponse(notFoundResponse));
     }
 
     let inWatchlist = false;
@@ -102,7 +104,7 @@ export async function GET(
       ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
     );
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         reviews,
@@ -135,13 +137,16 @@ export async function GET(
           createdAt: listing.createdAt,
         },
       },
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (err) {
     console.error("[GET_LISTING_ERROR]", err);
-    return NextResponse.json(
-      { success: false, message: "Server error" },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      message: "Server error",
+    };
+    return NextResponse.json(encryptResponse(errorResponse), { status: 500 });
   }
 }
 

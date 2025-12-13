@@ -189,6 +189,7 @@ import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import User from "@/models/user";
 import authUser from "@/actions/authUser";
+import { encryptResponse } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   try {
@@ -342,20 +343,23 @@ export async function GET(req: NextRequest) {
       inWatchList: userWatchlist.includes(listing._id.toString()),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: listingsWithWatchlist,
       total,
       sorted_by: hasLocation ? "distance" : "date",
       message: "Listings fetched successfully",
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (err) {
     console.error("[GET_LISTINGS_ERROR]", err);
-    return NextResponse.json({
+    const errorResponse = {
       success: false,
       message: "Failed to fetch listings",
       data: [],
       total: 0,
-    });
+    };
+    return NextResponse.json(encryptResponse(errorResponse));
   }
 }

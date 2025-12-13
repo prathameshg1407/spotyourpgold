@@ -3,6 +3,7 @@ import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
+import { encryptResponse } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,17 +52,20 @@ export async function GET(req: NextRequest) {
       ),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message: "Owner listings fetched successfully",
       data: listingsWithWatchlist,
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (error) {
     console.error("[getOwnerListing_API]", error);
 
-    return NextResponse.json({
+    const errorResponse = {
       success: false,
       message: "Server error while fetching owner listings",
-    });
+    };
+    return NextResponse.json(encryptResponse(errorResponse));
   }
 }
