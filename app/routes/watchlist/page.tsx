@@ -48,6 +48,8 @@ import {
   Camera,
   Refrigerator,
   BrushIcon,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
 interface PGListing {
@@ -78,6 +80,14 @@ interface PGListing {
   };
   rating?: number;
   roomType?: string[];
+  roomTypes?: Array<{
+    type?: string;
+    numberOfRooms?: number;
+    availableRooms?: number;
+    capacityPerRoom?: number;
+    monthlyRent?: number;
+    securityDeposit?: number;
+  }>;
   minSecurity?: number;
 }
 
@@ -332,10 +342,17 @@ export default function WishlistCompare() {
           </div>
         );
       case "roomType":
+        const roomTypes = item.roomType && item.roomType.length > 0
+          ? item.roomType.filter((rt: string) => rt && rt !== "0" && rt !== 0 && String(rt).trim() !== "")
+          : item.roomTypes && item.roomTypes.length > 0
+          ? item.roomTypes
+              .map((rt: any) => rt?.type)
+              .filter((type: any) => type && type !== "0" && type !== 0 && String(type).trim() !== "")
+          : [];
         return (
           <div className="text-sm">
-            {item.roomType && item.roomType.length > 0
-              ? item.roomType.join(", ")
+            {roomTypes.length > 0
+              ? roomTypes.join(", ")
               : "N/A"}
           </div>
         );
@@ -375,10 +392,33 @@ export default function WishlistCompare() {
           <span className="text-gray-400">No rating</span>
         );
       case "wifi":
+        return item.amenities?.some((a: string) => 
+          a.toLowerCase().includes("wifi") || a.toLowerCase().includes("wi-fi") || a.toLowerCase().includes("internet")
+        ) ? (
+          <Check className="h-6 w-6 text-green-500 mx-auto" />
+        ) : (
+          <span className="text-red-500 text-xl font-bold">✗</span>
+        );
       case "meals":
+        return item.amenities?.some((a: string) => 
+          a.toLowerCase().includes("meal") || a.toLowerCase().includes("food")
+        ) || item.rentInclusions?.foodIncluded ? (
+          <Check className="h-6 w-6 text-green-500 mx-auto" />
+        ) : (
+          <span className="text-red-500 text-xl font-bold">✗</span>
+        );
       case "security":
+        return item.amenities?.some((a: string) => 
+          a.toLowerCase().includes("security") || a.toLowerCase().includes("cctv") || a.toLowerCase().includes("24x7")
+        ) ? (
+          <Check className="h-6 w-6 text-green-500 mx-auto" />
+        ) : (
+          <span className="text-red-500 text-xl font-bold">✗</span>
+        );
       case "ac":
-        return item.amenities?.includes(field) ? (
+        return item.amenities?.some((a: string) => 
+          a.toLowerCase().includes("ac") || a.toLowerCase().includes("air conditioning") || a.toLowerCase().includes("air-conditioning")
+        ) ? (
           <Check className="h-6 w-6 text-green-500 mx-auto" />
         ) : (
           <span className="text-red-500 text-xl font-bold">✗</span>
@@ -430,37 +470,69 @@ export default function WishlistCompare() {
                 rentInclusions={item.rentInclusions || {}}
               />
 
-              {/* Overlay with action buttons */}
-              <div className="absolute top-2 left-2 right-2 flex flex-col sm:flex-row gap-2 z-20">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(item._id)}
-                    onChange={() => toggleSelect(item._id)}
-                    className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 rounded focus:ring-blue-500 bg-white shadow-md"
-                  />
-                </div>
-                <div className="flex gap-2 flex-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 sm:flex-none border-HG-500 text-HG-600 hover:bg-HG-50 hover:border-HG-600 bg-white shadow-md text-xs sm:text-sm"
-                    onClick={() => handleViewDetails(item)}
-                  >
-                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    <span className="hidden sm:inline">Details</span>
-                    <span className="sm:hidden">View</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 sm:flex-none border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-white shadow-md text-xs sm:text-sm"
-                    onClick={() => handleRemove(item._id)}
-                  >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    <span className="hidden sm:inline">Remove</span>
-                    <span className="sm:hidden">Del</span>
-                  </Button>
+              {/* Modern Floating Action Tab */}
+              <div className="absolute top-3 right-3 z-30">
+                <div className="relative group">
+                  {/* Main Tab Container */}
+                  <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md rounded-full px-2 py-1.5 shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-300">
+                    {/* Checkbox Button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleSelect(item._id);
+                      }}
+                      className={`p-1.5 rounded-full transition-all duration-200 ${
+                        selected.includes(item._id)
+                          ? "bg-HG-500 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-HG-100 hover:text-HG-600"
+                      }`}
+                      aria-label="Select for comparison"
+                    >
+                      {selected.includes(item._id) ? (
+                        <CheckSquare className="h-4 w-4" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    {/* Divider */}
+                    <div className="h-5 w-px bg-gray-300" />
+
+                    {/* Details Button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleViewDetails(item);
+                      }}
+                      className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-HG-100 hover:text-HG-600 transition-all duration-200 group/btn"
+                      aria-label="View details"
+                    >
+                      <Eye className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
+                    </button>
+
+                    {/* Remove Button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemove(item._id);
+                      }}
+                      className="p-1.5 rounded-full bg-gray-100 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group/btn"
+                      aria-label="Remove from wishlist"
+                    >
+                      <Trash2 className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
+                    </button>
+                  </div>
+
+                  {/* Tooltip on hover (optional) */}
+                  <div className="absolute right-0 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    <div className="bg-gray-900 text-white text-xs rounded-lg px-2 py-1 whitespace-nowrap shadow-lg">
+                      <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-900 rotate-45"></div>
+                      Actions
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -594,14 +666,48 @@ export default function WishlistCompare() {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-lg mb-3">Room Details</h3>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Bed className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">Room Types:</span>
-                        <span>
-                          {selectedListing.roomType?.join(", ") || "N/A"}
-                        </span>
-                      </div>
-                      {selectedListing.rating && (
+                      {(() => {
+                        // Get room types, filtering out any invalid values
+                        let roomTypes: string[] = [];
+                        
+                        if (selectedListing.roomType && Array.isArray(selectedListing.roomType) && selectedListing.roomType.length > 0) {
+                          roomTypes = selectedListing.roomType
+                            .filter((rt: any) => {
+                              if (rt === null || rt === undefined || rt === 0) return false;
+                              const str = String(rt).trim();
+                              return str.length > 0 && str !== "0" && str !== "null" && str !== "undefined";
+                            })
+                            .map((rt: any) => String(rt).trim())
+                            .filter((str: string) => str.length > 0 && str !== "0");
+                        } else if (selectedListing.roomTypes && Array.isArray(selectedListing.roomTypes) && selectedListing.roomTypes.length > 0) {
+                          roomTypes = selectedListing.roomTypes
+                            .map((rt: any) => {
+                              // Only extract the type field, ignore all numeric fields
+                              return rt?.type;
+                            })
+                            .filter((type: any) => {
+                              if (type === null || type === undefined) return false;
+                              const str = String(type).trim();
+                              // Filter out "0", empty strings, and ensure it's not a number
+                              return str.length > 0 && str !== "0" && str !== "null" && str !== "undefined";
+                            })
+                            .map((type: any) => String(type).trim());
+                        }
+                        
+                        // Only render if we have valid room types
+                        if (roomTypes.length === 0) {
+                          return null;
+                        }
+                        
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Bed className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium">Room Types:</span>
+                            <span>{roomTypes.join(", ")}</span>
+                          </div>
+                        );
+                      })()}
+                      {selectedListing.rating && selectedListing.rating > 0 ? (
                         <div className="flex items-center gap-2">
                           <Star className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">Rating:</span>
@@ -621,7 +727,7 @@ export default function WishlistCompare() {
                             </span>
                           </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
