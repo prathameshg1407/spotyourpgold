@@ -74,7 +74,9 @@ const PgCard = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
+  const [slideDirection, setSlideDirection] = useState<"left" | "right">(
+    "right"
+  );
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [prevImageIndex, setPrevImageIndex] = useState(0);
   const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -304,12 +306,20 @@ const PgCard = ({
   return (
     <Link
       href={"/routes/pg-details/" + id}
-      className="hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
+      className={`hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
       hover:scale-[1.02]
       w-full max-w-[320px] border-4 border-HG-500  
       rounded-xl border-opacity-25 overflow-hidden 
       hover:border-opacity-50 transition duration-300 ease-in group @container
-      flex flex-col h-full"
+      flex flex-col h-full relative ${
+        genderPreference === "female"
+          ? "hover:border-pink-300 hover:border-opacity-100"
+          : genderPreference === "male"
+          ? "hover:border-blue-300 hover:border-opacity-100"
+          : genderPreference === "both"
+          ? "hover:border-orange-300 hover:border-opacity-100"
+          : ""
+      }`}
     >
       <div className="flex relative items-center justify-center rounded-b-2xl">
         <div
@@ -349,7 +359,9 @@ const PgCard = ({
               transform:
                 isTransitioning && !shouldAnimate && slideDirection === "left"
                   ? "translateX(20px)"
-                  : isTransitioning && !shouldAnimate && slideDirection === "right"
+                  : isTransitioning &&
+                    !shouldAnimate &&
+                    slideDirection === "right"
                   ? "translateX(-20px)"
                   : "translateX(0)",
               opacity: isTransitioning && !shouldAnimate ? 0 : 1,
@@ -377,7 +389,7 @@ const PgCard = ({
         {/* Gender Preference Badge - Top Right Corner */}
         {genderPreference && (
           <div
-            className={`absolute top-3 right-3 bg-white text-HG-400 border border-HG-400 text-xs font-bold px-2 py-1 rounded-lg shadow-lg`}
+            className={`absolute top-3 right-3 bg-white text-HG-400 border border-HG-400 text-xs font-bold px-2 py-1 rounded-lg shadow-lg z-20`}
           >
             {genderPreference === "both"
               ? "UNISEX"
@@ -450,7 +462,7 @@ const PgCard = ({
           )}
         </button>
 
-        <div className="flex-grow">
+        <div className="flex-grow pr-8">
           <p className="text-xs uppercase text-gray-400 dark:text-gray-400 line-clamp-1 leading-tight mb-1 truncate">
             {area}
           </p>
@@ -537,6 +549,78 @@ const PgCard = ({
             </div>
           )}
         </div>
+
+        {/* Pink Ribbon for Female-only Properties - Bottom Right */}
+        {genderPreference === "female" && (
+          <div
+            className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
+            style={{ width: "100px", height: "100px" }}
+          >
+            <div
+              className="absolute bg-pink-300 text-white text-[9px] font-semibold px-8 py-2 shadow-lg"
+              style={{
+                transform: "rotate(-45deg)",
+                bottom: "20px",
+                right: "-35px",
+                width: "150px",
+                textAlign: "center",
+                letterSpacing: "1px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(236, 72, 153, 0.3), 0 2px 4px -1px rgba(236, 72, 153, 0.2)",
+              }}
+            >
+              GIRLS ONLY
+            </div>
+          </div>
+        )}
+
+        {/* Blue Ribbon for Male-only Properties - Bottom Right */}
+        {genderPreference === "male" && (
+          <div
+            className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
+            style={{ width: "100px", height: "100px" }}
+          >
+            <div
+              className="absolute bg-blue-300 text-white text-[9px] font-semibold px-8 py-2 shadow-lg"
+              style={{
+                transform: "rotate(-45deg)",
+                bottom: "20px",
+                right: "-35px",
+                width: "150px",
+                textAlign: "center",
+                letterSpacing: "1px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2)",
+              }}
+            >
+              BOYS ONLY
+            </div>
+          </div>
+        )}
+
+        {/* Orange Ribbon for Unisex Properties - Bottom Right */}
+        {genderPreference === "both" && (
+          <div
+            className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
+            style={{ width: "100px", height: "100px" }}
+          >
+            <div
+              className="absolute bg-orange-300 text-white text-[9px] font-semibold px-8 py-2 shadow-lg"
+              style={{
+                transform: "rotate(-45deg)",
+                bottom: "20px",
+                right: "-35px",
+                width: "150px",
+                textAlign: "center",
+                letterSpacing: "1px",
+                boxShadow:
+                  "0 4px 6px -1px rgba(251, 146, 60, 0.3), 0 2px 4px -1px rgba(251, 146, 60, 0.2)",
+              }}
+            >
+              UNISEX
+            </div>
+          </div>
+        )}
       </div>
     </Link>
   );
