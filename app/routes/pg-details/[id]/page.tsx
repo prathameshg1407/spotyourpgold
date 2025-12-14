@@ -478,8 +478,7 @@ function InfiniteScrollListings({
           setPage(2);
           setHasMore(fallbackResponse.data.data.length === 12);
         }
-      } catch (fallbackError) {
-      }
+      } catch (fallbackError) {}
     } finally {
       setLoading(false);
       setInitialLoad(true);
@@ -1829,19 +1828,19 @@ export default function ProductPage() {
                       <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                         Amenities
                       </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm text-gray-700">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                         {listing.amenities.map((amenity, index) => {
                           const IconComponent =
                             amenityIcons[amenity.toLowerCase()] || Home;
                           return (
                             <div
                               key={index}
-                              className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[60px]"
+                              className="flex items-center gap-1.5 sm:gap-2 md:gap-3 p-1.5 sm:p-2 md:p-3 lg:p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400 hover:bg-HG-50 transition-all duration-300 shadow-sm hover:shadow-md min-h-[45px] sm:min-h-[50px] md:min-h-[60px]"
                             >
-                              <div className="p-2 bg-HG-100 rounded-lg flex-shrink-0">
-                                <IconComponent className="w-5 h-5 text-HG-600" />
+                              <div className="p-1 sm:p-1.5 md:p-2 bg-HG-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+                                <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-HG-600" />
                               </div>
-                              <span className="text-sm font-medium text-gray-700 capitalize flex-grow">
+                              <span className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-700 capitalize flex-grow break-words leading-tight sm:leading-normal">
                                 {amenity}
                               </span>
                             </div>

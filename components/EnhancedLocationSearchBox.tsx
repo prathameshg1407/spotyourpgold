@@ -322,10 +322,10 @@ export default function EnhancedLocationSearchBox({
       {detectedLocation && (
         <div className="bg-HG-50 border border-HG-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <p className="text-sm font-medium text-gray-700">
+            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+            <p className="text-sm font-medium text-gray-700 break-words">
               Location found:{" "}
-              <span className="text-HG-600 font-semibold">
+              <span className="text-HG-600 font-semibold break-words">
                 {detectedLocation.displayName}
               </span>
             </p>
@@ -333,18 +333,18 @@ export default function EnhancedLocationSearchBox({
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={handleSearchInLocation}
-              className="flex-1 bg-HG-500 hover:bg-HG-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg"
+              className="flex-1 bg-HG-500 hover:bg-HG-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg whitespace-normal justify-start sm:justify-center text-left sm:text-center min-h-[44px]"
             >
-              <MapPin className="w-4 h-4 mr-2" />
-              Search in {detectedLocation.displayName.split(",")[0]}
+              <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="break-words">Search in {detectedLocation.displayName.split(",")[0]}</span>
             </Button>
             <Button
               onClick={handleSearchAroundLocation}
               variant="outline"
-              className="flex-1 border-2 border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white py-2.5 rounded-lg font-medium transition-all duration-200"
+              className="flex-1 border-2 border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white py-2.5 rounded-lg font-medium transition-all duration-200 whitespace-normal justify-start sm:justify-center text-left sm:text-center min-h-[44px]"
             >
-              <Navigation className="w-4 h-4 mr-2" />
-              Search around {detectedLocation.displayName.split(",")[0]}
+              <Navigation className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="break-words">Search around {detectedLocation.displayName.split(",")[0]}</span>
             </Button>
           </div>
         </div>

@@ -13,38 +13,38 @@ export default function Footer() {
       transition={{ duration: 0.5 }}
       className="bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 mt-auto"
     >
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
           {/* Logo Section - Left */}
-          <div className="flex flex-col items-center md:items-start justify-start">
-            <div className="mb-6">
+          <div className="flex flex-col items-center md:items-start sm:col-span-2 md:col-span-1">
+            <div className="mb-4 sm:mb-6 -mt-2 sm:mt-0">
               <Image
                 src="/logo.png"
                 alt="SYPG Logo"
                 width={200}
                 height={200}
-                className="transition-transform duration-300 hover:scale-105"
+                className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 transition-transform duration-300 hover:scale-105"
               />
             </div>
-            <p className="text-gray-600 text-center md:text-left text-sm leading-relaxed max-w-xs">
+            <p className="text-gray-600 text-center md:text-left text-xs sm:text-sm leading-relaxed max-w-xs px-2 sm:px-0">
               Find your perfect PG accommodation with ease. Trusted by thousands
               of students and professionals.
             </p>
           </div>
 
           {/* Connect With Us - Middle */}
-          <div className="flex flex-col items-center justify-start">
-            <div className="mb-6">
-              <h4 className="font-bold text-gray-900 text-xl mb-2 text-center">
+          <div className="flex flex-col items-center md:items-start">
+            <div className="mb-4 sm:mb-6 -mt-2 sm:mt-0">
+              <h4 className="font-bold text-gray-900 text-lg sm:text-xl mb-2 text-center md:text-left">
                 Connect With Us
               </h4>
-              <div className="w-16 h-1 bg-gradient-to-r from-HG-400 to-HG-500 rounded-full mx-auto"></div>
+              <div className="w-16 h-1 bg-gradient-to-r from-HG-400 to-HG-500 rounded-full mx-auto md:mx-0"></div>
             </div>
-            <div className="flex flex-col items-center space-y-4">
-              <div className="flex items-center gap-3 group">
-                <div className="w-8 h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors">
+            <div className="flex flex-col items-center md:items-start space-y-3 sm:space-y-4 w-full">
+              <div className="flex items-center gap-2 sm:gap-3 group">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors flex-shrink-0">
                   <svg
-                    className="w-4 h-4 text-HG-500"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-HG-500"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -53,15 +53,15 @@ export default function Footer() {
                 </div>
                 <a
                   href="mailto:spotyourpg@gmail.com"
-                  className="text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium"
+                  className="text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium break-words text-center sm:text-left"
                 >
                   spotyourpg@gmail.com
                 </a>
               </div>
-              <div className="flex items-center gap-3 group">
-                <div className="w-8 h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 group">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors flex-shrink-0">
                   <svg
-                    className="w-4 h-4 text-HG-500"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-HG-500"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -70,22 +70,22 @@ export default function Footer() {
                 </div>
                 <a
                   href="tel:+919111475455"
-                  className="text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium"
+                  className="text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium break-words"
                 >
                   +91 9111475455
                 </a>
               </div>
-              <div className="flex items-center gap-3 group">
-                <div className="w-8 h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors">
+              <div className="flex items-center gap-2 sm:gap-3 group">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-HG-100 rounded-full flex items-center justify-center group-hover:bg-HG-200 transition-colors flex-shrink-0">
                   <svg
-                    className="w-4 h-4 text-HG-500"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-HG-500"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-600 font-medium">
+                <p className="text-xs sm:text-sm text-gray-600 font-medium text-center sm:text-left">
                   Mon – Sat: 10:00 AM – 6:00 PM
                 </p>
               </div>
@@ -93,29 +93,29 @@ export default function Footer() {
           </div>
 
           {/* Quick Links - Right */}
-          <div className="flex flex-col items-center justify-start">
-            <div className="mb-6">
-              <h4 className="font-bold text-gray-900 text-xl mb-2 text-center">
+          <div className="flex flex-col items-center md:items-start">
+            <div className="mb-4 sm:mb-6 -mt-2 sm:mt-0">
+              <h4 className="font-bold text-gray-900 text-lg sm:text-xl mb-2 text-center md:text-left">
                 Quick Links
               </h4>
-              <div className="w-16 h-1 bg-gradient-to-r from-HG-400 to-HG-500 rounded-full mx-auto"></div>
+              <div className="w-16 h-1 bg-gradient-to-r from-HG-400 to-HG-500 rounded-full mx-auto md:mx-0"></div>
             </div>
-            <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-col items-center md:items-start space-y-3 sm:space-y-4">
               <Link
                 href="/routes/terms-of-service"
-                className="text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
+                className="text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
               >
                 Terms of Service
               </Link>
               <Link
                 href="/routes/privacy-policy"
-                className="text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
+                className="text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/routes/contact"
-                className="text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
+                className="text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-colors font-medium hover:translate-x-1 duration-200"
               >
                 Contact Us
               </Link>
@@ -123,11 +123,11 @@ export default function Footer() {
                 href="https://wa.me/+919111475455"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 text-sm text-gray-600 hover:text-HG-500 transition-all duration-200 font-medium hover:translate-x-1 group"
+                className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-all duration-200 font-medium hover:translate-x-1 group"
               >
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors flex-shrink-0">
                   <svg
-                    className="w-4 h-4 text-green-600"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -140,11 +140,11 @@ export default function Footer() {
                 href="https://www.instagram.com/spotyourpg?igsh=M3NsaXFqZTB3Znpi"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 text-sm text-gray-600 hover:text-HG-500 transition-all duration-200 font-medium hover:translate-x-1 group"
+                className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 hover:text-HG-500 transition-all duration-200 font-medium hover:translate-x-1 group"
               >
-                <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-pink-100 rounded-full flex items-center justify-center group-hover:bg-pink-200 transition-colors flex-shrink-0">
                   <svg
-                    className="w-4 h-4 text-pink-600"
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-600"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -158,38 +158,39 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-200 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
+        <div className="border-t border-gray-200 mt-8 sm:mt-12 pt-6 sm:pt-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
               <Image
                 src="/logo.png"
                 alt="SYPG Logo"
                 width={40}
                 height={40}
-                className="opacity-80"
+                className="opacity-80 w-8 h-8 sm:w-10 sm:h-10"
               />
-              <p className="text-sm text-gray-500 font-medium">
+              <p className="text-xs sm:text-sm text-gray-500 font-medium text-center sm:text-left">
                 © {new Date().getFullYear()} SpotYourPG. All rights reserved.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center justify-center md:justify-end gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500">
               <span>Made with</span>
-              <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse" />
+              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 fill-current animate-pulse" />
               <span>by</span>
               <a
                 href="#"
                 className="font-semibold text-HG-500 hover:text-HG-400 transition-colors underline decoration-dotted underline-offset-2"
               >
-                few technologies .
+                few technologies
               </a>
-                <a
-                  href="https://wa.me/919182437450"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-HG-500 hover:text-HG-400 transition-colors underline decoration-dotted underline-offset-2"
-                >
-                  Contact us
-                </a>
+              <span className="hidden sm:inline">.</span>
+              <a
+                href="https://wa.me/919182437450"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-HG-500 hover:text-HG-400 transition-colors underline decoration-dotted underline-offset-2"
+              >
+                Contact us
+              </a>
             </div>
           </div>
         </div>
