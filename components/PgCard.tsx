@@ -30,9 +30,11 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useListingStore } from "@/store/listingStore";
+import { getListingUrl } from "@/lib/listingUrl";
 
 type PgCardProps = {
   id: string;
+  slug?: string; // Add slug prop for SEO-friendly URLs
   image: string;
   area: string;
   pgName: string;
@@ -55,6 +57,7 @@ type PgCardProps = {
 
 const PgCard = ({
   id,
+  slug,
   image,
   area,
   pgName,
@@ -263,7 +266,7 @@ const PgCard = ({
       e.preventDefault();
       e.stopPropagation();
 
-      const shareUrl = `${window.location.origin}/routes/pg-details/${id}`;
+      const shareUrl = `${window.location.origin}/routes/pg-details/${slug || id}`;
       const shareText = `Check out this amazing ${
         type === "pgs" ? "PG" : type?.toUpperCase() || "property"
       }: ${pgName} in ${area}`;
@@ -305,8 +308,8 @@ const PgCard = ({
 
   return (
     <Link
-      href={"/routes/pg-details/" + id}
-      className={`hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
+      href={getListingUrl({ slug, _id: id })}
+      className="hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
       hover:scale-[1.02]
       w-full max-w-[320px] border-4 border-HG-500  
       rounded-xl border-opacity-25 overflow-hidden 

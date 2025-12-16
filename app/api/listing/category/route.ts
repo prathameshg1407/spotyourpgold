@@ -277,6 +277,7 @@ export async function GET(req: NextRequest) {
       {
         $project: {
           _id: 1,
+          slug: 1,
           primaryImage: 1,
           images: 1,
           location: 1,

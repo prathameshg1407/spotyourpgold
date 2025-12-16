@@ -550,6 +550,7 @@ function InfiniteScrollListings({
           <PgCard
             key={listing._id}
             id={listing._id}
+            slug={listing.slug}
             image={listing.primaryImage || listing.images?.[0]?.url}
             images={listing.images?.map((img: any) => img.url) || []}
             area={listing.location?.area}
@@ -756,7 +757,7 @@ export default function ProductPage() {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          `/api/listing/getOwnerListing?owner=${listing.ownerId._id}&exclude=${params?.id}`
+          `/api/listing/getOwnerListing?owner=${listing.ownerId._id}&exclude=${listing?._id || params?.slug}`
         );
         if (res?.data?.success && !ignore) {
           setOwnerPgs(res.data.data);
@@ -779,7 +780,7 @@ export default function ProductPage() {
     return () => {
       ignore = true;
     };
-  }, [listing?.ownerId?._id, params?.id]);
+  }, [listing?.ownerId?._id, listing?._id, params?.slug]);
 
   useEffect(() => {
     let ignore = false; // 👈 prevent second fetch/toast
@@ -787,12 +788,20 @@ export default function ProductPage() {
 
     const fetchData = async () => {
       try {
-        const res = await axios.get(`/api/listing/${params.id}`);
+        const res = await axios.get(`/api/listing/${params.slug}`);
         // console.log(res);
         if (res?.data?.success) {
           if (!ignore) {
-            setListing(res.data.data.listing);
+            const listing = res.data.data.listing;
+            setListing(listing);
             setReviews(res.data.data.reviews);
+            
+            // If accessed by ID but listing has a slug, redirect to slug URL
+            if (listing.slug && listing.slug !== params.slug && params.slug.length === 24) {
+              // params.slug is an ID (MongoDB ObjectId is 24 chars), but listing has a slug
+              router.replace(`/routes/pg-details/${listing.slug}`);
+              return;
+            }
           }
         } else {
           if (!ignore) {
@@ -816,7 +825,7 @@ export default function ProductPage() {
       ignore = true;
       setContainerLoading("pgDetails", false);
     };
-  }, [router, setContainerLoading, params.id]);
+  }, [router, setContainerLoading, params.slug]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % listing?.images?.length);
@@ -865,7 +874,7 @@ export default function ProductPage() {
 
     try {
       const res = await axios.put(`/api/listing/toggleWatchlist`, {
-        id: params?.id,
+        id: listing?._id || params?.slug,
         isWishlisted: listing?.inWatchList,
       });
 
@@ -936,7 +945,7 @@ export default function ProductPage() {
 
   const handleVisitFormSuccess = () => {
     // Mark this listing as having a submitted visit request
-    markVisitRequestSubmitted(params.id as string);
+    markVisitRequestSubmitted((listing?._id || params?.slug) as string);
     setShowVisitForm(false);
   };
 
@@ -990,7 +999,7 @@ export default function ProductPage() {
     try {
       const response = await axios.post("/api/booking", {
         userId: user.id,
-        listingId: params.id,
+        listingId: listing?._id || params?.slug,
         roomType: selectedRoomType.type,
         moveInDate: bookingForm.moveInDate,
         duration: bookingForm.duration,
@@ -1195,7 +1204,7 @@ export default function ProductPage() {
       setShowLoginModal(true);
     } else {
       // Check if user has already submitted a visit request for this listing
-      if (hasSubmittedVisitRequest(params.id as string)) {
+      if (hasSubmittedVisitRequest((listing?._id || params?.slug) as string)) {
         // User has already submitted a visit request, open directions directly
         openDirections();
       } else {
@@ -2374,12 +2383,12 @@ export default function ProductPage() {
                     <Button
                       onClick={handleDirectionClick}
                       className={`md:px-5 text-xs md:text-sm ${
-                        user && hasSubmittedVisitRequest(params.id as string)
+                        user && hasSubmittedVisitRequest((listing?._id || params?.slug) as string)
                           ? "bg-green-600 hover:bg-green-700"
                           : ""
                       }`}
                     >
-                      {user && hasSubmittedVisitRequest(params.id as string)
+                      {user && hasSubmittedVisitRequest((listing?._id || params?.slug) as string)
                         ? "View Directions"
                         : "Get Directions"}
                     </Button>
@@ -2443,7 +2452,7 @@ export default function ProductPage() {
         </div>
 
         {/* Infinite Scroll Listings */}
-        <InfiniteScrollListings currentListingId={params.id as string} />
+        <InfiniteScrollListings currentListingId={(listing?._id || params?.slug) as string} />
       </main>
 
       {/* Visit Request Form Modal */}

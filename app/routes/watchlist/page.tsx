@@ -455,6 +455,7 @@ export default function WishlistCompare() {
             <div key={item._id} className="relative group">
               <PgCard
                 id={item._id}
+                slug={item.slug}
                 image={item.primaryImage || item.images?.[0]?.url || ""}
                 images={item.images?.map((img: any) => img.url) || []}
                 area={item.location?.area || item.city}

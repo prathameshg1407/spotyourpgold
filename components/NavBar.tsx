@@ -127,7 +127,7 @@ const NavBar = () => {
                 onClear={handleClearSearch}
                 onSelectProperty={(property) => {
                   // Navigate to property details page
-                  router.push(`/routes/pg-details/${property._id}`);
+                  router.push(`/routes/pg-details/${property.slug || property._id}`);
                 }}
                 onSelectLocation={(location) => {
                   // Update query filter with location name
@@ -252,7 +252,7 @@ const NavBar = () => {
               onClear={handleClearSearch}
               onSelectProperty={(property) => {
                 // Navigate to property details page
-                router.push(`/routes/pg-details/${property._id}`);
+                router.push(`/routes/pg-details/${property.slug || property._id}`);
               }}
               onSelectLocation={(location) => {
                 // Update query filter with location name

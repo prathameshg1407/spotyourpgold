@@ -305,7 +305,7 @@ export default function UserVisitRequestsPage() {
                       {/* Actions */}
                       <div className="flex gap-1">
                         <Link
-                          href={`/routes/pg-details/${request.listingId._id}`}
+                          href={`/routes/pg-details/${request.listingId?.slug || request.listingId._id}`}
                         >
                           <Button
                             variant="outline"

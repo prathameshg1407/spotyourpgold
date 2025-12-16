@@ -317,6 +317,7 @@ function LocationSearchContent() {
                     <PgCard
                       key={pg._id || index}
                       id={pg._id}
+                      slug={pg.slug}
                       image={pg.primaryImage}
                       images={[]}
                       area={pg.location?.area || ""}

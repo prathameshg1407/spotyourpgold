@@ -34,7 +34,9 @@ export function decryptResponse(encryptedData: {
     const decrypted = new TextDecoder("utf-8").decode(decryptedBytes);
 
     // Parse JSON and return
-    return JSON.parse(decrypted);
+    const parsed = JSON.parse(decrypted);
+    
+    return parsed;
   } catch (error) {
     console.error("[DECRYPTION_ERROR]", error);
     // Return original data if decryption fails

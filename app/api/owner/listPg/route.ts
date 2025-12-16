@@ -1,11 +1,14 @@
 import authUser from "@/actions/authUser";
 import Listing from "@/models/listing";
+import User from "@/models/user";
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "@/services/cloudinary";
 import { connectToDB } from "@/services/connectdb";
 import { NextResponse } from "next/server";
+import { generateListingSlug } from "@/lib/slug";
+import mongoose from "mongoose";
 
 export async function POST(req: Request) {
   let uploadedImages: any[] = [];
@@ -200,9 +203,25 @@ export async function POST(req: Request) {
       availableRooms: room.numberOfRooms,
     }));
 
+    // Get owner details for slug generation
+    const owner = await User.findById(user?.id).select("fullName").lean();
+    const ownerName = owner?.fullName || "owner";
+
+    // Generate slug: pg-name-owner-name-area-city
+    // We'll use a temporary ID first, then update after creation if needed
+    const tempId = new mongoose.Types.ObjectId().toString();
+    const slug = await generateListingSlug(
+      pgName,
+      ownerName,
+      location.area,
+      location.city,
+      tempId
+    );
+
     // ✅ Create new listing
     const pg = await Listing.create({
       ownerId: user?.id,
+      slug, // Add slug
       pgName,
       primaryLine: primaryLine || undefined,
       type: type || undefined,
@@ -239,6 +258,22 @@ export async function POST(req: Request) {
       primaryImage: uploadedImages[0]?.url,
       videos: uploadedVideos,
     });
+
+    // Update slug with actual listing ID if needed (for better uniqueness)
+    if (pg._id) {
+      const finalSlug = await generateListingSlug(
+        pgName,
+        ownerName,
+        location.area,
+        location.city,
+        pg._id.toString()
+      );
+      // Only update if different (to avoid unnecessary database write)
+      if (finalSlug !== slug) {
+        pg.slug = finalSlug;
+        await pg.save();
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -288,7 +288,7 @@ export default function UserFavoritesPage() {
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
                     <Link
-                      href={`/routes/pg-details/${listing._id}`}
+                      href={`/routes/pg-details/${listing.slug || listing._id}`}
                       className="flex-1"
                     >
                       <Button className="w-full bg-HG-500 hover:bg-HG-600 text-white">

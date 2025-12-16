@@ -411,6 +411,7 @@ export async function GET(req: Request) {
       {
         $project: {
           _id: 1,
+          slug: 1,
           primaryImage: 1,
           images: 1,
           location: 1,

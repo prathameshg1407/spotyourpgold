@@ -1,5 +1,7 @@
 import authUser from "@/actions/authUser";
 import Listing from "@/models/listing";
+import User from "@/models/user";
+import { generateListingSlug } from "@/lib/slug";
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
@@ -235,8 +237,28 @@ export async function PUT(
       availableRooms: room.numberOfRooms,
     }));
 
+    // Regenerate slug if pgName, area, city, or owner changed
+    let slug = existingListing.slug;
+    const needsSlugUpdate = 
+      existingListing.pgName !== pgName ||
+      existingListing.location?.area !== location.area ||
+      existingListing.location?.city !== location.city;
+    
+    if (needsSlugUpdate || !slug) {
+      const owner = await User.findById(user?.id).select("fullName").lean();
+      const ownerName = owner?.fullName || "owner";
+      slug = await generateListingSlug(
+        pgName,
+        ownerName,
+        location.area,
+        location.city,
+        existingListing._id.toString()
+      );
+    }
+
     // ✅ Update listing
     existingListing.set({
+      slug, // Update slug if needed
       ownerId: user?.id,
       pgName,
       primaryLine:

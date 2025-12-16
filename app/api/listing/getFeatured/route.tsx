@@ -4,6 +4,27 @@ import Listing from "@/models/listing";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
 import { encryptResponse } from "@/lib/encryption";
+import mongoose from "mongoose";
+
+// Helper function to convert slug or ID to ObjectId for exclude queries
+async function getExcludeId(exclude: string | null): Promise<string | null> {
+  if (!exclude) return null;
+  
+  // Check if it's a valid ObjectId (24 hex characters)
+  const isValidObjectId = mongoose.Types.ObjectId.isValid(exclude) && exclude.length === 24;
+  if (isValidObjectId) {
+    return exclude;
+  }
+  
+  // If not a valid ObjectId, treat it as a slug and find the listing
+  try {
+    const listing = await Listing.findOne({ slug: exclude }).select("_id").lean();
+    return listing?._id?.toString() || null;
+  } catch (error) {
+    console.error("Error finding listing by slug for exclude:", error);
+    return null;
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,7 +36,8 @@ export async function GET(req: NextRequest) {
       1,
       Math.min(Number(searchParams.get("per_page") ?? 10), 50)
     );
-    const exclude = searchParams.get("exclude");
+    const excludeParam = searchParams.get("exclude");
+    const excludeId = await getExcludeId(excludeParam);
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
 
@@ -34,8 +56,8 @@ export async function GET(req: NextRequest) {
       isFeatured: true, // Only show listings that are marked as featured
     };
 
-    if (exclude) {
-      query._id = { $ne: exclude };
+    if (excludeId) {
+      query._id = { $ne: excludeId };
     }
 
     let featuredListings;
@@ -64,6 +86,7 @@ export async function GET(req: NextRequest) {
         {
           $project: {
             _id: 1,
+            slug: 1,
             primaryImage: 1,
             location: 1,
             pgName: 1,
@@ -103,6 +126,7 @@ export async function GET(req: NextRequest) {
         {
           $project: {
             _id: 1,
+            slug: 1,
             primaryImage: 1,
             location: 1,
             pgName: 1,
@@ -131,7 +155,7 @@ export async function GET(req: NextRequest) {
         // Fallback to regular find if aggregation fails
         featuredListings = await Listing.find(query)
           .select(
-            "_id primaryImage location pgName primaryLine ownerId roomTypes images genderPreference isFeatured type amenities rentInclusions mealTimings"
+            "_id slug primaryImage location pgName primaryLine ownerId roomTypes images genderPreference isFeatured type amenities rentInclusions mealTimings"
           )
           .sort({ updatedAt: -1, createdAt: -1 })
           .skip((page - 1) * per_page)
@@ -143,7 +167,7 @@ export async function GET(req: NextRequest) {
       // Use regular find when no location is provided
       featuredListings = await Listing.find(query)
         .select(
-          "_id primaryImage location pgName ownerId roomTypes images genderPreference isFeatured type"
+          "_id slug primaryImage location pgName ownerId roomTypes images genderPreference isFeatured type"
         )
         .sort({ updatedAt: -1, createdAt: -1 })
         .skip((page - 1) * per_page)
@@ -153,14 +177,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Add minRent to each listing
-    featuredListings = featuredListings.map((listing: any) => ({
-      ...listing,
-      minRent: Math.min(
-        ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
-          Infinity,
-        ])
-      ),
-    }));
+    featuredListings = featuredListings.map((listing: any) => {
+      const result = {
+        ...listing,
+        minRent: Math.min(
+          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+            Infinity,
+          ])
+        ),
+      };
+      
+      return result;
+    });
 
     // Inject isWatchlisted field
     const listingsWithWatchlist = featuredListings.map((listing: any) => ({

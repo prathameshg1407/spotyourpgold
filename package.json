@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:slugs": "npx tsx scripts/generate-slugs-for-existing-listings.ts",
+    "migrate:slugs:all": "npx tsx scripts/generate-slugs-for-existing-listings.ts --all"
   },
   "dependencies": {
     "@next/third-parties": "^15.3.6",
@@ -31,6 +33,7 @@
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.19.1",
     "input-otp": "^1.4.2",
@@ -64,6 +67,7 @@
     "eslint-config-next": "13.5.11",
     "postcss": "^8",
     "tailwindcss": "^3",
+    "tsx": "^4.16.2",
     "typescript": "^5"
   }
 }

@@ -457,6 +457,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                   <PgCard
                     key={pg._id || idx}
                     id={pg._id}
+                    slug={pg.slug}
                     image={pg.primaryImage}
                     images={pg.images?.map((img: any) => img.url) || []}
                     area={pg.location?.area}
@@ -819,6 +820,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                       <PgCard
                         key={idx}
                         id={pg?._id}
+                        slug={pg?.slug}
                         image={pg?.primaryImage}
                         images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
@@ -870,6 +872,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                       <PgCard
                         key={idx}
                         id={pg?._id}
+                        slug={pg?.slug}
                         image={pg?.primaryImage}
                         images={pg?.images?.map((img: any) => img.url) || []}
                         area={pg?.location?.area}
@@ -980,6 +983,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                         <PgCard
                           key={idx}
                           id={pg?._id}
+                          slug={pg?.slug}
                           image={pg?.primaryImage}
                           images={pg?.images?.map((img: any) => img.url) || []}
                           area={pg?.location?.area}

@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     const listings = await Listing.find({ _id: { $in: watchlistIds } })
       .select(
-        "_id pgName primaryLine type genderPreference location roomTypes primaryImage ownerId amenities images isFeatured rentInclusions"
+        "_id slug pgName primaryLine type genderPreference location roomTypes primaryImage ownerId amenities images isFeatured rentInclusions"
       )
       .populate("ownerId", "fullName")
       .lean();

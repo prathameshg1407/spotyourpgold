@@ -101,6 +101,7 @@ function FeaturedListingsContent() {
                     <PgCard
                       key={listing._id}
                       id={listing._id}
+                      slug={listing.slug}
                       image={listing.primaryImage}
                       images={listing.images?.map((img: any) => img.url) || []}
                       area={listing.location?.area}

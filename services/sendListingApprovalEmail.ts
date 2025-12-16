@@ -68,7 +68,7 @@ export const sendListingApprovalEmail = async ({
         </div>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://spotyourpg.com/pg-details/${listingId}" 
+          <a href="https://spotyourpg.com/routes/pg-details/${listingId}" 
              style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
             🔗 View My Listing
           </a>

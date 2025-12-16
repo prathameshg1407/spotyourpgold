@@ -170,7 +170,7 @@ export const Card = ({
       hover:border-opacity-50 transition duration-300 ease-in group @container 
       relative flex flex-col h-full"
       onClick={() => {
-        router.push(`/routes/pg-details/${card?._id}`);
+        router.push(`/routes/pg-details/${card?.slug || card?._id}`);
       }}
     >
       <div className="w-full h-44 object-cover rounded-t-lg overflow-hidden">

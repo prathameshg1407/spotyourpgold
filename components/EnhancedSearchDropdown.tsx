@@ -332,7 +332,7 @@ export default function EnhancedSearchDropdown({
       if (onSelectProperty) {
         onSelectProperty(property);
       } else {
-        router.push(`/routes/pg-details/${property._id}`);
+        router.push(`/routes/pg-details/${property.slug || property._id}`);
       }
       setIsOpen(false);
       setFocusedIndex(-1);
