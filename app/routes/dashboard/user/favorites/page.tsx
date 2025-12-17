@@ -27,6 +27,7 @@ import Link from "next/link";
 
 interface FavoriteListing {
   _id: string;
+  slug?: string;
   pgName: string;
   primaryLine: string;
   type: string;

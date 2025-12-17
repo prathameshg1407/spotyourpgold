@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Property {
   _id: string;
+  slug?: string;
   pgName: string;
   type?: string;
   subType?: string;

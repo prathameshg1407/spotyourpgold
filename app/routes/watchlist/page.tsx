@@ -54,6 +54,7 @@ import {
 
 interface PGListing {
   _id: string;
+  slug?: string;
   pgName: string;
   city: string;
   minRent?: number;
@@ -342,18 +343,25 @@ export default function WishlistCompare() {
           </div>
         );
       case "roomType":
-        const roomTypes = item.roomType && item.roomType.length > 0
-          ? item.roomType.filter((rt: string) => rt && rt !== "0" && String(rt).trim() !== "")
-          : item.roomTypes && item.roomTypes.length > 0
-          ? item.roomTypes
-              .map((rt: any) => rt?.type)
-              .filter((type: any) => type && type !== "0" && type !== 0 && String(type).trim() !== "")
-          : [];
+        const roomTypes =
+          item.roomType && item.roomType.length > 0
+            ? item.roomType.filter(
+                (rt: string) => rt && rt !== "0" && String(rt).trim() !== ""
+              )
+            : item.roomTypes && item.roomTypes.length > 0
+            ? item.roomTypes
+                .map((rt: any) => rt?.type)
+                .filter(
+                  (type: any) =>
+                    type &&
+                    type !== "0" &&
+                    type !== 0 &&
+                    String(type).trim() !== ""
+                )
+            : [];
         return (
           <div className="text-sm">
-            {roomTypes.length > 0
-              ? roomTypes.join(", ")
-              : "N/A"}
+            {roomTypes.length > 0 ? roomTypes.join(", ") : "N/A"}
           </div>
         );
       case "minSecurity":
@@ -392,32 +400,42 @@ export default function WishlistCompare() {
           <span className="text-gray-400">No rating</span>
         );
       case "wifi":
-        return item.amenities?.some((a: string) => 
-          a.toLowerCase().includes("wifi") || a.toLowerCase().includes("wi-fi") || a.toLowerCase().includes("internet")
+        return item.amenities?.some(
+          (a: string) =>
+            a.toLowerCase().includes("wifi") ||
+            a.toLowerCase().includes("wi-fi") ||
+            a.toLowerCase().includes("internet")
         ) ? (
           <Check className="h-6 w-6 text-green-500 mx-auto" />
         ) : (
           <span className="text-red-500 text-xl font-bold">✗</span>
         );
       case "meals":
-        return item.amenities?.some((a: string) => 
-          a.toLowerCase().includes("meal") || a.toLowerCase().includes("food")
+        return item.amenities?.some(
+          (a: string) =>
+            a.toLowerCase().includes("meal") || a.toLowerCase().includes("food")
         ) || item.rentInclusions?.foodIncluded ? (
           <Check className="h-6 w-6 text-green-500 mx-auto" />
         ) : (
           <span className="text-red-500 text-xl font-bold">✗</span>
         );
       case "security":
-        return item.amenities?.some((a: string) => 
-          a.toLowerCase().includes("security") || a.toLowerCase().includes("cctv") || a.toLowerCase().includes("24x7")
+        return item.amenities?.some(
+          (a: string) =>
+            a.toLowerCase().includes("security") ||
+            a.toLowerCase().includes("cctv") ||
+            a.toLowerCase().includes("24x7")
         ) ? (
           <Check className="h-6 w-6 text-green-500 mx-auto" />
         ) : (
           <span className="text-red-500 text-xl font-bold">✗</span>
         );
       case "ac":
-        return item.amenities?.some((a: string) => 
-          a.toLowerCase().includes("ac") || a.toLowerCase().includes("air conditioning") || a.toLowerCase().includes("air-conditioning")
+        return item.amenities?.some(
+          (a: string) =>
+            a.toLowerCase().includes("ac") ||
+            a.toLowerCase().includes("air conditioning") ||
+            a.toLowerCase().includes("air-conditioning")
         ) ? (
           <Check className="h-6 w-6 text-green-500 mx-auto" />
         ) : (
@@ -670,36 +688,58 @@ export default function WishlistCompare() {
                       {(() => {
                         // Get room types, filtering out any invalid values
                         let roomTypes: string[] = [];
-                        
-                        if (selectedListing.roomType && Array.isArray(selectedListing.roomType) && selectedListing.roomType.length > 0) {
+
+                        if (
+                          selectedListing.roomType &&
+                          Array.isArray(selectedListing.roomType) &&
+                          selectedListing.roomType.length > 0
+                        ) {
                           roomTypes = selectedListing.roomType
                             .filter((rt: any) => {
-                              if (rt === null || rt === undefined || rt === 0) return false;
+                              if (rt === null || rt === undefined || rt === 0)
+                                return false;
                               const str = String(rt).trim();
-                              return str.length > 0 && str !== "0" && str !== "null" && str !== "undefined";
+                              return (
+                                str.length > 0 &&
+                                str !== "0" &&
+                                str !== "null" &&
+                                str !== "undefined"
+                              );
                             })
                             .map((rt: any) => String(rt).trim())
-                            .filter((str: string) => str.length > 0 && str !== "0");
-                        } else if (selectedListing.roomTypes && Array.isArray(selectedListing.roomTypes) && selectedListing.roomTypes.length > 0) {
+                            .filter(
+                              (str: string) => str.length > 0 && str !== "0"
+                            );
+                        } else if (
+                          selectedListing.roomTypes &&
+                          Array.isArray(selectedListing.roomTypes) &&
+                          selectedListing.roomTypes.length > 0
+                        ) {
                           roomTypes = selectedListing.roomTypes
                             .map((rt: any) => {
                               // Only extract the type field, ignore all numeric fields
                               return rt?.type;
                             })
                             .filter((type: any) => {
-                              if (type === null || type === undefined) return false;
+                              if (type === null || type === undefined)
+                                return false;
                               const str = String(type).trim();
                               // Filter out "0", empty strings, and ensure it's not a number
-                              return str.length > 0 && str !== "0" && str !== "null" && str !== "undefined";
+                              return (
+                                str.length > 0 &&
+                                str !== "0" &&
+                                str !== "null" &&
+                                str !== "undefined"
+                              );
                             })
                             .map((type: any) => String(type).trim());
                         }
-                        
+
                         // Only render if we have valid room types
                         if (roomTypes.length === 0) {
                           return null;
                         }
-                        
+
                         return (
                           <div className="flex items-center gap-2">
                             <Bed className="h-4 w-4 text-gray-500" />

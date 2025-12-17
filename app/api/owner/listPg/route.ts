@@ -205,7 +205,7 @@ export async function POST(req: Request) {
 
     // Get owner details for slug generation
     const owner = await User.findById(user?.id).select("fullName").lean();
-    const ownerName = owner?.fullName || "owner";
+    const ownerName = (!owner || Array.isArray(owner)) ? "owner" : (owner.fullName || "owner");
 
     // Generate slug: pg-name-owner-name-area-city
     // We'll use a temporary ID first, then update after creation if needed

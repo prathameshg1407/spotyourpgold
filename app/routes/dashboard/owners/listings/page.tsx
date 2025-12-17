@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 
 interface Listing {
   _id: string;
+  slug?: string;
   pgName: string;
   area: string;
   monthlyRent: number;
