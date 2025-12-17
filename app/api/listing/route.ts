@@ -189,6 +189,7 @@ import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import User from "@/models/user";
 import authUser from "@/actions/authUser";
+import { encryptResponse } from "@/lib/encryption";
 
 export async function GET(req: NextRequest) {
   try {
@@ -239,6 +240,7 @@ export async function GET(req: NextRequest) {
         {
           $project: {
             _id: 1,
+            slug: 1,
             pgName: 1,
             primaryLine: 1,
             primaryImage: 1,
@@ -293,7 +295,7 @@ export async function GET(req: NextRequest) {
       [listings, total] = await Promise.all([
         Listing.find(baseQuery)
           .select(
-            "_id primaryImage images location pgName primaryLine ownerId roomTypes genderPreference type amenities rentInclusions mealTimings"
+            "_id slug primaryImage images location pgName primaryLine ownerId roomTypes genderPreference type amenities rentInclusions mealTimings"
           )
           .sort({ createdAt: -1 })
           .skip((page - 1) * per_page)
@@ -304,14 +306,18 @@ export async function GET(req: NextRequest) {
       ]);
 
       // ✅ Add minRent manually
-      listings = listings.map((listing: any) => ({
-        ...listing,
-        minRent: Math.min(
-          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
-            Infinity,
-          ])
-        ),
-      }));
+      listings = listings.map((listing: any) => {
+        const result = {
+          ...listing,
+          minRent: Math.min(
+            ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
+              Infinity,
+            ])
+          ),
+        };
+        
+        return result;
+      });
     }
 
     // Populate owner name manually for aggregated listings
@@ -342,20 +348,23 @@ export async function GET(req: NextRequest) {
       inWatchList: userWatchlist.includes(listing._id.toString()),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: listingsWithWatchlist,
       total,
       sorted_by: hasLocation ? "distance" : "date",
       message: "Listings fetched successfully",
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (err) {
     console.error("[GET_LISTINGS_ERROR]", err);
-    return NextResponse.json({
+    const errorResponse = {
       success: false,
       message: "Failed to fetch listings",
       data: [],
       total: 0,
-    });
+    };
+    return NextResponse.json(encryptResponse(errorResponse));
   }
 }

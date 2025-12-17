@@ -6,6 +6,8 @@ import User from "@/models/user";
 import authUser from "@/actions/authUser";
 import OwnerProfile from "@/models/ownerProfile";
 import Review from "@/models/review";
+import { encryptResponse } from "@/lib/encryption";
+import mongoose from "mongoose";
 
 type ListingType = {
   _id: string;
@@ -49,10 +51,24 @@ export async function GET(
 
     const user = await authUser().catch(() => null);
 
-    const listing = await Listing.findById(id)
+    // Check if the id is a valid MongoDB ObjectId (24 hex characters)
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+
+    // Build query based on whether id is a valid ObjectId or a slug
+    let query;
+    if (isValidObjectId) {
+      // Could be either ID or slug, check both
+      query = { $or: [{ slug: id }, { _id: id }] };
+    } else {
+      // Not a valid ObjectId, must be a slug
+      query = { slug: id };
+    }
+
+    const listing = await Listing.findOne(query)
       .select(
         `
         ownerId
+        slug
         pgName
         primaryLine
         roomTypes
@@ -74,17 +90,20 @@ export async function GET(
       .lean();
 
     if (!listing) {
-      return NextResponse.json({
+      const notFoundResponse = {
         success: false,
         message: "Listing not found",
-      });
+      };
+      return NextResponse.json(encryptResponse(notFoundResponse));
     }
 
+    const listingId = listing._id.toString();
+    
     let inWatchlist = false;
     if (user) {
       const dbUser = await User.findById(user.id).select("watchlist");
       inWatchlist = dbUser?.watchlist?.some(
-        (itemId: any) => itemId.toString() === id
+        (itemId: any) => itemId.toString() === listingId
       );
     }
 
@@ -92,7 +111,7 @@ export async function GET(
       userId: listing.ownerId._id,
     }).lean();
 
-    const reviews = await Review.find({ listingId: id })
+    const reviews = await Review.find({ listingId: listingId })
       .select("rating comment userId updatedAt")
       .populate("userId", "fullName")
       .sort({ createdAt: -1 })
@@ -102,7 +121,7 @@ export async function GET(
       ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
     );
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         reviews,
@@ -117,6 +136,8 @@ export async function GET(
             },
             createdAt: ownerProfile?.createdAt || listing.createdAt,
           },
+          _id: listing._id,
+          slug: listing.slug,
           pgName: listing.pgName,
           primaryLine: listing.primaryLine,
           minRent,
@@ -135,13 +156,16 @@ export async function GET(
           createdAt: listing.createdAt,
         },
       },
-    });
+    };
+
+    return NextResponse.json(encryptResponse(responseData));
   } catch (err) {
     console.error("[GET_LISTING_ERROR]", err);
-    return NextResponse.json(
-      { success: false, message: "Server error" },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      message: "Server error",
+    };
+    return NextResponse.json(encryptResponse(errorResponse), { status: 500 });
   }
 }
 

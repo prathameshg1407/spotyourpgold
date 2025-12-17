@@ -345,7 +345,7 @@ export default function ListingManagement() {
             {filteredListings.map((pg) => (
               <Link
                 key={pg._id}
-                href={`/routes/pg-details/${pg._id}`}
+                href={`/routes/pg-details/${pg.slug || pg._id}`}
                 className="group rounded-xl shadow hover:scale-[1.03] transition overflow-hidden border border-opacity-20 hover:border-opacity-50 bg-white"
               >
                 <div className="p-4 space-y-2">

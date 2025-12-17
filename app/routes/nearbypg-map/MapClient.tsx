@@ -148,7 +148,7 @@ const MapClient = () => {
             <Popup closeButton={true} className="custom-popup">
               <div
                 onClick={() => {
-                  router.push(`/routes/pg-details/${pg?._id}`);
+                  router.push(`/routes/pg-details/${pg?.slug || pg?._id}`);
                 }}
                 className="bg-dark-charcoal cursor-pointer select-none border-4 border-outline rounded-lg border-opacity-15 overflow-hidden w-full hover:border-opacity-50 transition-colors duration-150 ease-in group  min-w-[200px] max-w-[300px] "
               >

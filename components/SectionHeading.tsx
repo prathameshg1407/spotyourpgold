@@ -9,7 +9,7 @@ const SectionHeading = ({
 }) => {
   return (
     <div className="w-full  flex justify-between gap-2 items-start md:items-center">
-      <p className="md:text-3xl font-medium font-poppins">{children}</p>
+      <div className="md:text-3xl font-medium font-poppins">{children}</div>
       {rightSide}
     </div>
   );

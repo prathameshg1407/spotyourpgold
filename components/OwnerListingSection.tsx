@@ -53,6 +53,7 @@ const OwnerListingSection = ({
         <PgCard
           key={listing._id}
           id={listing._id}
+          slug={listing.slug}
           image={listing.primaryImage || listing.images?.[0]?.url}
           images={listing.images?.map((img: any) => img.url) || []}
           area={listing.location?.area || listing.location?.city}

@@ -3,6 +3,7 @@ import Listing from "@/models/listing";
 import { NextResponse } from "next/server";
 import authUser from "@/actions/authUser";
 import User from "@/models/user";
+import { encryptResponse } from "@/lib/encryption";
 
 // Helper function to get sort object based on sortBy parameter
 function getSortObject(
@@ -410,6 +411,7 @@ export async function GET(req: Request) {
       {
         $project: {
           _id: 1,
+          slug: 1,
           primaryImage: 1,
           images: 1,
           location: 1,
@@ -555,16 +557,14 @@ export async function GET(req: Request) {
       response.categoryCounts = categoryCounts;
     }
 
-    return NextResponse.json(response);
+    return NextResponse.json(encryptResponse(response));
   } catch (error: any) {
     console.error("Search API Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to search listings",
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    const errorResponse = {
+      success: false,
+      message: "Failed to search listings",
+      error: error.message,
+    };
+    return NextResponse.json(encryptResponse(errorResponse), { status: 500 });
   }
 }

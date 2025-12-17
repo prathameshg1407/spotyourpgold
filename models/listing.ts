@@ -8,6 +8,13 @@ const listingSchema = new mongoose.Schema(
       required: true,
     },
 
+    // SEO-friendly slug for URL
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+
     // Basic Info
     pgName: { type: String, required: true, trim: true },
     primaryLine: { type: String, required: false, trim: true, maxlength: 35 },
@@ -237,6 +244,9 @@ listingSchema.index({
 
 // 7. Owner-based queries
 listingSchema.index({ ownerId: 1, isActive: 1 });
+
+// 8. Slug index for fast lookups
+listingSchema.index({ slug: 1 }, { unique: true, sparse: true });
 
 const Listing =
   mongoose.models.Listing || mongoose.model("Listing", listingSchema);
