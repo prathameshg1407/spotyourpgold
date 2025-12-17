@@ -266,7 +266,7 @@ const PgCard = ({
       e.preventDefault();
       e.stopPropagation();
 
-      const shareUrl = `${window.location.origin}/routes/pg-details/${slug || id}`;
+      const shareUrl = `${window.location.origin}/routes/pg-details/${id}`;
       const shareText = `Check out this amazing ${
         type === "pgs" ? "PG" : type?.toUpperCase() || "property"
       }: ${pgName} in ${area}`;
@@ -309,12 +309,7 @@ const PgCard = ({
   return (
     <Link
       href={getListingUrl({ slug, _id: id })}
-      className="hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)]
-      hover:scale-[1.02]
-      w-full max-w-[320px] border-4 border-HG-500  
-      rounded-xl border-opacity-25 overflow-hidden 
-      hover:border-opacity-50 transition duration-300 ease-in group @container
-      flex flex-col h-full relative ${
+      className={`hover:shadow-[0_8px_20px_rgb(0,0,0,0.08)] hover:scale-[1.02] w-full max-w-[320px] border-4 border-HG-500 rounded-xl border-opacity-25 overflow-hidden hover:border-opacity-50 transition duration-300 ease-in group @container flex flex-col h-full relative ${
         genderPreference === "female"
           ? "hover:border-pink-300 hover:border-opacity-100"
           : genderPreference === "male"
