@@ -757,7 +757,9 @@ export default function ProductPage() {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          `/api/listing/getOwnerListing?owner=${listing.ownerId._id}&exclude=${listing?._id || params?.slug}`
+          `/api/listing/getOwnerListing?owner=${listing.ownerId._id}&exclude=${
+            listing?._id || params?.slug
+          }`
         );
         if (res?.data?.success && !ignore) {
           setOwnerPgs(res.data.data);
@@ -795,9 +797,14 @@ export default function ProductPage() {
             const listing = res.data.data.listing;
             setListing(listing);
             setReviews(res.data.data.reviews);
-            
+
             // If accessed by ID but listing has a slug, redirect to slug URL
-            if (listing.slug && listing.slug !== params.slug && params.slug.length === 24) {
+            if (
+              listing.slug &&
+              params.slug &&
+              listing.slug !== params.slug &&
+              params.slug.length === 24
+            ) {
               // params.slug is an ID (MongoDB ObjectId is 24 chars), but listing has a slug
               router.replace(`/routes/pg-details/${listing.slug}`);
               return;
@@ -2383,12 +2390,18 @@ export default function ProductPage() {
                     <Button
                       onClick={handleDirectionClick}
                       className={`md:px-5 text-xs md:text-sm ${
-                        user && hasSubmittedVisitRequest((listing?._id || params?.slug) as string)
+                        user &&
+                        hasSubmittedVisitRequest(
+                          (listing?._id || params?.slug) as string
+                        )
                           ? "bg-green-600 hover:bg-green-700"
                           : ""
                       }`}
                     >
-                      {user && hasSubmittedVisitRequest((listing?._id || params?.slug) as string)
+                      {user &&
+                      hasSubmittedVisitRequest(
+                        (listing?._id || params?.slug) as string
+                      )
                         ? "View Directions"
                         : "Get Directions"}
                     </Button>
@@ -2452,7 +2465,9 @@ export default function ProductPage() {
         </div>
 
         {/* Infinite Scroll Listings */}
-        <InfiniteScrollListings currentListingId={(listing?._id || params?.slug) as string} />
+        <InfiniteScrollListings
+          currentListingId={(listing?._id || params?.slug) as string}
+        />
       </main>
 
       {/* Visit Request Form Modal */}

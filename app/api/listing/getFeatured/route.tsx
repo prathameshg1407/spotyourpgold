@@ -9,17 +9,23 @@ import mongoose from "mongoose";
 // Helper function to convert slug or ID to ObjectId for exclude queries
 async function getExcludeId(exclude: string | null): Promise<string | null> {
   if (!exclude) return null;
-  
+
   // Check if it's a valid ObjectId (24 hex characters)
-  const isValidObjectId = mongoose.Types.ObjectId.isValid(exclude) && exclude.length === 24;
+  const isValidObjectId =
+    mongoose.Types.ObjectId.isValid(exclude) && exclude.length === 24;
   if (isValidObjectId) {
     return exclude;
   }
-  
+
   // If not a valid ObjectId, treat it as a slug and find the listing
   try {
-    const listing = await Listing.findOne({ slug: exclude }).select("_id").lean();
-    return listing?._id?.toString() || null;
+    const listing = await Listing.findOne({ slug: exclude })
+      .select("_id")
+      .lean();
+    if (!listing || Array.isArray(listing)) {
+      return null;
+    }
+    return listing._id?.toString() || null;
   } catch (error) {
     console.error("Error finding listing by slug for exclude:", error);
     return null;
@@ -186,7 +192,7 @@ export async function GET(req: NextRequest) {
           ])
         ),
       };
-      
+
       return result;
     });
 

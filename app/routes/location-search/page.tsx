@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 interface Property {
   _id: string;
+  slug?: string;
   pgName: string;
   type?: string;
   subType?: string;
@@ -96,7 +97,8 @@ function LocationSearchContent() {
       }
 
       // Add category filter if selected (use parameter if provided, otherwise use state)
-      const categoriesToUse = categories !== undefined ? categories : selectedCategories;
+      const categoriesToUse =
+        categories !== undefined ? categories : selectedCategories;
       if (categoriesToUse.length > 0) {
         queryParams.set("categories", categoriesToUse.join(","));
       }
@@ -265,40 +267,46 @@ function LocationSearchContent() {
                   {Object.entries(categoryCounts)
                     .sort(([a], [b]) => {
                       // Define the desired order
-                      const order = ['pgs', 'hostels', 'rooms', 'flats', 'commercial'];
+                      const order = [
+                        "pgs",
+                        "hostels",
+                        "rooms",
+                        "flats",
+                        "commercial",
+                      ];
                       return order.indexOf(a) - order.indexOf(b);
                     })
                     .map(([category, count]) => (
-                    <Button
-                      key={category}
-                      variant={
-                        selectedCategories.includes(category)
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => {
-                        if (selectedCategories.includes(category)) {
-                          handleCategoryChange(
-                            selectedCategories.filter((c) => c !== category)
-                          );
-                        } else {
-                          handleCategoryChange([
-                            ...selectedCategories,
-                            category,
-                          ]);
+                      <Button
+                        key={category}
+                        variant={
+                          selectedCategories.includes(category)
+                            ? "default"
+                            : "outline"
                         }
-                      }}
-                      className={
-                        selectedCategories.includes(category)
-                          ? "bg-HG-500 text-white hover:bg-HG-600"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }
-                    >
-                      {category.charAt(0).toUpperCase() + category.slice(1)} (
-                      {count})
-                    </Button>
-                  ))}
+                        size="sm"
+                        onClick={() => {
+                          if (selectedCategories.includes(category)) {
+                            handleCategoryChange(
+                              selectedCategories.filter((c) => c !== category)
+                            );
+                          } else {
+                            handleCategoryChange([
+                              ...selectedCategories,
+                              category,
+                            ]);
+                          }
+                        }}
+                        className={
+                          selectedCategories.includes(category)
+                            ? "bg-HG-500 text-white hover:bg-HG-600"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }
+                      >
+                        {category.charAt(0).toUpperCase() + category.slice(1)} (
+                        {count})
+                      </Button>
+                    ))}
                 </div>
               </div>
             )}

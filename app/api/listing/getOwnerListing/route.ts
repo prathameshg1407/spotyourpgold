@@ -19,7 +19,10 @@ async function getExcludeId(exclude: string | null): Promise<string | null> {
   // If not a valid ObjectId, treat it as a slug and find the listing
   try {
     const listing = await Listing.findOne({ slug: exclude }).select("_id").lean();
-    return listing?._id?.toString() || null;
+    if (!listing || Array.isArray(listing)) {
+      return null;
+    }
+    return listing._id?.toString() || null;
   } catch (error) {
     console.error("Error finding listing by slug for exclude:", error);
     return null;

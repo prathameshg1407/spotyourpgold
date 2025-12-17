@@ -246,7 +246,7 @@ export async function PUT(
     
     if (needsSlugUpdate || !slug) {
       const owner = await User.findById(user?.id).select("fullName").lean();
-      const ownerName = owner?.fullName || "owner";
+      const ownerName = (!owner || Array.isArray(owner)) ? "owner" : (owner.fullName || "owner");
       slug = await generateListingSlug(
         pgName,
         ownerName,
