@@ -1,4 +1,3 @@
-// components/EnhancedLocationSearchBox.tsx
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -124,6 +123,21 @@ export default function EnhancedLocationSearchBox({
     }
   };
 
+  // Map suggestion type to LocationData type
+  const mapSuggestionType = (type: string): LocationData["type"] => {
+    const typeMap: Record<string, LocationData["type"]> = {
+      city: "city",
+      town: "city",
+      village: "area",
+      suburb: "area",
+      neighbourhood: "area",
+      locality: "area",
+      state: "state",
+      country: "country",
+    };
+    return typeMap[type] || "location";
+  };
+
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion: any) => {
     const locationData: LocationData = {
@@ -131,7 +145,7 @@ export default function EnhancedLocationSearchBox({
       lat: suggestion.lat,
       lng: suggestion.lng,
       displayName: suggestion.description,
-      type: suggestion.type,
+      type: mapSuggestionType(suggestion.type),
       category: suggestion.category,
     };
     setDetectedLocation(locationData);
@@ -180,7 +194,7 @@ export default function EnhancedLocationSearchBox({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
-          className="pl-12 pr-12 py-3 w-full border-2 border-gray-200 focus:border-HG-500 focus:ring-2 focus:ring-HG-500/20 rounded-xl text-base transition-all duration-200 hover:border-gray-300"
+          className="pl-12 pr-12 py-3 w-full border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-base transition-all duration-200 hover:border-gray-300"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               handleSearch();
@@ -196,7 +210,7 @@ export default function EnhancedLocationSearchBox({
           }}
         />
         {isSearching || isGeocoding ? (
-          <Loader2 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 animate-spin text-HG-500" />
+          <Loader2 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 animate-spin text-primary" />
         ) : (
           query && (
             <button
@@ -223,13 +237,13 @@ export default function EnhancedLocationSearchBox({
             {suggestions.map((suggestion, index) => (
               <div
                 key={`${suggestion.place_id}-${index}`}
-                className="px-3 py-3 hover:bg-HG-50 cursor-pointer rounded-lg mx-1 transition-all duration-200 hover:shadow-sm group"
+                className="px-3 py-3 hover:bg-primary/10 cursor-pointer rounded-lg mx-1 transition-all duration-200 hover:shadow-sm group"
                 onClick={() => handleSuggestionSelect(suggestion)}
               >
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-HG-500 flex-shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 truncate group-hover:text-HG-700">
+                    <p className="font-semibold text-gray-900 truncate group-hover:text-primary">
                       {suggestion.name}
                     </p>
                     <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
@@ -241,7 +255,7 @@ export default function EnhancedLocationSearchBox({
                       </Badge>
                     )}
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-HG-500 transition-colors flex-shrink-0 -rotate-90" />
+                  <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0 -rotate-90" />
                 </div>
               </div>
             ))}
@@ -251,12 +265,12 @@ export default function EnhancedLocationSearchBox({
 
       {/* Detected Location Options */}
       {detectedLocation && (
-        <div className="bg-HG-50 border border-HG-200 rounded-xl p-4 space-y-3">
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <p className="text-sm font-medium text-gray-700">
               Location found:{" "}
-              <span className="text-HG-600 font-semibold">
+              <span className="text-primary font-semibold">
                 {detectedLocation.name}
               </span>
             </p>
@@ -264,7 +278,7 @@ export default function EnhancedLocationSearchBox({
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={handleSearchAroundLocation}
-              className="flex-1 bg-HG-500 hover:bg-HG-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg"
+              className="flex-1 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg"
             >
               <Navigation className="w-4 h-4 mr-2" />
               Show nearby PGs (10km radius)
@@ -272,7 +286,7 @@ export default function EnhancedLocationSearchBox({
             <Button
               onClick={handleSearchInLocation}
               variant="outline"
-              className="flex-1 border-2 border-HG-500 text-HG-500 hover:bg-HG-500 hover:text-white py-2.5 rounded-lg font-medium transition-all duration-200"
+              className="flex-1 py-2.5 rounded-lg font-medium transition-all duration-200"
             >
               <MapPin className="w-4 h-4 mr-2" />
               Search in this area
