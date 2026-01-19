@@ -1,7 +1,7 @@
-// app/api/listing/suggestions/route.ts
 import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
 import { NextResponse } from "next/server";
+import indoreLocations from "@/data/indore-locations.json";
 
 export async function GET(req: Request) {
   try {
@@ -33,7 +33,6 @@ export async function GET(req: Request) {
         $match: {
           isActive: true,
           isApproved: true,
-          type: { $ne: null, $exists: true }, // Exclude null types
           $or: [
             // Basic info fields
             { pgName: { $regex: searchRegex } },
@@ -274,17 +273,27 @@ export async function GET(req: Request) {
       { $limit: limit },
     ];
 
-    // Execute search pipeline for properties
-    const propertiesPromise = Listing.aggregate(searchPipeline);
+    // Execute search pipeline
+    const properties = await Listing.aggregate(searchPipeline);
 
-    // Fetch location suggestions dynamically from Nominatim
-    const locationsPromise = fetchLocationSuggestions(q);
-
-    // Execute both in parallel
-    const [properties, locations] = await Promise.all([
-      propertiesPromise,
-      locationsPromise,
-    ]);
+    // Process and filter locations - Only use Indore locations from JSON
+    const locations = indoreLocations
+      .filter((location) => {
+        const nameMatch = searchRegex.test(location.name);
+        const aliasMatch = location.aliases.some((alias) =>
+          searchRegex.test(alias)
+        );
+        return nameMatch || aliasMatch;
+      })
+      .slice(0, 8)
+      .map((location) => ({
+        name: location.name,
+        type: "indore",
+        displayText: location.displayName,
+        category: "Indore Locations",
+        lat: location.lat,
+        lng: location.lng,
+      }));
 
     // Format properties for response
     const formattedProperties = properties.map((property) => ({
@@ -296,7 +305,7 @@ export async function GET(req: Request) {
       success: true,
       data: {
         properties: formattedProperties,
-        locations: locations.slice(0, 8), // Limit to 8 location suggestions
+        locations,
         query: q,
         total: formattedProperties.length + locations.length,
       },
@@ -316,7 +325,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error("Search suggestions API Error:", error);
+    console.error("Ultra-fast search API Error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -326,78 +335,4 @@ export async function GET(req: Request) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to fetch location suggestions from Nominatim
-async function fetchLocationSuggestions(query: string) {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-        new URLSearchParams({
-          q: query,
-          format: "json",
-          addressdetails: "1",
-          limit: "10",
-          countrycodes: "in", // Restrict to India
-        }),
-      {
-        headers: {
-          "User-Agent": "SpotYourPG/1.0 (spotyourpg.com)",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error("Nominatim API error:", response.statusText);
-      return [];
-    }
-
-    const data = await response.json();
-
-    return data.map((item: any) => ({
-      name: item.name || item.display_name.split(",")[0],
-      type: item.type || "location",
-      displayText: item.display_name,
-      category: getCategoryFromType(item.type, item.class),
-      lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon),
-      place_id: item.place_id,
-    }));
-  } catch (error) {
-    console.error("Error fetching location suggestions:", error);
-    return [];
-  }
-}
-
-// Helper function to categorize location types
-function getCategoryFromType(type: string, osmClass: string): string {
-  const categoryMap: Record<string, string> = {
-    // Educational
-    college: "Educational Institution",
-    university: "Educational Institution",
-    school: "Educational Institution",
-
-    // Healthcare
-    hospital: "Healthcare",
-    clinic: "Healthcare",
-    doctors: "Healthcare",
-
-    // Commercial
-    mall: "Shopping & Commercial",
-    supermarket: "Shopping & Commercial",
-    shop: "Shopping & Commercial",
-
-    // Transportation
-    station: "Transportation",
-    airport: "Transportation",
-    bus_stop: "Transportation",
-
-    // General
-    city: "City",
-    town: "City",
-    suburb: "Area",
-    neighbourhood: "Area",
-  };
-
-  return categoryMap[type] || categoryMap[osmClass] || "Location";
 }

@@ -6,12 +6,14 @@ import EnhancedLocationSearchBox from "@/components/EnhancedLocationSearchBox";
 import PgCard from "@/components/PgCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, MapPin, Navigation, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Navigation } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
-import { useDynamicLocationSearch, LocationData } from "@/hooks/useDynamicLocationSearch";
+import {
+  useIndoreLocationSearch,
+  LocationData,
+} from "@/hooks/useIndoreLocationSearch";
 import axios from "axios";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface Property {
   _id: string;
@@ -30,7 +32,6 @@ interface Property {
   ownerName?: string;
   distance?: number;
   isWishlisted?: boolean;
-  inWatchList?: boolean;
   rentInclusions?: any;
 }
 
@@ -42,44 +43,44 @@ function LocationSearchContent() {
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [searchLocation, setSearchLocation] = useState<LocationData | null>(null);
-  const [searchType, setSearchType] = useState<"in" | "around">("around");
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [searchLocation, setSearchLocation] = useState<LocationData | null>(
+    null
+  );
+  const [searchType, setSearchType] = useState<"in" | "around">("in");
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
+    {}
+  );
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [radius, setRadius] = useState(10); // Default 10km
 
-  const { userLocation } = useDynamicLocationSearch();
+  const { userLocation } = useIndoreLocationSearch();
 
-  // Check URL parameters
+  // Check if we have URL parameters for a search
   useEffect(() => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
     const nearby = searchParams.get("nearby");
-    const name = searchParams.get("name") || searchParams.get("q");
-    const urlRadius = searchParams.get("radius");
+    const q = searchParams.get("q");
 
     if (lat && lng) {
       const location: LocationData = {
-        name: name || "Search Location",
+        name: q || "Search Location",
         lat: parseFloat(lat),
         lng: parseFloat(lng),
-        displayName: name || `${lat}, ${lng}`,
-        type: "location",
+        displayName: q || `${lat}, ${lng}`,
+        type: "city",
       };
       setSearchLocation(location);
-      const type = nearby === "true" ? "around" : "in";
-      setSearchType(type);
-      if (urlRadius) setRadius(parseInt(urlRadius));
-      fetchListings(location, type, 1);
+      setSearchType(nearby === "true" ? "around" : "in");
+      fetchListings(location, nearby === "true" ? "around" : "in", 1);
     }
   }, [searchParams]);
 
-  // Fetch listings
+  // Fetch listings based on location and search type
   const fetchListings = async (
     location: LocationData,
-    type: "in" | "around" = "around",
+    type: "in" | "around" = "in",
     page: number = 1,
-    categories?: string[]
+    categories?: string[] // Accept categories as parameter to avoid stale state
   ) => {
     setLoading(true);
     try {
@@ -91,14 +92,16 @@ function LocationSearchContent() {
       });
 
       if (type === "around") {
-        queryParams.set("radius", radius.toString());
+        queryParams.set("radius", "10");
       }
 
+      // Add category filter if selected (use parameter if provided, otherwise use state)
       const categoriesToUse = categories !== undefined ? categories : selectedCategories;
       if (categoriesToUse.length > 0) {
         queryParams.set("categories", categoriesToUse.join(","));
       }
 
+      // Get category counts
       const countParams = new URLSearchParams(queryParams);
       countParams.set("countByCategory", "true");
       countParams.set("page", "1");
@@ -110,24 +113,17 @@ function LocationSearchContent() {
       ]);
 
       if (listingsRes.data?.success) {
-        setListings(listingsRes.data.data || []);
-        setTotal(listingsRes.data.total || 0);
-        setTotalPages(listingsRes.data.totalPages || 0);
+        setListings(listingsRes.data.data);
+        setTotal(listingsRes.data.total);
+        setTotalPages(listingsRes.data.totalPages);
         setCurrentPage(page);
-      } else {
-        toast.error(listingsRes.data?.message || "Failed to fetch listings");
-        setListings([]);
-        setTotal(0);
       }
 
       if (countsRes.data?.success && countsRes.data.categoryCounts) {
         setCategoryCounts(countsRes.data.categoryCounts);
       }
-    } catch (error: any) {
-      console.error("Fetch listings error:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch listings");
-      setListings([]);
-      setTotal(0);
+    } catch (error) {
+      toast.error("Failed to fetch listings");
     } finally {
       setLoading(false);
     }
@@ -139,14 +135,6 @@ function LocationSearchContent() {
     setSearchType("in");
     setSelectedCategories([]);
     fetchListings(location, "in", 1);
-    
-    // Update URL
-    const params = new URLSearchParams({
-      lat: location.lat.toString(),
-      lng: location.lng.toString(),
-      name: location.name,
-    });
-    router.push(`/routes/location-search?${params.toString()}`);
   };
 
   // Handle nearby search
@@ -155,22 +143,13 @@ function LocationSearchContent() {
     setSearchType("around");
     setSelectedCategories([]);
     fetchListings(location, "around", 1);
-    
-    // Update URL
-    const params = new URLSearchParams({
-      lat: location.lat.toString(),
-      lng: location.lng.toString(),
-      name: location.name,
-      nearby: "true",
-      radius: radius.toString(),
-    });
-    router.push(`/routes/location-search?${params.toString()}`);
   };
 
   // Handle category change
   const handleCategoryChange = (categories: string[]) => {
     setSelectedCategories(categories);
     if (searchLocation) {
+      // Pass categories directly to avoid stale state issue
       fetchListings(searchLocation, searchType, 1, categories);
     }
   };
@@ -180,24 +159,15 @@ function LocationSearchContent() {
     if (searchLocation) {
       fetchListings(searchLocation, searchType, page);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Clear all filters
   const handleClearAll = () => {
     setSelectedCategories([]);
     if (searchLocation) {
+      // Pass empty array directly to avoid stale state issue
       fetchListings(searchLocation, searchType, 1, []);
     }
-  };
-
-  // Clear search
-  const handleClearSearch = () => {
-    setSearchLocation(null);
-    setListings([]);
-    setTotal(0);
-    setSelectedCategories([]);
-    router.push('/routes/location-search');
   };
 
   return (
@@ -214,12 +184,12 @@ function LocationSearchContent() {
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
-            <div className="flex-1">
+            <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
                 Location Search
               </h1>
-              <p className="text-gray-600 font-inter text-sm md:text-base">
-                Find PGs near colleges, hospitals, malls, or any location
+              <p className="text-gray-600 font-inter">
+                Find properties by location or search around a specific area
               </p>
             </div>
           </div>
@@ -229,7 +199,7 @@ function LocationSearchContent() {
             <EnhancedLocationSearchBox
               onLocationSelect={handleLocationSelect}
               onNearbySearch={handleNearbySearch}
-              placeholder="Search: IIT Delhi, AIIMS, DLF Mall, Rajiv Chowk Metro..."
+              placeholder="Search for hospitals, schools, malls, metro stations in Indore..."
               showSuggestions={true}
               showNearbyOption={true}
             />
@@ -240,48 +210,42 @@ function LocationSearchContent() {
         {searchLocation && (
           <div className="space-y-6">
             {/* Search Info */}
-            <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="bg-white rounded-lg p-6 shadow-sm border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   {searchType === "around" ? (
-                    <Navigation className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <Navigation className="w-5 h-5 text-blue-500" />
                   ) : (
-                    <MapPin className="w-5 h-5 text-HG-500 flex-shrink-0" />
+                    <MapPin className="w-5 h-5 text-HG-500" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-semibold text-gray-900 truncate">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
                       {searchType === "around"
-                        ? `PGs near ${searchLocation.name}`
-                        : `PGs in ${searchLocation.name}`}
+                        ? `Properties around ${
+                            searchLocation.displayName.split(",")[0]
+                          }`
+                        : `Properties in ${
+                            searchLocation.displayName.split(",")[0]
+                          }`}
                     </h2>
                     <p className="text-sm text-gray-600">
                       {searchType === "around"
-                        ? `Within ${radius}km radius`
+                        ? "Within 10km radius"
                         : "In this location"}{" "}
-                      • {total} {total === 1 ? 'property' : 'properties'} found
+                      • {total} properties found
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-sm">
-                    {searchType === "around" ? "Nearby" : "In Location"}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearSearch}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Badge variant="secondary" className="text-sm">
+                  {searchType === "around" ? "Nearby" : "In Location"}
+                </Badge>
               </div>
             </div>
 
             {/* Category Filter */}
             {Object.keys(categoryCounts).length > 0 && (
-              <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
                     Filter by Property Type
                   </h3>
@@ -297,55 +261,61 @@ function LocationSearchContent() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {/* Sort categories in a consistent order to prevent shuffling */}
                   {Object.entries(categoryCounts)
                     .sort(([a], [b]) => {
+                      // Define the desired order
                       const order = ['pgs', 'hostels', 'rooms', 'flats', 'commercial'];
                       return order.indexOf(a) - order.indexOf(b);
                     })
                     .map(([category, count]) => (
-                      <Button
-                        key={category}
-                        variant={
-                          selectedCategories.includes(category)
-                            ? "default"
-                            : "outline"
+                    <Button
+                      key={category}
+                      variant={
+                        selectedCategories.includes(category)
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        if (selectedCategories.includes(category)) {
+                          handleCategoryChange(
+                            selectedCategories.filter((c) => c !== category)
+                          );
+                        } else {
+                          handleCategoryChange([
+                            ...selectedCategories,
+                            category,
+                          ]);
                         }
-                        size="sm"
-                        onClick={() => {
-                          if (selectedCategories.includes(category)) {
-                            handleCategoryChange(
-                              selectedCategories.filter((c) => c !== category)
-                            );
-                          } else {
-                            handleCategoryChange([...selectedCategories, category]);
-                          }
-                        }}
-                        className={
-                          selectedCategories.includes(category)
-                            ? "bg-HG-500 text-white hover:bg-HG-600"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }
-                      >
-                        {category.charAt(0).toUpperCase() + category.slice(1)} ({count})
-                      </Button>
-                    ))}
+                      }}
+                      className={
+                        selectedCategories.includes(category)
+                          ? "bg-HG-500 text-white hover:bg-HG-600"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }
+                    >
+                      {category.charAt(0).toUpperCase() + category.slice(1)} (
+                      {count})
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Listings Grid */}
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
                 {Array.from({ length: 8 }).map((_, index) => (
                   <Skeleton key={index} />
                 ))}
               </div>
             ) : listings.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {listings.map((pg) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+                  {listings.map((pg, index) => (
                     <PgCard
-                      key={pg._id}
+                      key={pg._id || index}
                       id={pg._id}
                       image={pg.primaryImage}
                       images={[]}
@@ -355,7 +325,7 @@ function LocationSearchContent() {
                       ownerName={pg.ownerName || ""}
                       price={pg.minRent}
                       genderPreference={pg.genderPreference}
-                      isWishlisted={pg.isWishlisted || pg.inWatchList}
+                      isWishlisted={pg.isWishlisted}
                       type={pg.type}
                       distance={pg.distance}
                       amenities={pg.amenities || []}
@@ -379,33 +349,35 @@ function LocationSearchContent() {
                     </Button>
 
                     <div className="flex items-center gap-2">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
+                      {Array.from(
+                        { length: Math.min(5, totalPages) },
+                        (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
 
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePageChange(pageNum)}
-                            className={cn(
-                              "w-10 h-10 p-0",
-                              currentPage === pageNum && "bg-HG-500 hover:bg-HG-600"
-                            )}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                currentPage === pageNum ? "default" : "outline"
+                              }
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="w-10 h-10 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        }
+                      )}
                     </div>
 
                     <Button
@@ -421,72 +393,48 @@ function LocationSearchContent() {
                   </div>
                 )}
 
+                {/* Page Info */}
                 <div className="text-center mt-4">
                   <p className="text-sm text-gray-600">
-                    Page {currentPage} of {totalPages} • {total} total {total === 1 ? 'property' : 'properties'}
+                    Page {currentPage} of {totalPages} • {total} total
+                    properties
                     {selectedCategories.length > 0 &&
                       ` (filtered by ${selectedCategories.join(", ")})`}
                   </p>
                 </div>
               </>
             ) : (
-              <div className="text-center py-16 bg-white rounded-lg border">
+              <div className="text-center py-16">
                 <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   No properties found
                 </h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                <p className="text-gray-600 mb-4">
                   {searchType === "around"
-                    ? `No PGs found within ${radius}km of ${searchLocation.name}.`
-                    : `No PGs found in ${searchLocation.name}.`}
-                  <br />
-                  <span className="text-sm text-gray-500 mt-2 inline-block">
-                    Only showing properties listed on SpotYourPG
-                  </span>
+                    ? "No properties found around this location. Try expanding your search radius or searching in a different area."
+                    : "No properties found in this location. Try searching in a nearby area or different city."}
                 </p>
-                <div className="flex gap-3 justify-center">
-                  <Button onClick={handleClearSearch} variant="outline">
-                    Try a different location
-                  </Button>
-                  {searchType === "around" && (
-                    <Button
-                      onClick={() => {
-                        setSearchType("in");
-                        if (searchLocation) {
-                          fetchListings(searchLocation, "in", 1);
-                        }
-                      }}
-                      variant="default"
-                      className="bg-HG-500 hover:bg-HG-600"
-                    >
-                      Search in area instead
-                    </Button>
-                  )}
-                </div>
+                <Button
+                  onClick={() => setSearchLocation(null)}
+                  variant="outline"
+                >
+                  Try a different location
+                </Button>
               </div>
             )}
           </div>
         )}
 
         {/* No Search State */}
-        {!searchLocation && !loading && (
-          <div className="text-center py-16 bg-white rounded-lg border">
+        {!searchLocation && (
+          <div className="text-center py-16">
             <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Search for PGs near any location
+              Search for properties by location
             </h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Enter a college, hospital, mall, metro station, or any landmark to find nearby PG accommodations.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto mb-4">
-              <Badge variant="outline" className="text-sm">IIT Delhi</Badge>
-              <Badge variant="outline" className="text-sm">AIIMS</Badge>
-              <Badge variant="outline" className="text-sm">Connaught Place</Badge>
-              <Badge variant="outline" className="text-sm">DLF Mall</Badge>
-              <Badge variant="outline" className="text-sm">Rajiv Chowk Metro</Badge>
-            </div>
-            <p className="text-xs text-gray-500">
-              Showing only approved and active listings
+            <p className="text-gray-600 mb-4">
+              Enter a city, area, or location name to find properties in that
+              area or around it.
             </p>
           </div>
         )}
@@ -497,14 +445,7 @@ function LocationSearchContent() {
 
 export default function LocationSearchPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-HG-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading search...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div>Loading...</div>}>
       <LocationSearchContent />
     </Suspense>
   );
