@@ -19,7 +19,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Calendar,
@@ -60,7 +59,7 @@ interface VisitRequest {
       area: string;
       city: string;
     };
-  };
+  } | null;
   userId?: {
     _id: string;
     fullName: string;
@@ -107,9 +106,11 @@ export default function VisitRequestsPage() {
         (request) =>
           request.name.toLowerCase().includes(query) ||
           request.phone.includes(query) ||
-          request.listingId.pgName.toLowerCase().includes(query) ||
-          request.listingId.location.area.toLowerCase().includes(query) ||
-          request.listingId.location.city.toLowerCase().includes(query)
+          (request.listingId?.pgName?.toLowerCase().includes(query) ?? false) ||
+          (request.listingId?.location?.area?.toLowerCase().includes(query) ??
+            false) ||
+          (request.listingId?.location?.city?.toLowerCase().includes(query) ??
+            false)
       );
     }
 
@@ -434,18 +435,33 @@ export default function VisitRequestsPage() {
                         <Building className="w-4 h-4" />
                         Property Details
                       </h4>
-                      <div className="mt-2 space-y-1">
-                        <p className="font-medium">
-                          {request.listingId.pgName}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span>
-                            {request.listingId.location.area},{" "}
-                            {request.listingId.location.city}
-                          </span>
+                      {request.listingId ? (
+                        <div className="mt-2 space-y-1">
+                          <p className="font-medium">
+                            {request.listingId.pgName}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="w-4 h-4" />
+                            <span>
+                              {request.listingId.location?.area},{" "}
+                              {request.listingId.location?.city}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-500" />
+                            <p className="text-sm text-red-600 font-medium">
+                              Listing has been deleted
+                            </p>
+                          </div>
+                          <p className="text-xs text-red-500 mt-1">
+                            The property associated with this visit request no
+                            longer exists.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {request.userId && (
