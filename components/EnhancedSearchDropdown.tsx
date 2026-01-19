@@ -10,9 +10,9 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
-  useIndoreLocationSearch,
+  useDynamicLocationSearch,
   LocationData,
-} from "@/hooks/useIndoreLocationSearch";
+} from "@/hooks/useDynamicLocationSearch";
 import { cn } from "@/lib/utils";
 
 interface Property {
@@ -90,7 +90,7 @@ export default function EnhancedSearchDropdown({
     searchNearby,
     searchInLocation,
     searchWithQuery,
-  } = useIndoreLocationSearch();
+  } = useDynamicLocationSearch();
 
   const debouncedSearch = useDebouncedValue(value, 150);
 
@@ -232,7 +232,7 @@ export default function EnhancedSearchDropdown({
         .replace(/\s+(city|area|locality|district|state)$/i, "")
         .trim();
 
-      geocodeLocation(cleanQuery).then((location) => {
+      geocodeLocation(cleanQuery).then((location: LocationData | null) => {
         setDetectedLocation(location);
       });
     } else {
@@ -304,57 +304,6 @@ export default function EnhancedSearchDropdown({
     }
   };
 
-  // Handle item selection
-  const handleItemSelect = (index: number) => {
-    let currentIndex = 0;
-
-    // Check if it's a detected location - Search in location
-    if (detectedLocation && index === currentIndex++) {
-      handleLocationSelect(detectedLocation);
-      return;
-    }
-
-    // Check if it's a detected location - Search around location
-    if (detectedLocation && index === currentIndex++) {
-      handleLocationAroundSearch(detectedLocation);
-      return;
-    }
-
-    // Check if it's nearby option
-    if (showNearbyOption && userLocation && index === currentIndex++) {
-      handleNearbySearch();
-      return;
-    }
-
-    // Check properties
-    if (index < currentIndex + suggestions.properties.length) {
-      const propertyIndex = index - currentIndex;
-      const property = suggestions.properties[propertyIndex];
-      if (onSelectProperty) {
-        onSelectProperty(property);
-      } else {
-        router.push(`/routes/pg-details/${property.slug || property._id}`);
-      }
-      setIsOpen(false);
-      setFocusedIndex(-1);
-      return;
-    }
-    currentIndex += suggestions.properties.length;
-
-    // Check locations
-    if (index < currentIndex + suggestions.locations.length) {
-      const locationIndex = index - currentIndex;
-      const location = suggestions.locations[locationIndex];
-      handleLocationSelect({
-        name: location.name,
-        lat: 0, // Will be geocoded
-        lng: 0,
-        displayName: location.displayText,
-        type: location.type,
-      });
-    }
-  };
-
   // Handle location selection
   const handleLocationSelect = async (location: LocationData) => {
     if (location.lat === 0 && location.lng === 0) {
@@ -405,6 +354,57 @@ export default function EnhancedSearchDropdown({
     }
     setIsOpen(false);
     setFocusedIndex(-1);
+  };
+
+  // Handle item selection
+  const handleItemSelect = (index: number) => {
+    let currentIndex = 0;
+
+    // Check if it's a detected location - Search in location
+    if (detectedLocation && index === currentIndex++) {
+      handleLocationSelect(detectedLocation);
+      return;
+    }
+
+    // Check if it's a detected location - Search around location
+    if (detectedLocation && index === currentIndex++) {
+      handleLocationAroundSearch(detectedLocation);
+      return;
+    }
+
+    // Check if it's nearby option
+    if (showNearbyOption && userLocation && index === currentIndex++) {
+      handleNearbySearch();
+      return;
+    }
+
+    // Check properties
+    if (index < currentIndex + suggestions.properties.length) {
+      const propertyIndex = index - currentIndex;
+      const property = suggestions.properties[propertyIndex];
+      if (onSelectProperty) {
+        onSelectProperty(property);
+      } else {
+        router.push(`/routes/pg-details/${property.slug || property._id}`);
+      }
+      setIsOpen(false);
+      setFocusedIndex(-1);
+      return;
+    }
+    currentIndex += suggestions.properties.length;
+
+    // Check locations
+    if (index < currentIndex + suggestions.locations.length) {
+      const locationIndex = index - currentIndex;
+      const location = suggestions.locations[locationIndex];
+      handleLocationSelect({
+        name: location.name,
+        lat: 0, // Will be geocoded
+        lng: 0,
+        displayName: location.displayText,
+        type: location.type,
+      });
+    }
   };
 
   // Handle input change
@@ -507,7 +507,7 @@ export default function EnhancedSearchDropdown({
             <div
               className={cn(
                 "px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 flex items-center gap-3",
-                focusedIndex === (detectedLocation ? 1 : 0) && "bg-gray-50"
+                focusedIndex === (detectedLocation ? 2 : 0) && "bg-gray-50"
               )}
               onClick={handleNearbySearch}
             >
