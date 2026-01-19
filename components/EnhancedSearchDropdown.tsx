@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useIndoreLocationSearch";
 import { cn } from "@/lib/utils";
 
+
 interface Property {
   _id: string;
    slug?: string;
