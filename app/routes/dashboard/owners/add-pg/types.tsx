@@ -1,8 +1,11 @@
+// app/routes/dashboard/owners/add-pg/types.ts
+
 import type React from "react";
+
 export interface PGFormData {
-  id: string; // Unique identifier for the listing, can be empty for new listings
+  id: string;
   pgName: string;
-  primaryLine: string; // Optional 35 char max primary line
+  primaryLine: string;
   type: "hostels" | "flats" | "pgs" | "rooms" | "commercial" | "";
   subType: string;
 
@@ -32,7 +35,6 @@ export interface PGFormData {
   rulesAndRegulations: string[];
   newRuleInput: string;
 
-  // Enhanced Rules Structure
   detailedRules: {
     lockInPeriod: string;
     noticePeriod: string;
@@ -55,7 +57,6 @@ export interface PGFormData {
   electricityIncluded: boolean;
   maintenanceIncluded: boolean;
 
-  // Meal timings (optional, only when foodIncluded is true)
   mealTimings: {
     morning: { enabled: boolean; from: string; to: string };
     noon: { enabled: boolean; from: string; to: string };
@@ -63,11 +64,10 @@ export interface PGFormData {
     night: { enabled: boolean; from: string; to: string };
   };
 
-  // New fields for payment
   planType?: "free" | "paid" | "subscription";
   paymentStatus?: "pending" | "completed" | "failed";
   paymentId?: string;
-  paymentProof?: string | File; // ✅ string (URL after upload) or File (before upload)
+  paymentProof?: string | File;
 }
 
 export interface StepProps {

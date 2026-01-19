@@ -473,3 +473,100 @@ html {
   transform: translateY(-5px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
+
+
+/* Leaflet base styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  font-family: inherit;
+}
+
+.leaflet-popup-pane {
+  z-index: 1000;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.leaflet-popup-close-button {
+  font-size: 20px !important;
+  padding: 4px 8px !important;
+}
+
+/* Geosearch styles */
+.leaflet-control-geosearch {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-control-geosearch .results {
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.leaflet-control-geosearch .results > * {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.leaflet-control-geosearch .results > *:hover {
+  background-color: #f3f4f6;
+}
+
+.leaflet-control-geosearch form input {
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* Custom scrollbar for search results */
+.leaflet-control-geosearch .results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leaflet-control-geosearch .results::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.leaflet-control-geosearch .results::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.leaflet-control-geosearch .results::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Fullscreen styles */
+.leaflet-container:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .leaflet-control-geosearch {
+    width: calc(100vw - 120px) !important;
+  }
+
+  .leaflet-control-geosearch form input {
+    font-size: 12px;
+  }
+}
+
+/* Fix attribution on mobile */
+@media (max-width: 768px) {
+  .leaflet-control-attribution {
+    font-size: 10px;
+  }
+}

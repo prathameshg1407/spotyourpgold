@@ -2256,6 +2256,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useLoadingStore } from "@/store/loading";
 import { useProgressSave } from "@/hooks/useProgressSave";
+import { normalizeFormData, getDefaultFormData } from "./utils/formDataHelpers";
 
 // Dynamic import with proper loading component and error handling
 const Step2Location = dynamic(() => import("./components/Step2Location"), {
@@ -2274,7 +2275,6 @@ export default function AddNewPG() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const listingId = searchParams.get("id");
-  // const payNow = searchParams.get("payNow");
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -2284,9 +2284,8 @@ export default function AddNewPG() {
   >("pending");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState<PGFormData>(initialFormData); // 👈 initialFormData is a constant
+  const [formData, setFormData] = useState<PGFormData>(() => getDefaultFormData());
 
-  // const { user } = useUserStore()
   const router = useRouter();
 
   const { errors, setErrors, validateStep } = useFormValidation(formData);
@@ -2333,7 +2332,9 @@ export default function AddNewPG() {
     if (mode !== "edit" && !listingId) {
       loadProgress().then((progress) => {
         if (progress && progress.formData) {
-          setFormData(progress.formData);
+          // Normalize the loaded data to ensure all fields exist
+          const normalizedData = normalizeFormData(progress.formData);
+          setFormData(normalizedData);
           setCurrentStep(progress.currentStep);
           toast.success("Previous progress loaded successfully!");
         }
@@ -2367,12 +2368,12 @@ export default function AddNewPG() {
     const fetchListingForEdit = async () => {
       if (mode !== "edit" || !listingId) {
         setLoading(false);
-        setFormData(initialFormData);
+        setFormData(getDefaultFormData());
         return;
       }
 
       setLoading(true);
-      const payNow = searchParams.get("payNow") === "true"; // 👈
+      const payNow = searchParams.get("payNow") === "true";
 
       try {
         const res = await axios.get(`/api/listing/${listingId}`);
@@ -2380,67 +2381,92 @@ export default function AddNewPG() {
         if (res?.data?.success && res.data.data && !ignore) {
           const listing = res.data.data.listing;
 
-
-          setFormData((prev: any) => ({
-            ...prev,
-            pgName: listing?.pgName,
+          // Build form data with safe defaults
+          const loadedFormData: PGFormData = {
+            id: listingId,
+            pgName: listing?.pgName || '',
             primaryLine: listing?.primaryLine || "",
             type: listing?.type || "",
             subType: listing?.subType || "",
-            roomTypes: listing?.roomTypes || [],
-            genderPreference: listing.genderPreference,
-            additionalDetails: listing.additionalDetails,
+            roomTypes: Array.isArray(listing?.roomTypes) ? listing.roomTypes : [],
+            genderPreference: listing?.genderPreference || 'both',
+            additionalDetails: Array.isArray(listing?.additionalDetails) 
+              ? listing.additionalDetails 
+              : [],
             additionalDetailsInput: "",
             location: {
-              area: listing.location?.area,
-              city: listing.location?.city,
-              state: listing.location?.state,
-              pincode: listing.location?.pincode,
-              nearbyPlaces: listing.location?.nearbyPlaces || [],
-              nearbyPlacesInput: "",
+              area: listing?.location?.area || '',
+              city: listing?.location?.city || '',
+              state: listing?.location?.state || '',
+              pincode: listing?.location?.pincode || '',
+              nearbyPlaces: Array.isArray(listing?.location?.nearbyPlaces) 
+                ? listing.location.nearbyPlaces 
+                : [],
+              nearbyPlacesInput: "", // Always initialize this field
               coordinates: {
-                lat: listing.location?.coordinates.coordinates[0],
-                lng: listing.location?.coordinates.coordinates[1],
+                lat: listing?.location?.coordinates?.coordinates?.[0] || 0,
+                lng: listing?.location?.coordinates?.coordinates?.[1] || 0,
               },
             },
-            rulesAndRegulations: listing.rulesAndRegulations,
+            rulesAndRegulations: Array.isArray(listing?.rulesAndRegulations)
+              ? listing.rulesAndRegulations
+              : [],
             newRuleInput: "",
-            detailedRules: listing.detailedRules || {
-              lockInPeriod: "",
-              noticePeriod: "",
-              maintenanceCharges: "",
-              entryTiming: "",
-              exitTiming: "",
-              guestStayPolicy: "",
-              smokingAlcoholPolicy: "",
+            detailedRules: {
+              lockInPeriod: listing?.detailedRules?.lockInPeriod || "",
+              noticePeriod: listing?.detailedRules?.noticePeriod || "",
+              maintenanceCharges: listing?.detailedRules?.maintenanceCharges || "",
+              entryTiming: listing?.detailedRules?.entryTiming || "",
+              exitTiming: listing?.detailedRules?.exitTiming || "",
+              guestStayPolicy: listing?.detailedRules?.guestStayPolicy || "",
+              smokingAlcoholPolicy: listing?.detailedRules?.smokingAlcoholPolicy || "",
             },
-            amenities: listing.amenities,
+            amenities: Array.isArray(listing?.amenities) ? listing.amenities : [],
             customAmenities: "",
             foodIncluded: listing?.rentInclusions?.foodIncluded || false,
-            electricityIncluded:
-              listing?.rentInclusions?.electricityIncluded || false,
-            maintenanceIncluded:
-              listing?.rentInclusions?.maintenanceIncluded || false,
-            mealTimings: listing?.mealTimings || {
-              morning: { enabled: false, from: "07:00", to: "09:00" },
-              noon: { enabled: false, from: "12:00", to: "14:00" },
-              evening: { enabled: false, from: "18:00", to: "20:00" },
-              night: { enabled: false, from: "21:00", to: "23:00" },
+            electricityIncluded: listing?.rentInclusions?.electricityIncluded || false,
+            maintenanceIncluded: listing?.rentInclusions?.maintenanceIncluded || false,
+            mealTimings: {
+              morning: {
+                enabled: listing?.mealTimings?.morning?.enabled || false,
+                from: listing?.mealTimings?.morning?.from || "07:00",
+                to: listing?.mealTimings?.morning?.to || "09:00",
+              },
+              noon: {
+                enabled: listing?.mealTimings?.noon?.enabled || false,
+                from: listing?.mealTimings?.noon?.from || "12:00",
+                to: listing?.mealTimings?.noon?.to || "14:00",
+              },
+              evening: {
+                enabled: listing?.mealTimings?.evening?.enabled || false,
+                from: listing?.mealTimings?.evening?.from || "18:00",
+                to: listing?.mealTimings?.evening?.to || "20:00",
+              },
+              night: {
+                enabled: listing?.mealTimings?.night?.enabled || false,
+                from: listing?.mealTimings?.night?.from || "21:00",
+                to: listing?.mealTimings?.night?.to || "23:00",
+              },
             },
             images: [],
-            existingImageUrls:
-              listing.images?.map((img: { url: string }) => img.url) || [],
+            existingImageUrls: Array.isArray(listing?.images)
+              ? listing.images.map((img: { url: string }) => img.url)
+              : [],
             videos: [],
-            existingVideoUrls:
-              listing.videos?.map((video: { url: string }) => video.url) || [],
-          }));
+            existingVideoUrls: Array.isArray(listing?.videos)
+              ? listing.videos.map((video: { url: string }) => video.url)
+              : [],
+          };
 
-          // 👇 Automatically move to payment step if `payNow=true`
+          // Normalize the loaded data to ensure consistency
+          setFormData(normalizeFormData(loadedFormData));
+
+          // Automatically move to payment step if `payNow=true`
           if (payNow) {
             setTimeout(() => {
               setCurrentStep(6);
-              setIsPaymentModalOpen(true); // 👈 or 4 if you want to jump to Payment directly
-            }, 200); // slight delay after form is populated
+              setIsPaymentModalOpen(true);
+            }, 200);
           }
         } else if (!ignore) {
           toast.error(res?.data?.message || "Listing not found", {
@@ -2450,6 +2476,7 @@ export default function AddNewPG() {
         }
       } catch (error) {
         if (!ignore) {
+          console.error("Failed to fetch listing:", error);
           toast.error("Failed to fetch listing", { duration: 1500 });
           router.replace("/");
         }
@@ -2483,10 +2510,8 @@ export default function AddNewPG() {
 
         const res = await axios.put("/api/owner/listPg/payment", {
           proof: base64,
-          listingId: listingId || formData.id, // Use formData.id if listingId is not available
+          listingId: listingId || formData.id,
         });
-
-        // console.log(res);
 
         if (res?.data?.success) {
           setPaymentStatus("paid");
@@ -2503,6 +2528,7 @@ export default function AddNewPG() {
       setIsPaymentModalOpen(false);
       router.replace("/routes/dashboard/owners/listings");
     } catch (error) {
+      console.error("Payment error:", error);
       setPaymentStatus("failed");
       toast.error("Payment failed. Please try again.");
     } finally {
@@ -2520,16 +2546,16 @@ export default function AddNewPG() {
   };
 
   const handleRemoveExistingImage = (index: number) => {
-    setFormData((prev: any) => {
-      const updated = [...prev.existingImageUrls];
+    setFormData((prev) => {
+      const updated = [...(prev.existingImageUrls || [])];
       updated.splice(index, 1);
       return { ...prev, existingImageUrls: updated };
     });
   };
 
   const handleRemoveExistingVideo = (index: number) => {
-    setFormData((prev: any) => {
-      const updated = [...prev.existingVideoUrls];
+    setFormData((prev) => {
+      const updated = [...(prev.existingVideoUrls || [])];
       updated.splice(index, 1);
       return { ...prev, existingVideoUrls: updated };
     });
@@ -2549,12 +2575,10 @@ export default function AddNewPG() {
     try {
       // Convert images to base64 with size validation
       const newImagesBase64 = await Promise.all(
-        formData.images.map(async (file: any) => {
+        (formData.images || []).map(async (file: any) => {
           const base64 = await toBase64(file);
-          // Check if base64 string is too large (roughly 1.33x the original file size)
           const estimatedSize = (base64.length * 3) / 4;
           if (estimatedSize > 2 * 1024 * 1024) {
-            // 2MB limit per image
             throw new Error(`Image ${file.name} is too large after conversion`);
           }
           return base64;
@@ -2563,20 +2587,24 @@ export default function AddNewPG() {
 
       // Convert videos to base64 with size validation
       const newVideosBase64 = await Promise.all(
-        formData.videos.map(async (file: any) => {
+        (formData.videos || []).map(async (file: any) => {
           const base64 = await toBase64(file);
-          // Check if base64 string is too large
           const estimatedSize = (base64.length * 3) / 4;
           if (estimatedSize > 25 * 1024 * 1024) {
-            // 25MB limit per video
             throw new Error(`Video ${file.name} is too large after conversion`);
           }
           return base64;
         })
       );
 
-      const allImages = [...formData.existingImageUrls, ...newImagesBase64];
-      const allVideos = [...formData.existingVideoUrls, ...newVideosBase64];
+      const allImages = [
+        ...(formData.existingImageUrls || []),
+        ...newImagesBase64,
+      ];
+      const allVideos = [
+        ...(formData.existingVideoUrls || []),
+        ...newVideosBase64,
+      ];
 
       const payload = {
         ...formData,
@@ -2588,10 +2616,8 @@ export default function AddNewPG() {
       const payloadString = JSON.stringify(payload);
       const payloadSizeMB = new Blob([payloadString]).size / (1024 * 1024);
 
-
       // Check if payload is too large
       if (payloadSizeMB > 45) {
-        // 45MB limit (leaving some buffer)
         throw new Error(
           `Form data is too large (${payloadSizeMB.toFixed(
             2
@@ -2602,22 +2628,22 @@ export default function AddNewPG() {
       const res =
         mode === "edit"
           ? await axios.put(`/api/owner/listPg/${listingId}`, payload, {
-              timeout: 120000, // 2 minutes timeout
+              timeout: 120000,
               headers: {
                 "Content-Type": "application/json",
               },
             })
           : await axios.post("/api/owner/listPg", payload, {
-              timeout: 120000, // 2 minutes timeout
+              timeout: 120000,
               headers: {
                 "Content-Type": "application/json",
               },
             });
 
       if (res?.data?.success) {
-        setFormData((prev: any) => ({
+        setFormData((prev) => ({
           ...prev,
-          id: res.data.data || prev.id, // Update ID if available
+          id: res.data.data || prev.id,
         }));
 
         // Clear saved progress on successful submission
@@ -2645,7 +2671,7 @@ export default function AddNewPG() {
         }));
       }
     } catch (error: any) {
-
+      console.error("Submit error:", error);
       let errorMessage = "Failed to submit form. Please try again.";
 
       if (error?.response?.status === 413) {
@@ -2683,7 +2709,7 @@ export default function AddNewPG() {
       case 1:
         return (
           <Step1BasicInfo
-            key={formData?.roomTypes?.length || 0} // 👈 This forces re-render when roomTypes load
+            key={formData?.roomTypes?.length || 0}
             {...stepProps}
           />
         );
@@ -2776,7 +2802,7 @@ export default function AddNewPG() {
               handlePrevious();
             }}
             className={`${
-              currentStep == 1
+              currentStep === 1
                 ? "cursor-not-allowed hover:text-gray-900"
                 : "cursor-pointer hover:text-HG-400"
             } md:text-[18px] font-medium text-gray-900 mb-5 font-poppins flex gap-1 items-center`}
@@ -2837,7 +2863,7 @@ export default function AddNewPG() {
                       )
                     ) {
                       clearProgress();
-                      setFormData(initialFormData);
+                      setFormData(getDefaultFormData());
                       setCurrentStep(1);
                     }
                   }}
