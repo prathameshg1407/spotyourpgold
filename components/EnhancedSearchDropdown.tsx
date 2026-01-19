@@ -13,6 +13,10 @@ import {
   useIndoreLocationSearch,
   LocationData,
 } from "@/hooks/useIndoreLocationSearch";
+import {
+  useDynamicLocationSearch,
+  LocationData,
+} from "@/hooks/useDynamicLocationSearch";
 import { cn } from "@/lib/utils";
 
 interface Property {
