@@ -7,11 +7,9 @@ import authUser from "@/actions/authUser";
 import OwnerProfile from "@/models/ownerProfile";
 import Review from "@/models/review";
 import { encryptResponse } from "@/lib/encryption";
-import mongoose from "mongoose";
 
 type ListingType = {
   _id: string;
-
   ownerId: {
     _id: string;
     fullName: string;
@@ -43,28 +41,16 @@ type ListingType = {
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectToDB();
-    const { id } = await context.params;
+    const { slug } = await context.params;
 
     const user = await authUser().catch(() => null);
 
-    // Check if the id is a valid MongoDB ObjectId (24 hex characters)
-    const isValidObjectId = mongoose.Types.ObjectId.isValid(id) && id.length === 24;
-
-    // Build query based on whether id is a valid ObjectId or a slug
-    let query;
-    if (isValidObjectId) {
-      // Could be either ID or slug, check both
-      query = { $or: [{ slug: id }, { _id: id }] };
-    } else {
-      // Not a valid ObjectId, must be a slug
-      query = { slug: id };
-    }
-
-    const listing = await Listing.findOne(query)
+    // Query by slug only
+    const listing = await Listing.findOne({ slug })
       .select(
         `
         ownerId
@@ -98,7 +84,7 @@ export async function GET(
     }
 
     const listingId = listing._id.toString();
-    
+
     let inWatchlist = false;
     if (user) {
       const dbUser = await User.findById(user.id).select("watchlist");
@@ -171,11 +157,11 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectToDB();
-    const { id } = await context.params;
+    const { slug } = await context.params;
 
     const user = await authUser();
 
@@ -189,7 +175,7 @@ export async function PUT(
       );
     }
 
-    const listing = await Listing.findById(id).select("isFeatured");
+    const listing = await Listing.findOne({ slug }).select("isFeatured");
 
     if (!listing) {
       return NextResponse.json({

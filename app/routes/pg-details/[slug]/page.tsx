@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import MapWrapper from "@/components/maps/MapWrapper";
 import VisitRequestForm from "@/components/VisitRequestForm";
+import { decryptResponse, isEncryptedResponse } from "@/lib/decryption";
 
 // Types
 interface RoomType {
@@ -68,6 +69,7 @@ interface DetailedRules {
 
 interface Listing {
   _id: string;
+  slug: string;
   pgName: string;
   primaryLine?: string;
   type: string;
@@ -134,7 +136,7 @@ interface ApiResponse {
 export default function PGDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const slug = params.slug as string;
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -149,8 +151,13 @@ export default function PGDetailPage() {
     const fetchListing = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/listing/${id}`);
-        const body: ApiResponse = await response.json();
+        const response = await fetch(`/api/listing/${slug}`);
+        const rawData = await response.json();
+        
+        // Decrypt the response if it's encrypted
+        const body: ApiResponse = isEncryptedResponse(rawData) 
+          ? decryptResponse(rawData) 
+          : rawData;
 
         if (body.success && body.data) {
           setListing(body.data.listing);
@@ -167,16 +174,17 @@ export default function PGDetailPage() {
       }
     };
 
-    if (id) fetchListing();
-  }, [id]);
-
-  // Toggle watchlist
+    if (slug) fetchListing();
+  }, [slug]);
+  // Toggle watchlist - use listing._id for database operations
   const handleToggleWatchlist = async () => {
+    if (!listing) return;
+    
     try {
       const response = await fetch("/api/listing/toggleWatchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listingId: id }),
+        body: JSON.stringify({ listingId: listing._id }),
       });
 
       const data = await response.json();
