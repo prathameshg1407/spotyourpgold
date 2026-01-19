@@ -11,6 +11,7 @@ export interface LocationData {
   category?: string;
 }
 
+
 export interface SearchLocation {
   name: string;
   lat: number;
