@@ -18,204 +18,75 @@ export async function GET(req: Request) {
       });
     }
 
-    // Create comprehensive search regex for all fields
+    /**
+     * 1. Standard Regex: For partial word matches (e.g., "Vijay")
+     */
     const searchRegex = new RegExp(
-      q
-        .split(/\s+/)
+      q.split(/\s+/)
         .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
         .join("|"),
       "i"
     );
 
-    // Ultra-fast aggregation pipeline for comprehensive search
+    /**
+     * 2. Fuzzy Space Regex: Specifically for "vijaynagar" matching "Vijay Nagar"
+     * It inserts an optional whitespace check \s* between every character.
+     */
+    const fuzzySpaceRegex = new RegExp(q.split("").join("\\s*"), "i");
+
+    /**
+     * 3. Normalized Query for JSON filtering
+     */
+    const normalizedQuery = q.toLowerCase().replace(/[^a-z0-9]/g, "");
+
     const searchPipeline = [
       {
         $match: {
           isActive: true,
           isApproved: true,
           $or: [
-            // Basic info fields
+            // Standard and Fuzzy checks for Names and Areas
             { pgName: { $regex: searchRegex } },
+            { pgName: { $regex: fuzzySpaceRegex } },
+            { "location.area": { $regex: searchRegex } },
+            { "location.area": { $regex: fuzzySpaceRegex } },
+            { "location.city": { $regex: searchRegex } },
+            { "location.city": { $regex: fuzzySpaceRegex } },
+
+            // Other fields
             { type: { $regex: searchRegex } },
             { subType: { $regex: searchRegex } },
             { genderPreference: { $regex: searchRegex } },
-
-            // Location fields
-            { "location.area": { $regex: searchRegex } },
-            { "location.city": { $regex: searchRegex } },
             { "location.state": { $regex: searchRegex } },
             { "location.pincode": { $regex: searchRegex } },
             {
               $and: [
                 { "location.nearbyPlaces": { $type: "array" } },
-                {
-                  "location.nearbyPlaces": {
-                    $elemMatch: { $regex: searchRegex },
-                  },
-                },
+                { "location.nearbyPlaces": { $elemMatch: { $regex: searchRegex } } },
               ],
             },
-
-            // Amenities and details with array safety
             {
               $and: [
                 { amenities: { $type: "array" } },
                 { amenities: { $elemMatch: { $regex: searchRegex } } },
               ],
             },
-            {
-              $and: [
-                { additionalDetails: { $type: "array" } },
-                { additionalDetails: { $elemMatch: { $regex: searchRegex } } },
-              ],
-            },
-            {
-              $and: [
-                { rulesAndRegulations: { $type: "array" } },
-                {
-                  rulesAndRegulations: { $elemMatch: { $regex: searchRegex } },
-                },
-              ],
-            },
-
-            // Room types
             { "roomTypes.type": { $regex: searchRegex } },
-
-            // Enhanced rules
-            { "detailedRules.lockInPeriod": { $regex: searchRegex } },
-            { "detailedRules.noticePeriod": { $regex: searchRegex } },
-            { "detailedRules.maintenanceCharges": { $regex: searchRegex } },
-            { "detailedRules.entryTiming": { $regex: searchRegex } },
-            { "detailedRules.exitTiming": { $regex: searchRegex } },
-            { "detailedRules.guestStayPolicy": { $regex: searchRegex } },
-            { "detailedRules.smokingAlcoholPolicy": { $regex: searchRegex } },
-
-            // Plan and payment
-            { planType: { $regex: searchRegex } },
-            { paymentStatus: { $regex: searchRegex } },
           ],
         },
       },
       {
         $addFields: {
-          // Calculate relevance score based on field matches
           relevanceScore: {
             $add: [
-              {
-                $cond: [
-                  { $regexMatch: { input: "$pgName", regex: searchRegex } },
-                  10,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  {
-                    $regexMatch: {
-                      input: "$location.area",
-                      regex: searchRegex,
-                    },
-                  },
-                  8,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  {
-                    $regexMatch: {
-                      input: "$location.city",
-                      regex: searchRegex,
-                    },
-                  },
-                  8,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  { $regexMatch: { input: "$type", regex: searchRegex } },
-                  6,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  {
-                    $regexMatch: {
-                      input: "$genderPreference",
-                      regex: searchRegex,
-                    },
-                  },
-                  4,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  {
-                    $and: [
-                      { $ne: ["$amenities", null] },
-                      { $isArray: "$amenities" },
-                      {
-                        $gt: [
-                          {
-                            $size: {
-                              $filter: {
-                                input: { $ifNull: ["$amenities", []] },
-                                cond: {
-                                  $regexMatch: {
-                                    input: "$$this",
-                                    regex: searchRegex,
-                                  },
-                                },
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    ],
-                  },
-                  3,
-                  0,
-                ],
-              },
-              {
-                $cond: [
-                  {
-                    $and: [
-                      { $ne: ["$location.nearbyPlaces", null] },
-                      { $isArray: "$location.nearbyPlaces" },
-                      {
-                        $gt: [
-                          {
-                            $size: {
-                              $filter: {
-                                input: {
-                                  $ifNull: ["$location.nearbyPlaces", []],
-                                },
-                                cond: {
-                                  $regexMatch: {
-                                    input: "$$this",
-                                    regex: searchRegex,
-                                  },
-                                },
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    ],
-                  },
-                  2,
-                  0,
-                ],
-              },
+              // Exact name matches get highest priority
+              { $cond: [{ $regexMatch: { input: "$pgName", regex: searchRegex } }, 15, 0] },
+              // Fuzzy area matches (like vijaynagar) get high priority
+              { $cond: [{ $regexMatch: { input: "$location.area", regex: fuzzySpaceRegex } }, 12, 0] },
+              { $cond: [{ $regexMatch: { input: "$location.city", regex: searchRegex } }, 8, 0] },
+              { $cond: [{ $regexMatch: { input: "$type", regex: searchRegex } }, 6, 0] },
             ],
           },
-          // Calculate minimum rent from roomTypes
           minRent: {
             $cond: {
               if: {
@@ -273,17 +144,19 @@ export async function GET(req: Request) {
       { $limit: limit },
     ];
 
-    // Execute search pipeline
+    // Execute Mongo Search
     const properties = await Listing.aggregate(searchPipeline);
 
-    // Process and filter locations - Only use Indore locations from JSON
+    // 4. Smart Filtering for Indore Locations (JSON)
     const locations = indoreLocations
       .filter((location) => {
+        const normalizedName = location.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const smartMatch = normalizedName.includes(normalizedQuery);
         const nameMatch = searchRegex.test(location.name);
-        const aliasMatch = location.aliases.some((alias) =>
+        const aliasMatch = location.aliases?.some((alias) =>
           searchRegex.test(alias)
         );
-        return nameMatch || aliasMatch;
+        return smartMatch || nameMatch || aliasMatch;
       })
       .slice(0, 8)
       .map((location) => ({
@@ -295,7 +168,6 @@ export async function GET(req: Request) {
         lng: location.lng,
       }));
 
-    // Format properties for response
     const formattedProperties = properties.map((property) => ({
       ...property,
       propertyType: "property",
@@ -309,23 +181,9 @@ export async function GET(req: Request) {
         query: q,
         total: formattedProperties.length + locations.length,
       },
-      performance: {
-        searchFields: [
-          "pgName",
-          "type",
-          "subType",
-          "genderPreference",
-          "location",
-          "amenities",
-          "roomTypes",
-          "rules",
-          "nearbyPlaces",
-        ],
-        optimized: true,
-      },
     });
   } catch (error: any) {
-    console.error("Ultra-fast search API Error:", error);
+    console.error("Search API Error:", error);
     return NextResponse.json(
       {
         success: false,

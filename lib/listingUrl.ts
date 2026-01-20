@@ -2,8 +2,13 @@
  * Helper function to generate the URL path for a listing
  * Uses slug if available, otherwise falls back to ID
  */
-export function getListingUrl(listing: { slug?: string; _id: string }): string {
-  return `/routes/pg-details/${listing.slug || listing._id}`;
+
+export function getListingUrl({ slug, _id }: { slug?: string; _id: string }) {
+  // Prioritize slug over _id
+  if (slug && slug.trim()) {
+    return `/routes/pg-details/${slug}`;
+  }
+  return `/routes/pg-details/${_id}`;
 }
 
 

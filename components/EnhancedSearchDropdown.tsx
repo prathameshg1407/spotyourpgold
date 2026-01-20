@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface Property {
   _id: string;
-   slug?: string;
+  slug?: string;
   pgName: string;
   type?: string;
   subType?: string;
@@ -305,56 +305,62 @@ export default function EnhancedSearchDropdown({
     }
   };
 
-  // Handle item selection
-  const handleItemSelect = (index: number) => {
-    let currentIndex = 0;
+// Around line 330-350 in EnhancedSearchDropdown.tsx
+const handleItemSelect = (index: number) => {
+  let currentIndex = 0;
 
-    // Check if it's a detected location - Search in location
-    if (detectedLocation && index === currentIndex++) {
-      handleLocationSelect(detectedLocation);
-      return;
-    }
+  // Check if it's a detected location - Search in location
+  if (detectedLocation && index === currentIndex++) {
+    handleLocationSelect(detectedLocation);
+    return;
+  }
 
-    // Check if it's a detected location - Search around location
-    if (detectedLocation && index === currentIndex++) {
-      handleLocationAroundSearch(detectedLocation);
-      return;
-    }
+  // Check if it's a detected location - Search around location
+  if (detectedLocation && index === currentIndex++) {
+    handleLocationAroundSearch(detectedLocation);
+    return;
+  }
 
-    // Check if it's nearby option
-    if (showNearbyOption && userLocation && index === currentIndex++) {
-      handleNearbySearch();
-      return;
-    }
+  // Check if it's nearby option
+  if (showNearbyOption && userLocation && index === currentIndex++) {
+    handleNearbySearch();
+    return;
+  }
 
-    // Check properties
-    if (index < currentIndex + suggestions.properties.length) {
-      const propertyIndex = index - currentIndex;
-      const property = suggestions.properties[propertyIndex];
-      if (onSelectProperty) {
-        onSelectProperty(property);
-      } else {
-        router.push(`/routes/pg-details/${property._id}`);
-      }
-      setIsOpen(false);
-      setFocusedIndex(-1);
-      return;
+  // Check properties - FIXED VERSION
+  if (index < currentIndex + suggestions.properties.length) {
+    const propertyIndex = index - currentIndex;
+    const property = suggestions.properties[propertyIndex];
+    
+    // Direct navigation without conditional check
+    const url = `/routes/pg-details/${property.slug || property._id}`;
+    console.log('Navigating to:', url); // Debug log
+    router.push(url);
+    
+    // Call callback if provided (for tracking, etc.)
+    if (onSelectProperty) {
+      onSelectProperty(property);
     }
-    currentIndex += suggestions.properties.length;
+    
+    setIsOpen(false);
+    setFocusedIndex(-1);
+    return;
+  }
+  currentIndex += suggestions.properties.length;
 
-    // Check locations
-    if (index < currentIndex + suggestions.locations.length) {
-      const locationIndex = index - currentIndex;
-      const location = suggestions.locations[locationIndex];
-      handleLocationSelect({
-        name: location.name,
-        lat: 0, // Will be geocoded
-        lng: 0,
-        displayName: location.displayText,
-        type: location.type,
-      });
-    }
-  };
+  // Check locations
+  if (index < currentIndex + suggestions.locations.length) {
+    const locationIndex = index - currentIndex;
+    const location = suggestions.locations[locationIndex];
+    handleLocationSelect({
+      name: location.name,
+      lat: 0,
+      lng: 0,
+      displayName: location.displayText,
+      type: location.type,
+    });
+  }
+};
 
   // Handle location selection
   const handleLocationSelect = async (location: LocationData) => {

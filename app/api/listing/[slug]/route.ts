@@ -49,38 +49,66 @@ export async function GET(
 
     const user = await authUser().catch(() => null);
 
-    // Query by slug only
-    const listing = await Listing.findOne({ slug })
-      .select(
-        `
-        ownerId
-        slug
-        pgName
-        primaryLine
-        roomTypes
-        genderPreference
-        amenities
-        additionalDetails
-        rentInclusions
-        mealTimings
-        rulesAndRegulations
-        detailedRules
-        images.url
-        videos.url
-        primaryImage
-        location
-        createdAt
-      `
-      )
-      .populate("ownerId", "fullName")
-      .lean();
+    // ✅ FIX: Check if it's a MongoDB ObjectId or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+    
+    let listing;
+    if (isObjectId) {
+      // Search by _id if it's an ObjectId
+      listing = await Listing.findById(slug)
+        .select(`
+          ownerId
+          slug
+          pgName
+          primaryLine
+          roomTypes
+          genderPreference
+          amenities
+          additionalDetails
+          rentInclusions
+          mealTimings
+          rulesAndRegulations
+          detailedRules
+          images.url
+          videos.url
+          primaryImage
+          location
+          createdAt
+        `)
+        .populate("ownerId", "fullName")
+        .lean();
+    } else {
+      // Search by slug
+      listing = await Listing.findOne({ slug })
+        .select(`
+          ownerId
+          slug
+          pgName
+          primaryLine
+          roomTypes
+          genderPreference
+          amenities
+          additionalDetails
+          rentInclusions
+          mealTimings
+          rulesAndRegulations
+          detailedRules
+          images.url
+          videos.url
+          primaryImage
+          location
+          createdAt
+        `)
+        .populate("ownerId", "fullName")
+        .lean();
+    }
 
     if (!listing) {
       const notFoundResponse = {
         success: false,
         message: "Listing not found",
       };
-      return NextResponse.json(encryptResponse(notFoundResponse));
+      return NextResponse.json(encryptResponse(notFoundResponse), { status: 404 });
     }
 
     const listingId = listing._id.toString();
@@ -125,7 +153,7 @@ export async function GET(
           _id: listing._id,
           slug: listing.slug,
           pgName: listing.pgName,
-          primaryLine: listing.primaryLine,
+          primaryLine: listing.primaryLine || "", // ✅ Add fallback
           minRent,
           roomTypes: listing.roomTypes,
           genderPreference: listing.genderPreference,
