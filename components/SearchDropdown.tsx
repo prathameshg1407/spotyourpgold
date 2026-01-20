@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 interface Property {
   _id: string;
-   slug?: string;
   pgName: string;
   type?: string;
   subType?: string;
@@ -35,6 +34,8 @@ interface Location {
   name: string;
   type: "city" | "area";
   displayText: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface SearchDropdownProps {
@@ -349,6 +350,13 @@ export default function SearchDropdown({
   const handleLocationClick = (location: Location) => {
     onSelectLocation?.(location);
     onChange(location.displayText);
+    if (location.lat !== undefined && location.lng !== undefined) {
+      setDetectedLocation({
+        name: location.name,
+        lat: location.lat,
+        lng: location.lng,
+      });
+    }
     setIsOpen(false);
     setFocusedIndex(-1);
   };
