@@ -18,11 +18,10 @@ function getSortObject(
       return { rating: -1 as -1, createdAt: -1 as -1 };
     case "rating-low-high":
       return { rating: 1 as 1, createdAt: -1 as -1 };
-
     default:
       return hasLocationSearch
-        ? { distance: 1 as 1 } // sort by closest first
-        : { createdAt: -1 as -1 };
+        ? { distance: 1 as 1 }
+        : { isFeatured: -1 as -1, createdAt: -1 as -1 };
   }
 }
 
@@ -37,8 +36,24 @@ export async function GET(req: Request) {
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
     const per_page = Math.max(
       1,
-      Math.min(Number(searchParams.get("per_page") ?? 20), 100)
+      Math.min(Number(searchParams.get("per_page") ?? 12), 100)
     );
+
+    // Geospatial parameters (PRIORITY)
+    const lat = searchParams.get("lat")
+      ? Number(searchParams.get("lat"))
+      : null;
+    const lng = searchParams.get("lng")
+      ? Number(searchParams.get("lng"))
+      : null;
+    const radius = searchParams.get("radius")
+      ? Number(searchParams.get("radius"))
+      : 10;
+
+    // Location parameters (from dropdown selection)
+    const city = searchParams.get("city")?.trim() || "";
+    const area = searchParams.get("area")?.trim() || "";
+    const state = searchParams.get("state")?.trim() || "";
 
     // Advanced filter parameters
     const type = searchParams.get("type")?.trim() || "";
@@ -54,9 +69,6 @@ export async function GET(req: Request) {
       searchParams.get("amenities")?.split(",").filter(Boolean) || [];
     const roomTypes =
       searchParams.get("roomTypes")?.split(",").filter(Boolean) || [];
-    const location = searchParams.get("location")?.trim() || "";
-    const city = searchParams.get("city")?.trim() || "";
-    const area = searchParams.get("area")?.trim() || "";
     const nearbyPlaces =
       searchParams.get("nearbyPlaces")?.split(",").filter(Boolean) || [];
     const visible =
@@ -66,31 +78,8 @@ export async function GET(req: Request) {
       searchParams.get("categories")?.split(",").filter(Boolean) || [];
     const countByCategory = searchParams.get("countByCategory") === "true";
 
-    // Location-based search (lat/lng for proximity)
-    const lat = searchParams.get("lat")
-      ? Number(searchParams.get("lat"))
-      : null;
-    const lng = searchParams.get("lng")
-      ? Number(searchParams.get("lng"))
-      : null;
-    const radius = searchParams.get("radius")
-      ? Number(searchParams.get("radius"))
-      : 10; // Default 10km radius
-
-    // Extract keywords from "near" queries
-    const processSearchQuery = (query: string) => {
-      const keywords = query
-        .toLowerCase()
-        .replace(/\b(near|close to|around|beside|next to)\b/g, "")
-        .split(/\s+/)
-        .filter((word) => word.length > 1)
-        .join("|");
-
-      return keywords || query;
-    };
-
+    // Get user watchlist
     const user = await authUser().catch(() => null);
-
     let userWatchlist: string[] = [];
     if (user) {
       const dbUser = (await User.findById(user.id)
@@ -101,38 +90,47 @@ export async function GET(req: Request) {
       }
     }
 
-    // Build query object
+    // Build base query
     const query: any = {
       $and: [
-        { isActive: true }, 
+        { isActive: true },
         { isApproved: true },
-        { type: { $ne: null, $exists: true } } // Exclude null types from all queries
+        { type: { $ne: null, $exists: true } },
       ],
     };
 
-    // Check if any search criteria is provided
-    const hasSearchCriteria =
-      q ||
-      type ||
-      subType ||
-      minPrice !== null ||
-      maxPrice !== null ||
-      genderPreference ||
-      amenities.length > 0 ||
-      roomTypes.length > 0 ||
-      location ||
-      city ||
-      area ||
-      nearbyPlaces.length > 0 ||
-      visible.length > 0 ||
-      categories.length > 0 ||
-      (lat !== null && lng !== null);
+    // IMPORTANT: Determine if this is a geospatial search
+    const isGeospatialSearch = lat !== null && lng !== null;
 
-    // If no search criteria, we still want to return all approved and active listings
-    // This ensures "View All" functionality works
+    // If NOT geospatial search, apply location text filters
+    if (!isGeospatialSearch && (city || area || state)) {
+      const locationConditions: any[] = [];
 
-    // Enhanced text search across ALL fields for ultra-fast comprehensive results
-    if (q) {
+      if (city) {
+        locationConditions.push({
+          "location.city": { $regex: new RegExp(`^${city}$`, "i") },
+        });
+      }
+
+      if (area) {
+        locationConditions.push({
+          "location.area": { $regex: new RegExp(`^${area}$`, "i") },
+        });
+      }
+
+      if (state) {
+        locationConditions.push({
+          "location.state": { $regex: new RegExp(`^${state}$`, "i") },
+        });
+      }
+
+      if (locationConditions.length > 0) {
+        query.$and.push({ $or: locationConditions });
+      }
+    }
+
+    // Text search (only if NOT geospatial or if explicitly searching)
+    if (q && !isGeospatialSearch) {
       const searchTerms = q
         .split(/\s+/)
         .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
@@ -140,78 +138,34 @@ export async function GET(req: Request) {
 
       query.$and.push({
         $or: [
-          // Basic info fields (highest priority)
           { pgName: { $regex: searchRegex } },
           { type: { $regex: searchRegex } },
           { subType: { $regex: searchRegex } },
           { genderPreference: { $regex: searchRegex } },
-
-          // Location fields (high priority)
           { "location.area": { $regex: searchRegex } },
           { "location.city": { $regex: searchRegex } },
           { "location.state": { $regex: searchRegex } },
           { "location.pincode": { $regex: searchRegex } },
           { "location.nearbyPlaces": { $elemMatch: { $regex: searchRegex } } },
-
-          // Amenities and features
           { amenities: { $elemMatch: { $regex: searchRegex } } },
           { additionalDetails: { $elemMatch: { $regex: searchRegex } } },
           { rulesAndRegulations: { $elemMatch: { $regex: searchRegex } } },
-
-          // Room types
           { "roomTypes.type": { $regex: searchRegex } },
-
-          // Enhanced rules and policies
-          { "detailedRules.lockInPeriod": { $regex: searchRegex } },
-          { "detailedRules.noticePeriod": { $regex: searchRegex } },
-          { "detailedRules.maintenanceCharges": { $regex: searchRegex } },
-          { "detailedRules.entryTiming": { $regex: searchRegex } },
-          { "detailedRules.exitTiming": { $regex: searchRegex } },
-          { "detailedRules.guestStayPolicy": { $regex: searchRegex } },
-          { "detailedRules.smokingAlcoholPolicy": { $regex: searchRegex } },
-
-          // Plan and payment fields
-          { planType: { $regex: searchRegex } },
-          { paymentStatus: { $regex: searchRegex } },
-
-          // Rent inclusions
-          {
-            "rentInclusions.foodIncluded":
-              q.toLowerCase().includes("food") ||
-              q.toLowerCase().includes("meal"),
-          },
-          {
-            "rentInclusions.electricityIncluded":
-              q.toLowerCase().includes("electricity") ||
-              q.toLowerCase().includes("power"),
-          },
-          {
-            "rentInclusions.maintenanceIncluded": q
-              .toLowerCase()
-              .includes("maintenance"),
-          },
         ],
       });
     }
 
     // Property type filters
-    if (type) {
-      query.$and.push({ type: type });
-    }
+    if (type) query.$and.push({ type });
+    if (subType) query.$and.push({ subType });
 
-    if (subType) {
-      query.$and.push({ subType: subType });
-    }
-
-    // Price range filter (check roomTypes.monthlyRent)
+    // Price range filter
     if (minPrice !== null || maxPrice !== null) {
       const roomPriceFilter: any = {};
       if (minPrice !== null) roomPriceFilter.$gte = minPrice;
       if (maxPrice !== null) roomPriceFilter.$lte = maxPrice;
 
       if (Object.keys(roomPriceFilter).length > 0) {
-        // Filter properties where ALL room types meet the price criteria
-        // This ensures that properties with mixed price ranges are properly filtered
         query.$and.push({
           $expr: {
             $allElementsTrue: {
@@ -237,58 +191,22 @@ export async function GET(req: Request) {
 
     // Gender preference filter
     if (genderPreference) {
-      if (genderPreference === "both" || genderPreference === "unisex") {
-        query.$and.push({ genderPreference: "both" });
-      } else {
-        // For specific gender preferences (male/female), only show properties with that exact preference
-        // This gives users more precise control over their search
-        query.$and.push({ genderPreference: genderPreference });
-      }
+      query.$and.push({ genderPreference });
     }
 
     // Amenities filter
     if (amenities.length > 0) {
-      query.$and.push({
-        amenities: { $in: amenities },
-      });
+      query.$and.push({ amenities: { $in: amenities } });
     }
 
     // Room types filter
     if (roomTypes.length > 0) {
-      query.$and.push({
-        "roomTypes.type": { $in: roomTypes },
-      });
+      query.$and.push({ "roomTypes.type": { $in: roomTypes } });
     }
 
     // Category filter
     if (categories.length > 0) {
-      query.$and.push({
-        type: { $in: categories },
-      });
-    }
-
-    // Location filters
-    if (location) {
-      query.$and.push({
-        $or: [
-          { "location.area": { $regex: location, $options: "i" } },
-          { "location.city": { $regex: location, $options: "i" } },
-          { "location.state": { $regex: location, $options: "i" } },
-          {
-            "location.nearbyPlaces": {
-              $elemMatch: { $regex: location, $options: "i" },
-            },
-          },
-        ],
-      });
-    }
-
-    if (city) {
-      query.$and.push({ "location.city": { $regex: city, $options: "i" } });
-    }
-
-    if (area) {
-      query.$and.push({ "location.area": { $regex: area, $options: "i" } });
+      query.$and.push({ type: { $in: categories } });
     }
 
     // Nearby places filter
@@ -304,67 +222,31 @@ export async function GET(req: Request) {
     if (visible.length > 0) {
       const visibleConditions = [];
 
-      if (visible.includes("approved")) {
-        visibleConditions.push({ isApproved: true });
-      }
-      if (visible.includes("pending")) {
-        visibleConditions.push({ isApproved: false });
-      }
-      if (visible.includes("active")) {
-        visibleConditions.push({ isActive: true });
-      }
-      if (visible.includes("inactive")) {
-        visibleConditions.push({ isActive: false });
-      }
-      if (visible.includes("featured")) {
-        visibleConditions.push({ isFeatured: true });
-      }
-      if (visible.includes("non-featured")) {
-        visibleConditions.push({ isFeatured: false });
-      }
-      if (visible.includes("free")) {
-        visibleConditions.push({ planType: "free" });
-      }
-      if (visible.includes("paid")) {
-        visibleConditions.push({ planType: "paid" });
-      }
-      if (visible.includes("subscription")) {
-        visibleConditions.push({ planType: "subscription" });
-      }
-      if (visible.includes("payment-pending")) {
-        visibleConditions.push({ paymentStatus: "pending" });
-      }
-      if (visible.includes("payment-completed")) {
-        visibleConditions.push({ paymentStatus: "completed" });
-      }
-      if (visible.includes("payment-failed")) {
-        visibleConditions.push({ paymentStatus: "failed" });
-      }
+      if (visible.includes("approved")) visibleConditions.push({ isApproved: true });
+      if (visible.includes("pending")) visibleConditions.push({ isApproved: false });
+      if (visible.includes("active")) visibleConditions.push({ isActive: true });
+      if (visible.includes("inactive")) visibleConditions.push({ isActive: false });
+      if (visible.includes("featured")) visibleConditions.push({ isFeatured: true });
+      if (visible.includes("non-featured")) visibleConditions.push({ isFeatured: false });
+      if (visible.includes("free")) visibleConditions.push({ planType: "free" });
+      if (visible.includes("paid")) visibleConditions.push({ planType: "paid" });
+      if (visible.includes("subscription")) visibleConditions.push({ planType: "subscription" });
 
       if (visibleConditions.length > 0) {
-        // Remove the default isActive and isApproved filters if visible filters are applied
         query.$and = query.$and.filter(
           (condition: any) =>
             !condition.hasOwnProperty("isActive") &&
             !condition.hasOwnProperty("isApproved")
         );
-
-        // Add the OR condition for visible filters
         query.$and.push({ $or: visibleConditions });
       }
     }
 
-    // Geospatial query for proximity search
-    if (lat !== null && lng !== null) {
-      // Use $geoNear in aggregation pipeline instead of $near in query
-      // This will be handled in the aggregation pipeline
-    }
-
-    // Execute query with aggregation to get min rent from roomTypes
+    // Build aggregation pipeline
     let aggregationPipeline = [];
 
-    // Add $geoNear stage if location search is active
-    if (lat !== null && lng !== null) {
+    // Add $geoNear stage if geospatial search is active (HIGHEST PRIORITY)
+    if (isGeospatialSearch) {
       aggregationPipeline.push({
         $geoNear: {
           near: {
@@ -374,8 +256,8 @@ export async function GET(req: Request) {
           distanceField: "distance",
           spherical: true,
           query: query,
-          maxDistance: radius * 1000,
-          distanceMultiplier: 0.001, // Convert meters to kilometers
+          maxDistance: radius * 1000, // Convert km to meters
+          distanceMultiplier: 0.001, // Convert meters to km
         },
       });
     } else {
@@ -389,7 +271,7 @@ export async function GET(req: Request) {
             $cond: {
               if: { $gt: [{ $size: "$roomTypes" }, 0] },
               then: { $min: "$roomTypes.monthlyRent" },
-              else: "$monthlyRent", // Fallback to direct monthlyRent field
+              else: "$monthlyRent",
             },
           },
         },
@@ -410,6 +292,7 @@ export async function GET(req: Request) {
       {
         $project: {
           _id: 1,
+          slug: 1,
           primaryImage: 1,
           images: 1,
           location: 1,
@@ -427,16 +310,17 @@ export async function GET(req: Request) {
           createdAt: 1,
           rating: 1,
           distance: 1,
+          isFeatured: 1,
         },
       },
-      { $sort: getSortObject(sortBy, lat !== null && lng !== null) },
+      { $sort: getSortObject(sortBy, isGeospatialSearch) },
       { $skip: (page - 1) * per_page },
       { $limit: per_page }
     );
 
-    // Build count pipeline
+    // Count pipeline
     let countPipeline = [];
-    if (lat !== null && lng !== null) {
+    if (isGeospatialSearch) {
       countPipeline = [
         {
           $geoNear: {
@@ -456,63 +340,60 @@ export async function GET(req: Request) {
       countPipeline = [{ $match: query }, { $count: "total" }];
     }
 
-    // If countByCategory is requested, get category counts
+    // Category counts (if requested)
     let categoryCounts = {};
     if (countByCategory) {
-      const categoryCountPipeline =
-        lat !== null && lng !== null
-          ? [
-              {
-                $geoNear: {
-                  near: {
-                    type: "Point" as const,
-                    coordinates: [lng, lat] as [number, number],
-                  },
-                  distanceField: "distance",
-                  spherical: true,
-                  query: { 
-                    isActive: true, 
-                    isApproved: true,
-                    type: { $ne: null, $exists: true } // Exclude null types
-                  },
-                  maxDistance: radius * 1000, // Convert km to meters
+      const categoryCountPipeline = isGeospatialSearch
+        ? [
+            {
+              $geoNear: {
+                near: {
+                  type: "Point" as const,
+                  coordinates: [lng, lat] as [number, number],
                 },
-              },
-              {
-                $group: {
-                  _id: "$type",
-                  count: { $sum: 1 },
-                },
-              },
-            ]
-          : [
-              { 
-                $match: { 
-                  isActive: true, 
+                distanceField: "distance",
+                spherical: true,
+                query: {
+                  isActive: true,
                   isApproved: true,
-                  type: { $ne: null, $exists: true } // Exclude null types
-                } 
-              },
-              {
-                $group: {
-                  _id: "$type",
-                  count: { $sum: 1 },
+                  type: { $ne: null, $exists: true },
                 },
+                maxDistance: radius * 1000,
               },
-            ];
+            },
+            {
+              $group: {
+                _id: "$type",
+                count: { $sum: 1 },
+              },
+            },
+          ]
+        : [
+            {
+              $match: {
+                isActive: true,
+                isApproved: true,
+                type: { $ne: null, $exists: true },
+              },
+            },
+            {
+              $group: {
+                _id: "$type",
+                count: { $sum: 1 },
+              },
+            },
+          ];
 
-      const categoryCountResult = await Listing.aggregate(
-        categoryCountPipeline
-      );
-      // Filter out null, undefined, and empty string keys
+      const categoryCountResult = await Listing.aggregate(categoryCountPipeline);
       categoryCounts = categoryCountResult.reduce((acc, item) => {
-        if (item._id && item._id !== null && item._id !== '') {
+        if (item._id && item._id !== null && item._id !== "") {
           acc[item._id] = item.count;
         }
         return acc;
       }, {});
     }
 
+    // Execute queries
     const [listings, totalResult] = await Promise.all([
       Listing.aggregate(aggregationPipeline),
       Listing.aggregate(countPipeline),
@@ -520,6 +401,7 @@ export async function GET(req: Request) {
 
     const total = totalResult[0]?.total || 0;
 
+    // Add watchlist info
     const listingsWithWatchlist = listings.map((listing: any) => ({
       ...listing,
       inWatchList: userWatchlist.includes(listing._id.toString()),
@@ -533,6 +415,13 @@ export async function GET(req: Request) {
       per_page,
       totalPages: Math.ceil(total / per_page),
       filters: {
+        ...(isGeospatialSearch && {
+          lat,
+          lng,
+          radius: `${radius}km`,
+          searchType: "geospatial",
+        }),
+        ...(!isGeospatialSearch && { city, area, state }),
         type,
         subType,
         minPrice,
@@ -540,14 +429,10 @@ export async function GET(req: Request) {
         genderPreference,
         amenities,
         roomTypes,
-        location,
-        city,
-        area,
         nearbyPlaces,
         categories,
         query: q,
         sortBy,
-        ...(lat !== null && lng !== null && { radius: `${radius}km` }),
       },
     };
 

@@ -19,10 +19,12 @@ import {
   X,
   MapPin,
   Navigation,
+  Search,
 } from "lucide-react";
 import Skeleton from "@/components/Skeleton";
 import { useAdvancedFilters, FilterState } from "@/hooks/useAdvancedFilters";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
+import { cn } from "@/lib/utils";
 
 function AllListingsContent() {
   const router = useRouter();
@@ -44,6 +46,13 @@ function AllListingsContent() {
   const [categoryTotalPages, setCategoryTotalPages] = useState(0);
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
 
+  // State for location-based search
+  const [locationListings, setLocationListings] = useState<any[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationTotal, setLocationTotal] = useState(0);
+  const [locationCurrentPage, setLocationCurrentPage] = useState(1);
+  const [locationTotalPages, setLocationTotalPages] = useState(0);
+
   // State for user location
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -57,14 +66,22 @@ function AllListingsContent() {
     {}
   );
 
-  // Check if this is a nearby search
+  // Check URL parameters
   const isNearbySearch = searchParams.get("nearby") === "true";
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
-
-  // Check if this is a category search
   const category = searchParams.get("category");
   const isCategorySearch = !!category;
+
+  // Location parameters from dropdown selection
+  const city = searchParams.get("city") || "";
+  const area = searchParams.get("area") || "";
+  const state = searchParams.get("state") || "";
+  const q = searchParams.get("q") || "";
+
+  const hasLocationParams = city || area || state;
+  const isLocationSearch = hasLocationParams && !isNearbySearch && !isCategorySearch;
+  const locationLabel = [area, city, state].filter(Boolean).join(", ");
 
   // Use advanced filters hook with pagination (autoSearch disabled for better control)
   const {
@@ -220,6 +237,62 @@ function AllListingsContent() {
     [category, userLocation, filters]
   );
 
+  // Function to fetch location-based listings
+  const fetchLocationListings = useCallback(
+    async (page: number = 1, categories?: string[]) => {
+      if (!hasLocationParams) return;
+
+      setLocationLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          per_page: "12",
+        });
+
+        // Add location parameters
+        if (city) params.set("city", city);
+        if (area) params.set("area", area);
+        if (state) params.set("state", state);
+        if (q) params.set("q", q);
+        if (lat) params.set("lat", lat);
+        if (lng) params.set("lng", lng);
+
+        // Add category filter
+        const categoriesToUse = categories !== undefined ? categories : selectedCategories;
+        if (categoriesToUse.length > 0) {
+          params.set("categories", categoriesToUse.join(","));
+        }
+
+        // Get category counts
+        const countParams = new URLSearchParams(params);
+        countParams.set("countByCategory", "true");
+        countParams.set("page", "1");
+        countParams.set("per_page", "1");
+
+        const [listingsRes, countsRes] = await Promise.all([
+          axios.get(`/api/listing/search?${params.toString()}`),
+          axios.get(`/api/listing/search?${countParams.toString()}`),
+        ]);
+
+        if (listingsRes.data?.success) {
+          setLocationListings(listingsRes.data.data);
+          setLocationTotal(listingsRes.data.total);
+          setLocationTotalPages(listingsRes.data.totalPages);
+          setLocationCurrentPage(page);
+        }
+
+        if (countsRes.data?.success && countsRes.data.categoryCounts) {
+          setCategoryCounts(countsRes.data.categoryCounts);
+        }
+      } catch (error) {
+        toast.error("Failed to fetch listings");
+      } finally {
+        setLocationLoading(false);
+      }
+    },
+    [city, area, state, q, lat, lng, hasLocationParams, selectedCategories]
+  );
+
   // Function to fetch category counts for location-based search
   const fetchCategoryCounts = useCallback(async () => {
     if (!lat || !lng) return;
@@ -239,6 +312,7 @@ function AllListingsContent() {
         setCategoryCounts(res.data.categoryCounts);
       }
     } catch (error) {
+      console.error("Failed to fetch category counts");
     }
   }, [lat, lng]);
 
@@ -291,6 +365,12 @@ function AllListingsContent() {
   };
 
   const handleCategoryPageChange = (page: number) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set("page", page.toString());
+    router.push(`?${searchParams.toString()}`);
+  };
+
+  const handleLocationPageChange = (page: number) => {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("page", page.toString());
     router.push(`?${searchParams.toString()}`);
@@ -359,7 +439,7 @@ function AllListingsContent() {
 
   // Trigger search when filters change (especially for category)
   useEffect(() => {
-    if (initialLoadDone && !isNearbySearch) {
+    if (initialLoadDone && !isNearbySearch && !isLocationSearch) {
       const hasFilters = Object.values(filters).some((value) => {
         if (Array.isArray(value)) return value.length > 0;
         return value !== "";
@@ -382,6 +462,7 @@ function AllListingsContent() {
     filters,
     initialLoadDone,
     isNearbySearch,
+    isLocationSearch,
     userLocation,
     searchWithFilters,
   ]);
@@ -397,6 +478,9 @@ function AllListingsContent() {
       } else if (isCategorySearch && category) {
         // Fetch category listings (bypass advanced filter)
         fetchCategoryListings(1);
+      } else if (isLocationSearch) {
+        // Fetch location-based listings
+        fetchLocationListings(1);
       }
       setInitialLoadDone(true);
     }
@@ -404,12 +488,14 @@ function AllListingsContent() {
     initialLoadDone,
     isNearbySearch,
     isCategorySearch,
+    isLocationSearch,
     lat,
     lng,
     category,
     fetchNearbyListings,
     fetchCategoryListings,
     fetchCategoryCounts,
+    fetchLocationListings,
   ]);
 
   // Fetch location category listings when categories change
@@ -432,6 +518,14 @@ function AllListingsContent() {
     fetchNearbyListings,
   ]);
 
+  // Handle category changes for location search
+  const handleLocationCategoryChange = (categories: string[]) => {
+    setSelectedCategories(categories);
+    if (isLocationSearch) {
+      fetchLocationListings(1, categories);
+    }
+  };
+
   // Handle page changes
   useEffect(() => {
     if (initialLoadDone) {
@@ -443,6 +537,9 @@ function AllListingsContent() {
         } else if (isCategorySearch && category) {
           // Handle category search page changes
           fetchCategoryListings(parseInt(page));
+        } else if (isLocationSearch) {
+          // Handle location search page changes
+          fetchLocationListings(parseInt(page));
         }
       }
     }
@@ -451,12 +548,63 @@ function AllListingsContent() {
     initialLoadDone,
     isNearbySearch,
     isCategorySearch,
+    isLocationSearch,
     lat,
     lng,
     category,
     fetchNearbyListings,
     fetchCategoryListings,
+    fetchLocationListings,
   ]);
+
+  // Determine which data to display
+  const displayLoading = isNearbySearch
+    ? nearbyLoading
+    : isCategorySearch
+    ? categoryLoading
+    : isLocationSearch
+    ? locationLoading
+    : loading;
+
+  const displayListings = isNearbySearch
+    ? nearbyListings
+    : isCategorySearch && !isCategorySearchWithFilters
+    ? categoryListings
+    : isLocationSearch
+    ? locationListings
+    : listings;
+
+  const displayTotal = isNearbySearch
+    ? nearbyTotal
+    : isCategorySearch && !isCategorySearchWithFilters
+    ? categoryTotal
+    : isLocationSearch
+    ? locationTotal
+    : total;
+
+  const displayCurrentPage = isNearbySearch
+    ? nearbyCurrentPage
+    : isCategorySearch && !isCategorySearchWithFilters
+    ? categoryCurrentPage
+    : isLocationSearch
+    ? locationCurrentPage
+    : currentPage;
+
+  const displayTotalPages = isNearbySearch
+    ? nearbyTotalPages
+    : isCategorySearch && !isCategorySearchWithFilters
+    ? categoryTotalPages
+    : isLocationSearch
+    ? locationTotalPages
+    : totalPages;
+
+  const displayHandlePageChange = isNearbySearch
+    ? handleNearbyPageChange
+    : isCategorySearch && !isCategorySearchWithFilters
+    ? handleCategoryPageChange
+    : isLocationSearch
+    ? handleLocationPageChange
+    : handlePageChange;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -501,7 +649,7 @@ function AllListingsContent() {
 
               {/* Right Section - Filter Button */}
               <div className="flex-shrink-0">
-                {!isNearbySearch && (
+                {!isNearbySearch && !isLocationSearch && (
                   <AdvancedFilter
                     filters={filters}
                     onFiltersChange={(newFilters) => {
@@ -535,40 +683,40 @@ function AllListingsContent() {
               </div>
             </div>
 
-            {/* Bottom Row - Title and Count */}
-            <div className="text-center md:text-left">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-poppins">
-                {isNearbySearch
-                  ? "Nearby Properties"
-                  : isCategorySearch
-                  ? `${
-                      currentCategory
-                        ? currentCategory.charAt(0).toUpperCase() +
-                          currentCategory.slice(1)
-                        : "Category"
-                    } Properties`
-                  : "All Properties"}
-              </h1>
-              <p className="text-gray-500 font-inter text-sm md:text-base mt-1">
-                {isNearbySearch
-                  ? nearbyLoading
-                    ? "Loading..."
-                    : `${nearbyTotal} properties nearby`
-                  : isCategorySearch
-                  ? categoryLoading
-                    ? "Loading..."
-                    : `${categoryTotal} ${
-                        currentCategory || "category"
-                      } properties`
-                  : loading
-                  ? "Loading..."
-                  : `${total} properties`}
-              </p>
-            </div>
+          {/* Bottom Row - Title and Count */}
+<div className="text-center md:text-left">
+  <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-poppins">
+    {isNearbySearch
+      ? "Nearby Properties"
+      : isCategorySearch
+      ? `${
+          currentCategory
+            ? currentCategory.charAt(0).toUpperCase() +
+              currentCategory.slice(1)
+            : "Category"
+        } Properties`
+      : isLocationSearch
+      ? `Properties in ${locationLabel}`
+      : "All Properties"}
+  </h1>
+  <p className="text-gray-500 font-inter text-sm md:text-base mt-1">
+    {displayLoading
+      ? "Loading..."
+      : `${displayTotal} ${
+          isLocationSearch
+            ? `properties in and around ${locationLabel} (within 10km)`
+            : isNearbySearch
+            ? "properties nearby"
+            : isCategorySearch
+            ? `${currentCategory || "category"} properties`
+            : "properties"
+        }`}
+  </p>
+</div>
           </div>
         </div>
 
-        {/* Category Filter for Location-based Search */}
+        {/* Category Filter for Nearby Search */}
         {isNearbySearch && lat && lng && (
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
             <LocationCategoryFilter
@@ -612,8 +760,64 @@ function AllListingsContent() {
           </div>
         )}
 
+        {/* Category Filter for Location Search */}
+        {isLocationSearch && Object.keys(categoryCounts).length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Filter by Property Type
+              </h3>
+              {selectedCategories.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleLocationCategoryChange([])}
+                  className="text-HG-500 hover:text-HG-600"
+                >
+                  Clear All ({selectedCategories.length})
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(categoryCounts)
+                .sort(([a], [b]) => {
+                  const order = ["pgs", "hostels", "rooms", "flats", "commercial"];
+                  return order.indexOf(a) - order.indexOf(b);
+                })
+                .map(([category, count]) => (
+                  <Button
+                    key={category}
+                    variant={
+                      selectedCategories.includes(category) ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => {
+                      if (selectedCategories.includes(category)) {
+                        handleLocationCategoryChange(
+                          selectedCategories.filter((c) => c !== category)
+                        );
+                      } else {
+                        handleLocationCategoryChange([
+                          ...selectedCategories,
+                          category,
+                        ]);
+                      }
+                    }}
+                    className={cn(
+                      selectedCategories.includes(category)
+                        ? "bg-HG-500 text-white hover:bg-HG-600"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    {category.charAt(0).toUpperCase() + category.slice(1)} ({count})
+                  </Button>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Active Filters Display - Show for regular listings and category search */}
-        {!isNearbySearch && activeFiltersCount > 0 && (
+        {!isNearbySearch && !isLocationSearch && activeFiltersCount > 0 && (
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -735,7 +939,7 @@ function AllListingsContent() {
         )}
 
         {/* Loading State */}
-        {(loading || nearbyLoading || categoryLoading) && (
+        {displayLoading && (
           <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, idx) => (
               <Skeleton key={idx} />
@@ -743,12 +947,32 @@ function AllListingsContent() {
           </div>
         )}
 
-        {/* Category Listings Grid (bypassing advanced filter) - Only show if no advanced filters */}
-        {isCategorySearch &&
-          !isCategorySearchWithFilters &&
-          !categoryLoading &&
-          categoryListings.length > 0 && (
-            <>
+        {/* Listings Grid */}
+        {!displayLoading && displayListings.length > 0 && (
+          <>
+            {isLocationSearch && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 font-poppins">
+                  Properties in {locationLabel}
+                </h2>
+                <p className="text-gray-600 font-inter">
+                  Showing {displayTotal} properties
+                </p>
+              </div>
+            )}
+
+            {isNearbySearch && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 font-poppins">
+                  Nearby Properties Sorted by Distance
+                </h2>
+                <p className="text-gray-600 font-inter">
+                  Showing {displayTotal} properties near your location
+                </p>
+              </div>
+            )}
+
+            {isCategorySearch && !isCategorySearchWithFilters && (
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 font-poppins">
                   {currentCategory
@@ -758,47 +982,14 @@ function AllListingsContent() {
                   Properties
                 </h2>
                 <p className="text-gray-600 font-inter">
-                  Showing {categoryTotal} {currentCategory || "category"}{" "}
+                  Showing {displayTotal} {currentCategory || "category"}{" "}
                   properties
                 </p>
               </div>
-              <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {categoryListings.map((pg, idx) => (
-                  <PgCard
-                    key={pg._id || idx}
-                    id={pg._id}
-                    image={pg.primaryImage}
-                    images={pg.images?.map((img: any) => img.url) || []}
-                    area={pg.location?.area}
-                    pgName={pg.pgName}
-                    primaryLine={pg.primaryLine}
-                    ownerName={pg.ownerId?.fullName}
-                    price={pg.minRent}
-                    genderPreference={pg.genderPreference}
-                    isWishlisted={pg.inWatchList}
-                    type={pg.type}
-                    distance={pg.distance}
-                    amenities={pg.amenities || []}
-                    rentInclusions={pg.rentInclusions || {}}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+            )}
 
-        {/* Nearby Listings Grid (bypassing advanced filter) */}
-        {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
-          <>
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 font-poppins">
-                Nearby Properties Sorted by Distance
-              </h2>
-              <p className="text-gray-600 font-inter">
-                Showing {nearbyTotal} properties near your location
-              </p>
-            </div>
             <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-              {nearbyListings.map((pg, idx) => (
+              {displayListings.map((pg, idx) => (
                 <PgCard
                   key={pg._id || idx}
                   id={pg._id}
@@ -821,71 +1012,100 @@ function AllListingsContent() {
           </>
         )}
 
-        {/* Regular Listings Grid (with advanced filter) - Show for regular search or category search with filters */}
-        {!isNearbySearch &&
-          (!isCategorySearch || isCategorySearchWithFilters) &&
-          !loading &&
-          listings.length > 0 && (
-            <div className="grid justify-center sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-              {listings.map((pg, idx) => (
-                <PgCard
-                  key={pg._id || idx}
-                  id={pg._id}
-                  image={pg.primaryImage}
-                  images={pg.images?.map((img: any) => img.url) || []}
-                  area={pg.location?.area}
-                  pgName={pg.pgName}
-                  primaryLine={pg.primaryLine}
-                  ownerName={pg.ownerId?.fullName}
-                  price={pg.minRent}
-                  genderPreference={pg.genderPreference}
-                  isWishlisted={pg.inWatchList}
-                  type={pg.type}
-                  distance={pg.distance}
-                  amenities={pg.amenities || []}
-                  rentInclusions={pg.rentInclusions || {}}
-                />
-              ))}
+        {/* Empty State - Location Search */}
+        {!displayLoading &&
+          displayListings.length === 0 &&
+          isLocationSearch && (
+            <div className="text-center py-16">
+              <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No listings found for this location
+              </h3>
+              <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                We couldn&apos;t find any properties in {locationLabel}.
+                {selectedCategories.length > 0
+                  ? " Try removing category filters or search in a different area."
+                  : " Try searching in a different area or check back later."}
+              </p>
+              <div className="flex gap-2 justify-center">
+                {selectedCategories.length > 0 && (
+                  <Button
+                    onClick={() => handleLocationCategoryChange([])}
+                    variant="outline"
+                    className="text-HG-500 border-HG-500"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+                <Button onClick={() => router.push("/")} variant="default">
+                  Back to Home
+                </Button>
+              </div>
             </div>
           )}
 
-        {/* Empty State */}
-        {!loading &&
-          !nearbyLoading &&
-          !categoryLoading &&
-          ((isNearbySearch && nearbyListings.length === 0) ||
-            (isCategorySearch &&
-              !isCategorySearchWithFilters &&
-              categoryListings.length === 0) ||
-            (!isNearbySearch &&
-              (!isCategorySearch || isCategorySearchWithFilters) &&
-              listings.length === 0)) && (
+        {/* Empty State - Nearby Search */}
+        {!displayLoading &&
+          displayListings.length === 0 &&
+          isNearbySearch && (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Navigation className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
+                  No properties found near your location
+                </h3>
+                <p className="text-gray-600 font-inter mb-4">
+                  Try expanding your search area or check back later.
+                </p>
+              </div>
+            </div>
+          )}
+
+        {/* Empty State - Category Search */}
+        {!displayLoading &&
+          displayListings.length === 0 &&
+          isCategorySearch &&
+          !isCategorySearchWithFilters && (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🏠</span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
-                  {isNearbySearch
-                    ? "No properties found near your location"
-                    : isCategorySearch
-                    ? `No ${currentCategory || "category"} properties found`
-                    : activeFiltersCount > 0
+                  No {currentCategory || "category"} properties found
+                </h3>
+                <p className="text-gray-600 font-inter mb-4">
+                  No {currentCategory || "category"} properties are available at
+                  the moment. Try other categories.
+                </p>
+              </div>
+            </div>
+          )}
+
+        {/* Empty State - Regular/Filtered Search */}
+        {!displayLoading &&
+          displayListings.length === 0 &&
+          !isNearbySearch &&
+          !isCategorySearch &&
+          !isLocationSearch && (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 font-poppins">
+                  {activeFiltersCount > 0
                     ? "No properties match your filters"
                     : "No listings found"}
                 </h3>
                 <p className="text-gray-600 font-inter mb-4">
-                  {isNearbySearch
-                    ? "Try expanding your search area or check back later."
-                    : isCategorySearch
-                    ? `No ${
-                        currentCategory || "category"
-                      } properties are available at the moment. Try other categories.`
-                    : activeFiltersCount > 0
+                  {activeFiltersCount > 0
                     ? "Try adjusting your search criteria or removing some filters."
                     : "There are no property listings available at the moment."}
                 </p>
-                {!isNearbySearch && activeFiltersCount > 0 && (
+                {activeFiltersCount > 0 && (
                   <Button
                     onClick={clearFilters}
                     variant="outline"
@@ -898,120 +1118,57 @@ function AllListingsContent() {
             </div>
           )}
 
-        {/* Pagination for Category Listings */}
-        {isCategorySearch &&
-          !isCategorySearchWithFilters &&
-          !categoryLoading &&
-          categoryTotalPages > 1 && (
-            <div className="flex justify-center items-center gap-4 mt-12">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  handleCategoryPageChange(categoryCurrentPage - 1)
-                }
-                disabled={categoryCurrentPage <= 1}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
+        {/* Pagination */}
+        {!displayLoading && displayTotalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-12">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => displayHandlePageChange(displayCurrentPage - 1)}
+              disabled={displayCurrentPage <= 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
 
-              <div className="flex items-center gap-2">
-                {Array.from(
-                  { length: Math.min(5, categoryTotalPages) },
-                  (_, i) => {
-                    let pageNum;
-                    if (categoryTotalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (categoryCurrentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (categoryCurrentPage >= categoryTotalPages - 2) {
-                      pageNum = categoryTotalPages - 4 + i;
-                    } else {
-                      pageNum = categoryCurrentPage - 2 + i;
-                    }
-
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={
-                          categoryCurrentPage === pageNum
-                            ? "default"
-                            : "outline"
-                        }
-                        size="sm"
-                        onClick={() => handleCategoryPageChange(pageNum)}
-                        className="w-10 h-10 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
+            <div className="flex items-center gap-2">
+              {Array.from(
+                { length: Math.min(5, displayTotalPages) },
+                (_, i) => {
+                  let pageNum;
+                  if (displayTotalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (displayCurrentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (displayCurrentPage >= displayTotalPages - 2) {
+                    pageNum = displayTotalPages - 4 + i;
+                  } else {
+                    pageNum = displayCurrentPage - 2 + i;
                   }
-                )}
-              </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  handleCategoryPageChange(categoryCurrentPage + 1)
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={
+                        displayCurrentPage === pageNum ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => displayHandlePageChange(pageNum)}
+                      className="w-10 h-10 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
                 }
-                disabled={categoryCurrentPage >= categoryTotalPages}
-                className="flex items-center gap-2"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-        {/* Pagination for Category Listings with Filters */}
-        {isCategorySearchWithFilters && !loading && totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-12">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    className="w-10 h-10 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
+              )}
             </div>
 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
+              onClick={() => displayHandlePageChange(displayCurrentPage + 1)}
+              disabled={displayCurrentPage >= displayTotalPages}
               className="flex items-center gap-2"
             >
               Next
@@ -1020,161 +1177,29 @@ function AllListingsContent() {
           </div>
         )}
 
-        {/* Pagination for Nearby Listings */}
-        {isNearbySearch && !nearbyLoading && nearbyTotalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-12">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleNearbyPageChange(nearbyCurrentPage - 1)}
-              disabled={nearbyCurrentPage <= 1}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {Array.from({ length: Math.min(5, nearbyTotalPages) }, (_, i) => {
-                let pageNum;
-                if (nearbyTotalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (nearbyCurrentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (nearbyCurrentPage >= nearbyTotalPages - 2) {
-                  pageNum = nearbyTotalPages - 4 + i;
-                } else {
-                  pageNum = nearbyCurrentPage - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={
-                      nearbyCurrentPage === pageNum ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => handleNearbyPageChange(pageNum)}
-                    className="w-10 h-10 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleNearbyPageChange(nearbyCurrentPage + 1)}
-              disabled={nearbyCurrentPage >= nearbyTotalPages}
-              className="flex items-center gap-2"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Pagination for Regular Listings */}
-        {!isNearbySearch && !isCategorySearch && !loading && totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-12">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    className="w-10 h-10 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="flex items-center gap-2"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Page Info for Category Listings */}
-        {isCategorySearch &&
-          !isCategorySearchWithFilters &&
-          !categoryLoading &&
-          categoryListings.length > 0 && (
-            <div className="text-center mt-8">
-              <p className="text-sm text-gray-600 font-inter">
-                Page {categoryCurrentPage} of {categoryTotalPages} •{" "}
-                {categoryTotal} total {currentCategory || "category"} properties
-              </p>
-            </div>
-          )}
-
-        {/* Page Info for Nearby Listings */}
-        {isNearbySearch && !nearbyLoading && nearbyListings.length > 0 && (
+        {/* Page Info */}
+        {!displayLoading && displayListings.length > 0 && (
           <div className="text-center mt-8">
             <p className="text-sm text-gray-600 font-inter">
-              Page {nearbyCurrentPage} of {nearbyTotalPages} • {nearbyTotal}{" "}
-              total properties near your location
+              Page {displayCurrentPage} of {displayTotalPages} •{" "}
+              {displayTotal} total{" "}
+              {isLocationSearch
+                ? `properties in ${locationLabel}`
+                : isNearbySearch
+                ? "properties near your location"
+                : isCategorySearch
+                ? `${currentCategory || "category"} properties`
+                : "properties"}
+              {activeFiltersCount > 0 &&
+                !isNearbySearch &&
+                !isLocationSearch &&
+                ` (filtered from all listings)`}
+              {selectedCategories.length > 0 &&
+                (isNearbySearch || isLocationSearch) &&
+                ` (filtered by ${selectedCategories.join(", ")})`}
             </p>
           </div>
         )}
-
-        {/* Page Info for Category Listings with Filters */}
-        {isCategorySearchWithFilters && !loading && listings.length > 0 && (
-          <div className="text-center mt-8">
-            <p className="text-sm text-gray-600 font-inter">
-              Page {currentPage} of {totalPages} • {total} total properties
-              {activeFiltersCount > 0 && ` (filtered from all listings)`}
-            </p>
-          </div>
-        )}
-
-        {/* Page Info for Regular Listings */}
-        {!isNearbySearch &&
-          !isCategorySearch &&
-          !loading &&
-          listings.length > 0 && (
-            <div className="text-center mt-8">
-              <p className="text-sm text-gray-600 font-inter">
-                Page {currentPage} of {totalPages} • {total} total properties
-                {activeFiltersCount > 0 && ` (filtered from all listings)`}
-              </p>
-            </div>
-          )}
       </div>
     </div>
   );

@@ -129,10 +129,10 @@ const NavBar = () => {
                   // Navigate to property details page
                   router.push(`/routes/pg-details/${property.slug || property._id}`);
                 }}
-                onSelectLocation={(location) => {
-                  // Update query filter with location name
-                  updateFilter("query", location.name);
-                }}
+                // onSelectLocation={(location) => {
+                //   // Update query filter with location name
+                //   updateFilter("query", location.name);
+                // }}
                 placeholder="Search by location, PG name, or nearby..."
                 showNearbyOption={true}
               />
@@ -254,10 +254,10 @@ const NavBar = () => {
                 // Navigate to property details page
                 router.push(`/routes/pg-details/${property.slug || property._id}`);
               }}
-              onSelectLocation={(location) => {
-                // Update query filter with location name
-                updateFilter("query", location.name);
-              }}
+              // onSelectLocation={(location) => {
+              //   // Update query filter with location name
+              //   updateFilter("query", location.name);
+              // }}
               placeholder="Search PGs, locations, or nearby..."
               showNearbyOption={true}
             />
