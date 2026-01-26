@@ -144,6 +144,21 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/user/visit-requests",
           icon: "Calendar",
         },
+         {
+      name: "Payments",
+      href: "/routes/dashboard/user/payments",
+      icon: "CreditCard",
+    },
+    {
+      name: "Move-in Support",
+      href: "/routes/dashboard/user/move-in",
+      icon: "Home",
+    },
+     {
+      name: "Support",
+      href: "/routes/dashboard/user/support",
+      icon: "Headphones",
+    },
         {
           name: "My Reviews",
           href: "/routes/dashboard/user/reviews",

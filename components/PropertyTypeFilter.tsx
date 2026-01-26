@@ -23,17 +23,7 @@ export default function PropertyTypeFilter({
     setIsOpen(false);
   };
 
-  const handleSubTypeSelect = (subTypeId: string) => {
-    onTypeChange(selectedType, subTypeId);
-    setIsOpen(false);
-  };
-
   const getDisplayText = () => {
-    if (selectedSubType) {
-      const type = propertyTypes.find((t) => t.id === selectedType);
-      const subType = type?.subTypes.find((s) => s.id === selectedSubType);
-      return subType?.label || "All Types";
-    }
     if (selectedType) {
       const type = propertyTypes.find((t) => t.id === selectedType);
       return type?.label || "All Types";
@@ -57,59 +47,49 @@ export default function PropertyTypeFilter({
       </button>
 
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-        >
-          <div className="p-2">
-            {/* All Types Option */}
-            <button
-              onClick={() => onTypeChange("", "")}
-              className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                !selectedType ? "bg-HG-400/10 text-HG-500" : "hover:bg-gray-100"
-              }`}
-            >
-              All Types
-            </button>
+        <>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+          >
+            <div className="p-2">
+              {/* All Types Option */}
+              <button
+                onClick={() => {
+                  onTypeChange("", "");
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                  !selectedType
+                    ? "bg-HG-400/10 text-HG-500"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                All Types
+              </button>
 
-            {/* Property Types */}
-            {propertyTypes.map((type) => (
-              <div key={type.id} className="space-y-1">
+              {/* Property Types */}
+              {propertyTypes.map((type) => (
                 <button
+                  key={type.id}
                   onClick={() => handleTypeSelect(type.id)}
                   className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                    selectedType === type.id && !selectedSubType
+                    selectedType === type.id
                       ? "bg-HG-400/10 text-HG-500"
                       : "hover:bg-gray-100"
                   }`}
                 >
                   {type.label}
                 </button>
+              ))}
+            </div>
+          </motion.div>
 
-                {/* Sub Types */}
-                {type.subTypes.length > 0 && selectedType === type.id && (
-                  <div className="ml-4 space-y-1">
-                    {type.subTypes.map((subType) => (
-                      <button
-                        key={subType.id}
-                        onClick={() => handleSubTypeSelect(subType.id)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                          selectedSubType === subType.id
-                            ? "bg-HG-400/10 text-HG-500"
-                            : "hover:bg-gray-100"
-                        }`}
-                      >
-                        {subType.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+          {/* Click outside to close */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+        </>
       )}
     </div>
   );

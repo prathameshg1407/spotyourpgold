@@ -30,6 +30,7 @@ const listingSchema = new mongoose.Schema(
     roomTypes: [
       {
         type: { type: String, required: true, trim: true },
+        isAC: { type: Boolean, default: false },
         numberOfRooms: { type: Number, required: true, min: 1 },
         availableRooms: { type: Number, required: true, min: 0 },
         capacityPerRoom: { type: Number, required: true, min: 1 },
@@ -37,10 +38,58 @@ const listingSchema = new mongoose.Schema(
         securityDeposit: { type: Number, required: true, min: 0 },
       },
     ],
+    
+    // ✅ UPDATED: Gender Preference with Co-living support
     genderPreference: {
       type: String,
-      enum: ["male", "female", "both"],
+      enum: ["male", "female", "unisex"],
       required: false,
+      default: "unisex",
+    },
+    isCoLiving: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Flats/Villas specific fields
+    flatsDetails: {
+      carpetArea: { type: Number, default: 0 },
+      furnishingLevel: {
+        type: String,
+        enum: ["fully-furnished", "semi-furnished", "unfurnished", ""],
+        default: "",
+      },
+      bedrooms: { type: Number, default: 0 },
+      bathrooms: { type: Number, default: 0 },
+      parkingBike: { type: Boolean, default: false },
+      parkingCar: { type: Boolean, default: false },
+      balconyCount: { type: Number, default: 0 },
+      hasTerrace: { type: Boolean, default: false },
+      isPenthouse: { type: Boolean, default: false },
+    },
+
+    // Commercial specific fields
+    commercialDetails: {
+      carpetArea: { type: Number, default: 0 },
+      floorNumber: { type: Number, default: 0 },
+      furnishingLevel: {
+        type: String,
+        enum: ["fully-furnished", "semi-furnished", "unfurnished", ""],
+        default: "",
+      },
+      hasPowderRoom: { type: Boolean, default: false },
+      hasPowerBackup: { type: Boolean, default: false },
+      electricityLoad: { type: Number, default: 0 },
+      parkingType: {
+        type: String,
+        enum: ["common", "dedicated", ""],
+        default: "",
+      },
+      preferredTenant: {
+        type: String,
+        enum: ["retail", "corporate", "bank", "medical", "any", ""],
+        default: "",
+      },
     },
 
     // Amenities
@@ -79,11 +128,12 @@ const listingSchema = new mongoose.Schema(
     // Rules
     rulesAndRegulations: { type: [String], default: [] },
 
-    // Enhanced Rules Structure (optional - for backward compatibility)
+    // ✅ UPDATED: Enhanced Rules Structure with Registration Fees
     detailedRules: {
       lockInPeriod: { type: String, default: "" },
       noticePeriod: { type: String, default: "" },
       maintenanceCharges: { type: String, default: "" },
+      registrationFees: { type: String, default: "" }, // ✅ NEW FIELD
       entryTiming: { type: String, default: "" },
       exitTiming: { type: String, default: "" },
       guestStayPolicy: {
@@ -105,7 +155,7 @@ const listingSchema = new mongoose.Schema(
         public_id: { type: String, required: true },
       },
     ],
-    primaryImage: { type: String }, // one of the image URLs
+    primaryImage: { type: String },
 
     // Videos
     videos: [
@@ -121,7 +171,7 @@ const listingSchema = new mongoose.Schema(
       city: { type: String, required: true },
       state: { type: String, required: true },
       pincode: { type: String, required: true },
-      nearbyPlaces: { type: [String], default: [] }, // Array of nearby places
+      nearbyPlaces: { type: [String], default: [] },
       coordinates: {
         type: {
           type: String,
@@ -130,7 +180,7 @@ const listingSchema = new mongoose.Schema(
           default: "Point",
         },
         coordinates: {
-          type: [Number], // [lng, lat]
+          type: [Number],
           required: true,
           validate: {
             validator: (val: number[]) => val.length === 2,
@@ -156,8 +206,8 @@ const listingSchema = new mongoose.Schema(
       enum: ["pending", "completed", "failed"],
       default: "pending",
     },
-    paymentId: { type: String }, // Razorpay/Stripe TXN ID
-    paymentProof: { type: String }, // ✅ New field to store uploaded proof URL
+    paymentId: { type: String },
+    paymentProof: { type: String },
   },
   {
     timestamps: true,
@@ -196,6 +246,7 @@ listingSchema.index(
     "detailedRules.lockInPeriod": "text",
     "detailedRules.noticePeriod": "text",
     "detailedRules.maintenanceCharges": "text",
+    "detailedRules.registrationFees": "text",
     "detailedRules.entryTiming": "text",
     "detailedRules.exitTiming": "text",
     "detailedRules.guestStayPolicy": "text",
@@ -223,6 +274,7 @@ listingSchema.index({ "location.city": 1 });
 listingSchema.index({ "location.area": 1 });
 listingSchema.index({ type: 1 });
 listingSchema.index({ genderPreference: 1 });
+listingSchema.index({ isCoLiving: 1 }); // ✅ NEW INDEX
 listingSchema.index({ "roomTypes.monthlyRent": 1 });
 listingSchema.index({ amenities: 1 });
 

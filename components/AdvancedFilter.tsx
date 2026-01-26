@@ -121,10 +121,14 @@ const roomTypeOptions = [
   { id: "1rk", label: "1 RK" },
 ];
 
+// Replace the existing genderOptions constant with this:
 const genderOptions = [
-  { value: "male", label: "Boys/Male" },
-  { value: "female", label: "Girls/Female" },
-  { value: "both", label: "Unisex/Co-ed" },
+  { value: "male", label: "Boys/Male Only" },
+  { value: "female", label: "Girls/Female Only" },
+  { value: "unisex", label: "Unisex (Any Gender)" },
+  { value: "unisex-coliving", label: "Co-living (Shared Common Areas)" },
+  { value: "male-only", label: "Strictly Boys Only" },
+  { value: "female-only", label: "Strictly Girls Only" },
 ];
 
 const sortOptions = [
@@ -203,11 +207,6 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   };
 
   const getSelectedPropertyTypeLabel = () => {
-    if (localFilters.subType) {
-      const type = propertyTypes.find((t) => t.id === localFilters.type);
-      const subType = type?.subTypes.find((s) => s.id === localFilters.subType);
-      return subType?.label || "All Types";
-    }
     if (localFilters.type) {
       const type = propertyTypes.find((t) => t.id === localFilters.type);
       return type?.label || "All Types";
@@ -358,36 +357,13 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                             updateLocalFilter("subType", "");
                           }}
                           className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                            localFilters.type === type.id &&
-                            !localFilters.subType
+                            localFilters.type === type.id
                               ? "bg-HG-400/20 text-HG-600 font-medium"
                               : "bg-white hover:bg-gray-100"
                           }`}
                         >
                           {type.label}
                         </button>
-
-                        {/* Sub Types */}
-                        {type.subTypes.length > 0 &&
-                          localFilters.type === type.id && (
-                            <div className="ml-4 space-y-1">
-                              {type.subTypes.map((subType) => (
-                                <button
-                                  key={subType.id}
-                                  onClick={() =>
-                                    updateLocalFilter("subType", subType.id)
-                                  }
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                                    localFilters.subType === subType.id
-                                      ? "bg-HG-400/20 text-HG-600 font-medium"
-                                      : "bg-white hover:bg-gray-100"
-                                  }`}
-                                >
-                                  {subType.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
                       </div>
                     ))}
                   </div>
@@ -450,55 +426,68 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
           <Separator />
 
-          {/* Gender Preference */}
-          <div>
-            <button
-              onClick={() => toggleSection("genderPreference")}
-              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
-            >
-              <span className="flex items-center gap-2">
-                <IconUsers className="w-4 h-4" />
-                Gender Preference
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  expandedSections.genderPreference ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+       {/* Gender Preference */}
+<div>
+  <button
+    onClick={() => toggleSection("genderPreference")}
+    className="flex items-center justify-between w-full text-sm font-medium text-gray-700 mb-2"
+  >
+    <span className="flex items-center gap-2">
+      <IconUsers className="w-4 h-4" />
+      Gender Preference
+    </span>
+    <ChevronDown
+      className={`w-4 h-4 transition-transform ${
+        expandedSections.genderPreference ? "rotate-180" : ""
+      }`}
+    />
+  </button>
 
-            <AnimatePresence>
-              {expandedSections.genderPreference && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="space-y-2"
-                >
-                  {genderOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() =>
-                        updateLocalFilter(
-                          "genderPreference",
-                          localFilters.genderPreference === option.value
-                            ? ""
-                            : option.value
-                        )
-                      }
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                        localFilters.genderPreference === option.value
-                          ? "bg-HG-400/20 text-HG-600 font-medium"
-                          : "bg-gray-50 hover:bg-gray-100"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+  <AnimatePresence>
+    {expandedSections.genderPreference && (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        className="space-y-2"
+      >
+        {genderOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              // Handle special cases for "only" filters
+              let filterValue = option.value;
+              
+              if (option.value === "male-only") {
+                filterValue = "male";
+              } else if (option.value === "female-only") {
+                filterValue = "female";
+              } else if (option.value === "unisex-coliving") {
+                // For co-living, we'll filter by isCoLiving flag in backend
+                filterValue = "unisex";
+              }
+              
+              updateLocalFilter(
+                "genderPreference",
+                localFilters.genderPreference === filterValue ? "" : filterValue
+              );
+            }}
+            className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+              (localFilters.genderPreference === option.value) ||
+              (option.value === "male-only" && localFilters.genderPreference === "male") ||
+              (option.value === "female-only" && localFilters.genderPreference === "female") ||
+              (option.value === "unisex-coliving" && localFilters.genderPreference === "unisex")
+                ? "bg-HG-400/20 text-HG-600 font-medium"
+                : "bg-gray-50 hover:bg-gray-100"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
           <Separator />
 

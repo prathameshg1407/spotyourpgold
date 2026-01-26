@@ -17,6 +17,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Receipt,
 } from "lucide-react";
 import type { StepProps } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { predefinedRules } from "../constants";
 
 export const Step4Rules: React.FC<StepProps> = ({
   formData,
@@ -129,6 +131,32 @@ export const Step4Rules: React.FC<StepProps> = ({
             </CardContent>
           </Card>
 
+          {/* ✅ NEW: Registration Fees */}
+          <Card className="border-2 border-gray-200 hover:border-HG-400 transition-colors">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-HG-600" />
+                Registration Fees
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={formData.detailedRules?.registrationFees || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    detailedRules: {
+                      ...prev.detailedRules,
+                      registrationFees: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="e.g., ₹1000 (one-time), Free"
+                className="h-10 text-sm"
+              />
+            </CardContent>
+          </Card>
+
           {/* Entry Timing */}
           <Card className="border-2 border-gray-200 hover:border-HG-400 transition-colors">
             <CardHeader className="pb-3">
@@ -197,7 +225,11 @@ export const Step4Rules: React.FC<StepProps> = ({
                     ...prev,
                     detailedRules: {
                       ...prev.detailedRules,
-                      guestStayPolicy: value as "allowed" | "not-allowed" | "limited-access" | "",
+                      guestStayPolicy: value as
+                        | "allowed"
+                        | "not-allowed"
+                        | "limited-access"
+                        | "",
                     },
                   }))
                 }
@@ -245,7 +277,11 @@ export const Step4Rules: React.FC<StepProps> = ({
                     ...prev,
                     detailedRules: {
                       ...prev.detailedRules,
-                      smokingAlcoholPolicy: value as "allowed" | "not-allowed" | "limited-access" | "",
+                      smokingAlcoholPolicy: value as
+                        | "allowed"
+                        | "not-allowed"
+                        | "limited-access"
+                        | "",
                     },
                   }))
                 }
@@ -280,8 +316,49 @@ export const Step4Rules: React.FC<StepProps> = ({
 
         {/* General Rules Section */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">General Rules & Regulations</h3>
-          
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">
+            General Rules & Regulations
+          </h3>
+
+          {/* ✅ NEW: Predefined Rules Dropdown */}
+          <div className="mb-4">
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              Quick Add Common Rules
+            </Label>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                if (
+                  value &&
+                  !formData.rulesAndRegulations.includes(value)
+                ) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    rulesAndRegulations: [
+                      ...(prev.rulesAndRegulations || []),
+                      value,
+                    ],
+                  }));
+                }
+              }}
+            >
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue placeholder="Select a common rule to add" />
+              </SelectTrigger>
+              <SelectContent>
+                {predefinedRules
+                  .filter(
+                    (rule) => !formData.rulesAndRegulations.includes(rule)
+                  )
+                  .map((rule, idx) => (
+                    <SelectItem key={idx} value={rule}>
+                      {rule}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <ul className="space-y-2 mb-4">
             {Array.isArray(formData.rulesAndRegulations) &&
               formData.rulesAndRegulations.map((item, idx) => (
@@ -329,7 +406,7 @@ export const Step4Rules: React.FC<StepProps> = ({
                 errors.rulesAndRegulations ? "text-red-400" : "text-gray-700"
               } text-[14px] font-inter font-normal block mb-2`}
             >
-              Additional Rules & Regulations
+              Add Custom Rules
             </Label>
 
             <div className="relative">
@@ -363,7 +440,7 @@ export const Step4Rules: React.FC<StepProps> = ({
                     }
                   }
                 }}
-                placeholder="Type and Press Enter or Tap +"
+                placeholder="Type your own rule and Press Enter or Tap +"
                 className={`h-11 pl-10 pr-10 bg-white rounded-md text-[15px] ${
                   errors.rulesAndRegulations
                     ? "border-red-400 border-2"

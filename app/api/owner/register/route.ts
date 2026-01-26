@@ -20,12 +20,12 @@ export async function POST(req: Request) {
       documents = [],
     } = await req.json();
 
-    // Validate required fields
-    if (!aadhaarNumber || !phone || !street || !city || !state || !pincode) {
+    // Validate only required fields: phone and address
+    if (!phone || !street || !city || !state || !pincode) {
       return NextResponse.json({
         success: false,
         message:
-          "Please fill all required fields. (aadhaarNumber, phone, street, city, state, pincode)",
+          "Please fill all required fields. (phone, street, city, state, pincode)",
       });
     }
 
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
     let aadhaarFrontPublicId = null;
     let aadhaarBackPublicId = null;
 
+    // Optional: Upload Aadhaar documents only if provided
     if (aadhaarFront) {
       const res = await uploadToCloudinary(aadhaarFront);
       aadhaarFrontUrl = res.url;
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
       aadhaarBackPublicId = res.public_id;
     }
 
-    // Upload additional documents
+    // Upload additional documents (optional)
     const uploadedDocuments = await Promise.all(
       documents.map(async (doc: string) => {
         const { url, public_id } = await uploadToCloudinary(doc);
@@ -74,11 +75,11 @@ export async function POST(req: Request) {
       })
     );
 
-    // Create Owner Profile
+    // Create Owner Profile (aadhaarNumber is now optional)
     await OwnerProfile.create({
       userId: user?.id,
       phone,
-      aadhaarNumber,
+      aadhaarNumber: aadhaarNumber || "", // Optional
       address: {
         street,
         city,

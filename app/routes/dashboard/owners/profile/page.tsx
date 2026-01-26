@@ -192,6 +192,7 @@ export default function OwnerProfilePage() {
       if (section === "personal") {
         if (!editForm.fullName.trim()) {
           toast.error("Full name is required");
+          setSaving(null);
           return;
         }
         payload.fullName = editForm.fullName;
@@ -201,6 +202,7 @@ export default function OwnerProfilePage() {
       if (section === "owner") {
         if (!editForm.aadhaarNumber.trim()) {
           toast.error("Aadhaar number is required");
+          setSaving(null);
           return;
         }
         payload.aadhaarNumber = editForm.aadhaarNumber;
@@ -264,7 +266,7 @@ export default function OwnerProfilePage() {
 
       if (response.data.success) {
         toast.success("Document uploaded successfully");
-        fetchOwnerProfile(); // Refresh the profile data
+        fetchOwnerProfile();
       } else {
         toast.error(response.data.message || "Failed to upload document");
       }
@@ -314,6 +316,38 @@ export default function OwnerProfilePage() {
     }
   };
 
+  // Helper function to get missing profile items
+  const getMissingProfileItems = () => {
+    if (!profile) return [];
+
+    const missingItems: string[] = [];
+
+    if (!profile.ownerProfile?.aadhaarNumber) {
+      missingItems.push("Aadhaar number");
+    }
+    if (!profile.ownerProfile?.documents?.aadhaarFrontUrl) {
+      missingItems.push("Aadhaar front document");
+    }
+    if (!profile.ownerProfile?.documents?.aadhaarBackUrl) {
+      missingItems.push("Aadhaar back document");
+    }
+    if (!profile.ownerProfile?.paymentDetails?.accountNumber) {
+      missingItems.push("bank account details");
+    }
+    if (!profile.ownerProfile?.address?.street) {
+      missingItems.push("address");
+    }
+
+    return missingItems;
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 pt-4 pb-14">
@@ -342,6 +376,10 @@ export default function OwnerProfilePage() {
       </div>
     );
   }
+
+  const missingItems = getMissingProfileItems();
+  const showCompleteBanner =
+    missingItems.length > 0 && profile.ownerStatus !== "verified";
 
   return (
     <div className="space-y-6 pt-4 pb-14">
@@ -378,6 +416,50 @@ export default function OwnerProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Complete Profile Banner - Show if profile is incomplete and not verified */}
+      {showCompleteBanner && (
+        <Card className="border border-orange-300 bg-orange-50 shadow-md rounded-2xl">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <AlertCircle className="h-6 w-6 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-orange-900 mb-1">
+                    Complete Your Profile to Get Verified
+                  </p>
+                  <p className="text-sm text-orange-700">
+                    Missing: {missingItems.join(", ")}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  // Determine which section to scroll to based on what's missing
+                  if (
+                    !profile.ownerProfile?.aadhaarNumber ||
+                    !profile.ownerProfile?.address?.street
+                  ) {
+                    scrollToSection("owner-info-section");
+                  } else if (
+                    !profile.ownerProfile?.documents?.aadhaarFrontUrl ||
+                    !profile.ownerProfile?.documents?.aadhaarBackUrl
+                  ) {
+                    scrollToSection("documents-section");
+                  } else if (
+                    !profile.ownerProfile?.paymentDetails?.accountNumber
+                  ) {
+                    scrollToSection("payment-section");
+                  }
+                }}
+                className="bg-orange-600 hover:bg-orange-700 whitespace-nowrap"
+              >
+                Complete Now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Personal Information */}
@@ -464,7 +546,7 @@ export default function OwnerProfilePage() {
               ) : (
                 <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                   <Phone className="h-4 w-4 text-gray-500" />
-                  <span>{profile.phone}</span>
+                  <span>{profile.phone || "Not provided"}</span>
                 </div>
               )}
             </div>
@@ -480,7 +562,10 @@ export default function OwnerProfilePage() {
         </Card>
 
         {/* Owner Information */}
-        <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
+        <Card
+          id="owner-info-section"
+          className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white"
+        >
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-HG-500">Owner Information</CardTitle>
@@ -624,7 +709,7 @@ export default function OwnerProfilePage() {
                 <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg">
                   <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
                   <div>
-                    {profile.ownerProfile?.address ? (
+                    {profile.ownerProfile?.address?.street ? (
                       <div className="text-sm">
                         <p>{profile.ownerProfile.address.street}</p>
                         <p>
@@ -642,7 +727,8 @@ export default function OwnerProfilePage() {
               )}
             </div>
 
-            <div className="space-y-2">
+            {/* Phone Verification Status - Commented out until phone verification is implemented */}
+            {/* <div className="space-y-2">
               <Label>Phone Verification Status</Label>
               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                 {profile.ownerProfile?.phoneVerified ? (
@@ -662,13 +748,16 @@ export default function OwnerProfilePage() {
                     : "Not Verified"}
                 </span>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
 
       {/* Documents Section */}
-      <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
+      <Card
+        id="documents-section"
+        className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white"
+      >
         <CardHeader>
           <CardTitle className="text-HG-500">
             Documents & Verification
@@ -689,18 +778,31 @@ export default function OwnerProfilePage() {
                     <p className="text-sm text-green-600">
                       Aadhaar Front Uploaded
                     </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        window.open(
-                          profile.ownerProfile?.documents?.aadhaarFrontUrl,
-                          "_blank"
-                        )
-                      }
-                    >
-                      View Document
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          window.open(
+                            profile.ownerProfile?.documents?.aadhaarFrontUrl,
+                            "_blank"
+                          )
+                        }
+                      >
+                        View Document
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleFileSelect("aadhaarFront")}
+                        disabled={uploading === "aadhaarFront"}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        {uploading === "aadhaarFront"
+                          ? "Uploading..."
+                          : "Replace"}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -731,18 +833,31 @@ export default function OwnerProfilePage() {
                     <p className="text-sm text-green-600">
                       Aadhaar Back Uploaded
                     </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        window.open(
-                          profile.ownerProfile?.documents?.aadhaarBackUrl,
-                          "_blank"
-                        )
-                      }
-                    >
-                      View Document
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          window.open(
+                            profile.ownerProfile?.documents?.aadhaarBackUrl,
+                            "_blank"
+                          )
+                        }
+                      >
+                        View Document
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleFileSelect("aadhaarBack")}
+                        disabled={uploading === "aadhaarBack"}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        {uploading === "aadhaarBack"
+                          ? "Uploading..."
+                          : "Replace"}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -777,7 +892,7 @@ export default function OwnerProfilePage() {
                       }{" "}
                       Document(s) Uploaded
                     </p>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
                       {profile.ownerProfile.documents.additionalDocuments.map(
                         (doc, index) => (
                           <Button
@@ -792,6 +907,15 @@ export default function OwnerProfilePage() {
                         )
                       )}
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleFileSelect("additional")}
+                      disabled={uploading === "additional"}
+                      className="text-gray-500 hover:text-gray-700 mt-2"
+                    >
+                      {uploading === "additional" ? "Uploading..." : "Add More"}
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -816,7 +940,10 @@ export default function OwnerProfilePage() {
       </Card>
 
       {/* Payment Details Section */}
-      <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
+      <Card
+        id="payment-section"
+        className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white"
+      >
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

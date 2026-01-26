@@ -1,5 +1,3 @@
-// app/routes/dashboard/owners/add-pg/types.ts
-
 import type React from "react";
 
 export interface PGFormData {
@@ -11,13 +9,15 @@ export interface PGFormData {
 
   roomTypes: {
     type: string;
+    isAC: boolean;
     numberOfRooms: number;
     availableRooms: number;
     capacityPerRoom: number;
     monthlyRent: number;
     securityDeposit: number;
   }[];
-  genderPreference: "male" | "female" | "both";
+  genderPreference: "male" | "female" | "unisex";
+  isCoLiving: boolean; // NEW: For co-living option
 
   additionalDetails: string[];
   additionalDetailsInput: string;
@@ -39,10 +39,34 @@ export interface PGFormData {
     lockInPeriod: string;
     noticePeriod: string;
     maintenanceCharges: string;
+    registrationFees: string; // NEW: Registration fees field
     entryTiming: string;
     exitTiming: string;
     guestStayPolicy: "allowed" | "not-allowed" | "limited-access" | "";
     smokingAlcoholPolicy: "allowed" | "not-allowed" | "limited-access" | "";
+  };
+
+  flatsDetails?: {
+    carpetArea: number;
+    furnishingLevel: "fully-furnished" | "semi-furnished" | "unfurnished" | "";
+    bedrooms: number;
+    bathrooms: number;
+    parkingBike: boolean;
+    parkingCar: boolean;
+    balconyCount: number;
+    hasTerrace: boolean;
+    isPenthouse: boolean;
+  };
+
+  commercialDetails?: {
+    carpetArea: number;
+    floorNumber: number;
+    furnishingLevel: "fully-furnished" | "semi-furnished" | "unfurnished" | "";
+    hasPowderRoom: boolean;
+    hasPowerBackup: boolean;
+    electricityLoad: number;
+    parkingType: "common" | "dedicated" | "";
+    preferredTenant: "retail" | "corporate" | "bank" | "medical" | "any" | "";
   };
 
   amenities: string[];

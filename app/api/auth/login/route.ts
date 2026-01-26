@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-// import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-
 import { SignJWT } from "jose";
 
 import { connectToDB } from "@/services/connectdb";
@@ -9,22 +7,63 @@ import User from "@/models/user";
 
 export async function POST(req: Request) {
   try {
-    await connectToDB();
-
     const { email, password } = await req.json();
-
-    if(email ==="admin@admin.com" && password ==="admin123"){
-
-
-
-    }
 
     if (!email || !password) {
       return NextResponse.json({
         success: false,
-        message: "Please fill all the fields. ( email, password )",
+        message: "Please fill all the fields. (email, password)",
       });
     }
+
+    // Handle admin login separately (hardcoded admin credentials)
+    if (email === "admin@admin.com" && password === "admin123") {
+      const JWT_SECRET = process.env.JWT_SECRET as string;
+      const secret = new TextEncoder().encode(JWT_SECRET);
+
+      const token = await new SignJWT({
+        id: "admin",
+        fullName: "Admin",
+        role: "admin",
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1d")
+        .sign(secret);
+
+      const res = NextResponse.json({
+        success: true,
+        message: "Admin login successful.",
+        user: {
+          id: "admin",
+          email: "admin@admin.com",
+          role: "admin",
+          fullName: "Admin",
+          ownerStatus: "verified",
+        },
+      });
+
+      res.cookies.set("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 24, // 1 day
+      });
+
+      return res;
+    }
+
+    // Handle wrong admin password
+    if (email === "admin@admin.com" && password !== "admin123") {
+      return NextResponse.json({
+        success: false,
+        message: "Invalid password. Please try again.",
+      });
+    }
+
+    // Connect to DB for regular users
+    await connectToDB();
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -64,18 +103,9 @@ export async function POST(req: Request) {
         role: user.role,
         fullName: user.fullName,
         ownerStatus: user.ownerStatus,
+        phone: user.phone,
       },
     });
-
-    // const cookieStore = await cookies();
-
-    // cookieStore.set("token", token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: "strict",
-    //   path: "/",
-    //   maxAge: 60 * 60 * 24, // 1 day
-    // });
 
     res.cookies.set("token", token, {
       httpOnly: true,
@@ -90,7 +120,7 @@ export async function POST(req: Request) {
     console.error("[LOGIN_API]", error);
     return NextResponse.json({
       success: false,
-      message: "Failed to login. (error)",
+      message: "Failed to login. Please try again.",
     });
   }
 }

@@ -1,3 +1,4 @@
+// components/sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -29,6 +30,8 @@ import {
   Bell,
   X,
   DollarSign,
+  Home, // 👈 Add this import
+  Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +44,7 @@ import { useUserStore } from "@/store/userStore";
 import axios from "axios";
 import { toast } from "sonner";
 
+// 👇 Add "Home" to the iconMap
 export const iconMap = {
   LayoutDashboard,
   Calendar,
@@ -61,7 +65,10 @@ export const iconMap = {
   Wallet,
   Settings,
   DollarSign,
+  Home, // 👈 Add this
+  Headphones,
 };
+
 export type IconName = keyof typeof iconMap;
 
 export interface NavItem {
@@ -70,16 +77,12 @@ export interface NavItem {
   icon: IconName;
 }
 
+// ... rest of your sidebar code remains the same
 export function Sidebar() {
   const pathname = usePathname();
-
   const { isOpen, toggle } = useSidebar();
-  //   const user = mockUser;
-
   const { user, setUser } = useUserStore();
-
   const navItems = user && getNavigationItems(user?.role as UserRole);
-
   const router = useRouter();
 
   return (
@@ -99,8 +102,8 @@ export function Sidebar() {
           "lg:translate-x-0"
         )}
       >
-        <div className="flex h-20 items-center  p-4 ">
-          <div className="  w-full flex flex-col gap-1 pt-2 md:pt-0 md:flex-row md:justify-between items-start md:items-center">
+        <div className="flex h-20 items-center p-4">
+          <div className="w-full flex flex-col gap-1 pt-2 md:pt-0 md:flex-row md:justify-between items-start md:items-center">
             <Link href={"/"}>
               <p className="font-poppins select-none font-bold text-HG-500 text-xl md:text-3xl">
                 SYPG
@@ -109,7 +112,7 @@ export function Sidebar() {
 
             <Badge
               variant="outline"
-              className="border-HG-500/50 md:border-2  md:py-1 text-HG-500 text-xs"
+              className="border-HG-500/50 md:border-2 md:py-1 text-HG-500 text-xs"
             >
               {user &&
                 user?.role?.charAt(0).toUpperCase() +
@@ -117,17 +120,10 @@ export function Sidebar() {
                   " Panel"}
             </Badge>
           </div>
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto hover:bg-transparent lg:hidden"
-            onClick={toggle}
-          > */}
-          <X onClick={toggle} className="h-5 w-5 md:hidden" />
-          {/* </Button> */}
+          <X onClick={toggle} className="h-5 w-5 md:hidden cursor-pointer" />
         </div>
 
-        <div className="flex flex-col pt-2 ">
+        <div className="flex flex-col pt-2">
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid gap-1 px-4">
               {navItems?.map((item, index) => {
@@ -138,15 +134,14 @@ export function Sidebar() {
                     key={index}
                     href={item.href}
                     className={cn(
-                      "flex items-center font-inter gap-3 rounded-md px-4 py-4 text-sm md:text- font-medium transition-colors",
-                      "hover:bg-HG-400/10 ",
+                      "flex items-center font-inter gap-3 rounded-md px-4 py-4 text-sm font-medium transition-colors",
+                      "hover:bg-HG-400/10",
                       pathname === item.href
-                        ? "bg-HG-400/30 text-HG-500 hover:bg-HG-400/30 "
+                        ? "bg-HG-400/30 text-HG-500 hover:bg-HG-400/30"
                         : "text-muted-foreground"
                     )}
                   >
                     <IconComponent className="h-5 w-5" />
-
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -156,20 +151,8 @@ export function Sidebar() {
 
           <div className="border-t-2 border-HG-400/20 my-2 mx-4" />
 
-          <div className=" ">
-            <nav className="grid py-2  gap-1 px-4">
-              {/* <Link
-                href="/help"
-                className="flex justify-between items-center gap-3 rounded-md px-4 py-4 text-sm font-medium text-muted-foreground hover:bg-green-400/10 hover:text-green-700 transition-colors"
-              >
-                <div className="flex items-center gap-3 ">
-                <Bell className="h-5 w-5" />
-                <span>Notifications</span>
-                </div>
-
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-
-              </Link> */}
+          <div>
+            <nav className="grid py-2 gap-1 px-4">
               <div
                 onClick={async () => {
                   const loadingToast = toast.loading("logging out...", {

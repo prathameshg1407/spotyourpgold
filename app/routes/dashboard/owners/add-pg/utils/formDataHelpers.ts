@@ -25,7 +25,8 @@ export const getDefaultFormData = (): PGFormData => ({
   type: '',
   subType: '',
   roomTypes: [],
-  genderPreference: 'both',
+  genderPreference: 'unisex', // Changed from 'both' to 'unisex' to match the type
+  isCoLiving: false, // Added missing property
   additionalDetails: [],
   additionalDetailsInput: '',
   location: { ...DEFAULT_LOCATION },
@@ -35,6 +36,7 @@ export const getDefaultFormData = (): PGFormData => ({
     lockInPeriod: '',
     noticePeriod: '',
     maintenanceCharges: '',
+    registrationFees: '',
     entryTiming: '',
     exitTiming: '',
     guestStayPolicy: '',
@@ -104,6 +106,7 @@ export function normalizeFormData(data: any): PGFormData {
     subType: data.subType ?? defaults.subType,
     roomTypes: Array.isArray(data.roomTypes) ? data.roomTypes : defaults.roomTypes,
     genderPreference: data.genderPreference ?? defaults.genderPreference,
+    isCoLiving: data.isCoLiving ?? defaults.isCoLiving, // Added missing property
     additionalDetails: Array.isArray(data.additionalDetails) 
       ? data.additionalDetails 
       : defaults.additionalDetails,
@@ -117,6 +120,7 @@ export function normalizeFormData(data: any): PGFormData {
       lockInPeriod: data.detailedRules?.lockInPeriod ?? defaults.detailedRules.lockInPeriod,
       noticePeriod: data.detailedRules?.noticePeriod ?? defaults.detailedRules.noticePeriod,
       maintenanceCharges: data.detailedRules?.maintenanceCharges ?? defaults.detailedRules.maintenanceCharges,
+      registrationFees: data.detailedRules?.registrationFees ?? defaults.detailedRules.registrationFees, // Added missing property
       entryTiming: data.detailedRules?.entryTiming ?? defaults.detailedRules.entryTiming,
       exitTiming: data.detailedRules?.exitTiming ?? defaults.detailedRules.exitTiming,
       guestStayPolicy: data.detailedRules?.guestStayPolicy ?? defaults.detailedRules.guestStayPolicy,

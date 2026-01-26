@@ -19,6 +19,9 @@ const notificationSchema = new mongoose.Schema(
         "booking_cancelled",
         "visit_request",
         "payment_reminder",
+        "ticket_created",     
+    "ticket_response",     
+    "ticket_resolved",     
         "general",
       ],
       required: true,
@@ -47,7 +50,7 @@ const notificationSchema = new mongoose.Schema(
     // Related type (booking, listing, etc.)
     relatedType: {
       type: String,
-      enum: ["booking", "listing", "visit_request"],
+      enum: ["booking", "listing", "visit_request","ticket"],
       required: false,
     },
 

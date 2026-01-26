@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 interface LoadingButtonProps {
   isLoading: boolean
   disabled?: boolean
-  loadingText: string
+  loadingText?: string  // Made optional with ?
   children: React.ReactNode
   type?: "button" | "submit"
   className?: string
@@ -18,7 +18,7 @@ interface LoadingButtonProps {
 export const LoadingButton = ({
   isLoading,
   disabled = false,
-  loadingText,
+  loadingText = "Loading...",  // Added default value
   children,
   type = "button",
   className,

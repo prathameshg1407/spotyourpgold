@@ -54,6 +54,88 @@ export const predefinedAmenities = [
   { id: "tv", label: "TV/Entertainment", icon: Tv },
 ];
 
+// NEW: Predefined general rules
+export const predefinedRules = [
+  "No pets allowed",
+  "No smoking inside the premises",
+  "No alcohol consumption",
+  "Visitors allowed only during designated hours",
+  "Keep common areas clean",
+  "Respect quiet hours (10 PM - 7 AM)",
+  "Report maintenance issues immediately",
+  "No unauthorized guests overnight",
+  "Regular room cleaning is mandatory",
+  "Adhere to waste disposal guidelines",
+];
+
+// Room types based on property type and AC status
+export const roomTypesByCategory = {
+  hostels: {
+    nonAC: [
+      { id: "single-occupancy", label: "Single Occupancy" },
+      { id: "double-occupancy", label: "Double Occupancy" },
+      { id: "triple-occupancy", label: "Triple Occupancy" },
+      { id: "quadruple-occupancy", label: "Quadruple Occupancy" },
+    ],
+    AC: [
+      { id: "single-occupancy-ac", label: "Single Occupancy (AC)" },
+      { id: "double-occupancy-ac", label: "Double Occupancy (AC)" },
+      { id: "triple-occupancy-ac", label: "Triple Occupancy (AC)" },
+      { id: "quadruple-occupancy-ac", label: "Quadruple Occupancy (AC)" },
+    ],
+  },
+  pgs: {
+    nonAC: [
+      { id: "single-occupancy", label: "Single Occupancy" },
+      { id: "double-occupancy", label: "Double Occupancy" },
+      { id: "triple-occupancy", label: "Triple Occupancy" },
+      { id: "quadruple-occupancy", label: "Quadruple Occupancy" },
+    ],
+    AC: [
+      { id: "single-occupancy-ac", label: "Single Occupancy (AC)" },
+      { id: "double-occupancy-ac", label: "Double Occupancy (AC)" },
+      { id: "triple-occupancy-ac", label: "Triple Occupancy (AC)" },
+      { id: "quadruple-occupancy-ac", label: "Quadruple Occupancy (AC)" },
+    ],
+  },
+  rooms: {
+    nonAC: [
+      { id: "studio-room", label: "Studio Room" },
+      { id: "1rk", label: "1 RK" },
+    ],
+    AC: [
+      { id: "studio-room-ac", label: "Studio Room (AC)" },
+      { id: "1rk-ac", label: "1 RK (AC)" },
+    ],
+  },
+  flats: {
+    nonAC: [
+      { id: "1bhk", label: "1 BHK" },
+      { id: "2bhk", label: "2 BHK" },
+      { id: "3bhk-villa", label: "3 BHK Villa" },
+      { id: "4bhk-villa", label: "4 BHK Villa" },
+      { id: "bungalow", label: "Bungalow" },
+    ],
+    AC: [
+      { id: "1bhk-ac", label: "1 BHK (AC)" },
+      { id: "2bhk-ac", label: "2 BHK (AC)" },
+      { id: "3bhk-villa-ac", label: "3 BHK Villa (AC)" },
+      { id: "4bhk-villa-ac", label: "4 BHK Villa (AC)" },
+      { id: "bungalow-ac", label: "Bungalow (AC)" },
+    ],
+  },
+  commercial: {
+    all: [
+      { id: "shop", label: "Shop" },
+      { id: "office", label: "Office" },
+      { id: "showroom", label: "Showroom" },
+      { id: "warehouse", label: "Warehouse" },
+      { id: "godown", label: "Godown" },
+      { id: "coworking-space", label: "Co-working Space" },
+    ],
+  },
+};
+
 export const propertyTypes = [
   {
     id: "hostels",
@@ -62,12 +144,8 @@ export const propertyTypes = [
   },
   {
     id: "flats",
-    label: "Flats",
-    subTypes: [
-      { id: "1bhk", label: "1 BHK" },
-      { id: "2bhk", label: "2 BHK" },
-      { id: "3bhk", label: "3 BHK" },
-    ],
+    label: "Flats/Villas",
+    subTypes: [],
   },
   {
     id: "pgs",
@@ -77,21 +155,12 @@ export const propertyTypes = [
   {
     id: "rooms",
     label: "Rooms",
-    subTypes: [
-      { id: "single-room", label: "Single Room" },
-      { id: "1rk", label: "1 RK" },
-    ],
+    subTypes: [],
   },
   {
     id: "commercial",
     label: "Commercial Properties",
-    subTypes: [
-      { id: "office-space", label: "Office Space" },
-      { id: "shop", label: "Shop/Retail" },
-      { id: "warehouse", label: "Warehouse" },
-      { id: "restaurant", label: "Restaurant" },
-      { id: "clinic", label: "Medical Clinic" },
-    ],
+    subTypes: [],
   },
 ];
 
@@ -126,6 +195,7 @@ export const initialFormData: PGFormData = {
   roomTypes: [
     {
       type: "",
+      isAC: false,
       numberOfRooms: 0,
       availableRooms: 0,
       capacityPerRoom: 0,
@@ -133,7 +203,8 @@ export const initialFormData: PGFormData = {
       securityDeposit: 0,
     },
   ],
-  genderPreference: "both",
+  genderPreference: "unisex",
+  isCoLiving: false, // NEW
   additionalDetails: [],
   additionalDetailsInput: "",
   location: {
@@ -148,16 +219,40 @@ export const initialFormData: PGFormData = {
   rulesAndRegulations: [],
   newRuleInput: "",
 
-  // Enhanced Rules Structure
   detailedRules: {
     lockInPeriod: "",
     noticePeriod: "",
     maintenanceCharges: "",
+    registrationFees: "", // NEW
     entryTiming: "",
     exitTiming: "",
     guestStayPolicy: "",
     smokingAlcoholPolicy: "",
   },
+
+  flatsDetails: {
+    carpetArea: 0,
+    furnishingLevel: "",
+    bedrooms: 0,
+    bathrooms: 0,
+    parkingBike: false,
+    parkingCar: false,
+    balconyCount: 0,
+    hasTerrace: false,
+    isPenthouse: false,
+  },
+
+  commercialDetails: {
+    carpetArea: 0,
+    floorNumber: 0,
+    furnishingLevel: "",
+    hasPowderRoom: false,
+    hasPowerBackup: false,
+    electricityLoad: 0,
+    parkingType: "",
+    preferredTenant: "",
+  },
+
   images: [],
   existingImageUrls: [],
   videos: [],
@@ -173,12 +268,10 @@ export const initialFormData: PGFormData = {
     evening: { enabled: false, from: "18:00", to: "20:00" },
     night: { enabled: false, from: "21:00", to: "23:00" },
   },
-  // New fields for payment
   planType: "free",
   paymentStatus: "pending",
   paymentId: "",
   paymentProof: "",
-  // paymentProof: File,
 };
 
 export const stepTitles = {

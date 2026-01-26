@@ -48,7 +48,7 @@ const ownerProfileSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
+      unique: true, // ✅ Only declare unique HERE, not in index below
     },
 
     phone: {
@@ -63,7 +63,8 @@ const ownerProfileSchema = new mongoose.Schema(
 
     aadhaarNumber: {
       type: String,
-      required: true,
+      required: false, // ✅ OPTIONAL
+      default: "", // ✅ Default to empty string
     },
 
     address: {
@@ -82,8 +83,17 @@ const ownerProfileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ownerProfileSchema.index({ user: 1 });
-ownerProfileSchema.index({ aadhaarNumber: 1 }, { unique: true });
+// ✅ REMOVED duplicate userId index
+
+// ✅ Sparse unique index for aadhaarNumber (allows multiple empty values)
+ownerProfileSchema.index(
+  { aadhaarNumber: 1 },
+  { 
+    unique: true, 
+    sparse: true, // Only enforce uniqueness when value exists
+    partialFilterExpression: { aadhaarNumber: { $ne: "" } } // Extra safety
+  }
+);
 
 const OwnerProfile =
   mongoose.models.OwnerProfile ||

@@ -1,23 +1,7 @@
-// "use server";
-
-// export default async function page() {
-//   return (
-//     <div className="min-h-screen flex flex-col md:flex-row bg-white">
-//       {/* <Sidebar /> */}
-
-//       <div className="w-full md:w-7/12 flex items-center justify-center p-6 md:p-20 bg-white">
-
-//         {/* <OnboardingSteps /> */}
-
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client";
 
 import type React from "react";
-import { useState, useCallback, useEffect, use } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -37,6 +21,7 @@ import {
   X,
   IndianRupee,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -105,13 +90,11 @@ export interface OnboardingData {
 }
 
 export interface OnboardingErrors {
-  // Auth errors
   email: boolean;
   password: boolean;
   confirmPassword: boolean;
   fullName: boolean;
   authPhone: boolean;
-  // Identity errors
   aadhaar: boolean;
   phone: boolean;
   documents: boolean;
@@ -123,7 +106,6 @@ export interface OnboardingErrors {
     state: boolean;
     pincode: boolean;
   };
-  // Bank details errors
   accountNumber: boolean;
   ifscCode: boolean;
   accountHolderName: boolean;
@@ -135,13 +117,11 @@ export interface OnboardingErrors {
 
 // Initial states
 const initialErrors: OnboardingErrors = {
-  // Auth errors
   email: false,
   password: false,
   confirmPassword: false,
   fullName: false,
   authPhone: false,
-  // Identity errors
   aadhaar: false,
   phone: false,
   documents: false,
@@ -153,7 +133,6 @@ const initialErrors: OnboardingErrors = {
     state: false,
     pincode: false,
   },
-  // Bank details errors
   accountNumber: false,
   ifscCode: false,
   accountHolderName: false,
@@ -210,7 +189,7 @@ interface StepperProps {
 
 const steps = [
   { id: 1, title: "Authentication", subtitle: "Sign up or log in" },
-  { id: 2, title: "Identity Info", subtitle: "Aadhaar, phone, documents" },
+  { id: 2, title: "Basic Info", subtitle: "Phone & address" },
   { id: 3, title: "Bank Details", subtitle: "Account information (optional)" },
   { id: 4, title: "Confirmation", subtitle: "Review & submit" },
 ];
@@ -233,7 +212,6 @@ function Stepper({
   if (orientation === "horizontal") {
     return (
       <div className="w-full">
-        {/* Progress bar */}
         <div className="relative mb-4">
           <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200">
             <motion.div
@@ -247,22 +225,22 @@ function Stepper({
           </div>
 
           <div className="relative flex justify-around pt-1 gap-4">
-            {steps.map((step, index) => (
+            {steps.map((step) => (
               <div
                 key={step.id}
-                className="flex flex-col justify-start items-center  "
+                className="flex flex-col justify-start items-center"
               >
-                <div className="flex  ">
+                <div className="flex">
                   <button
                     // onClick={() =>
                     //   isStepClickable(step.id) && onStepClick(step.id)
                     // }
                     className={cn(
-                      "relative flex items-center  justify-center w-8 h-8 rounded-full ",
+                      "relative flex items-center justify-center w-8 h-8 rounded-full",
                       isStepCompleted(step.id)
-                        ? " bg-green-500 text-white"
+                        ? "bg-green-500 text-white"
                         : isStepActive(step.id)
-                        ? " text-white bg-HG-400"
+                        ? "text-white bg-HG-400"
                         : "bg-white text-gray-500",
                       isStepClickable(step.id)
                         ? "cursor-pointer"
@@ -279,13 +257,13 @@ function Stepper({
                   </button>
                 </div>
 
-                <div className=" leading-none ">
+                <div className="leading-none">
                   <button
                     // onClick={() =>
                     //   isStepClickable(step.id) && onStepClick(step.id)
                     // }
                     className={cn(
-                      "text-left  transition-all duration-200 group",
+                      "text-left transition-all duration-200 group",
                       isStepClickable(step.id)
                         ? "cursor-pointer"
                         : "cursor-not-allowed"
@@ -293,7 +271,7 @@ function Stepper({
                   >
                     <h3
                       className={cn(
-                        "text-xs text-center font-poppins font-thin tracking-tighter transition-colors  pt-2",
+                        "text-xs text-center font-poppins font-thin tracking-tighter transition-colors pt-2",
                         isStepActive(step.id)
                           ? "text-HG-400"
                           : isStepCompleted(step.id)
@@ -321,11 +299,11 @@ function Stepper({
             <button
               // onClick={() => isStepClickable(step.id) && onStepClick(step.id)}
               className={cn(
-                "relative flex items-center justify-center w-8 h-8 rounded-full ",
+                "relative flex items-center justify-center w-8 h-8 rounded-full",
                 isStepCompleted(step.id)
-                  ? " bg-green-500/80 text-white"
+                  ? "bg-green-500/80 text-white"
                   : isStepActive(step.id)
-                  ? " text-white bg-HG-400"
+                  ? "text-white bg-HG-400"
                   : "bg-white text-gray-500",
                 isStepClickable(step.id)
                   ? "cursor-pointer"
@@ -402,7 +380,6 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const fetchOwnerStatus = async () => {
-      // If no user, start with auth step
       if (!user) {
         setCurrentStep("auth");
         return;
@@ -424,7 +401,6 @@ export default function OnboardingPage() {
           setCurrentStep("identity");
         }
       } catch (error) {
-        // If there's an error and no user, go to auth
         if (!user) {
           setCurrentStep("auth");
         }
@@ -560,8 +536,6 @@ export default function OnboardingPage() {
     });
   };
 
-  // Step submissions
-  // OTP handling functions
   const handleOTPChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -569,7 +543,6 @@ export default function OnboardingPage() {
     newOtp[index] = value;
     updateOnboardingData("auth", { otp: newOtp });
 
-    // Auto focus next input
     if (value && index < 4) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       if (nextInput) nextInput.focus();
@@ -591,9 +564,7 @@ export default function OnboardingPage() {
 
     try {
       if (onboardingData.auth.isNewUser) {
-        // Handle signup
         if (!onboardingData.auth.showOTP) {
-          // First, validate signup data
           if (
             !onboardingData.auth.email ||
             !onboardingData.auth.password ||
@@ -618,7 +589,6 @@ export default function OnboardingPage() {
             return;
           }
 
-          // Send signup request
           const res = await axios.post("/api/auth/register", {
             email: onboardingData.auth.email,
             password: onboardingData.auth.password,
@@ -636,7 +606,6 @@ export default function OnboardingPage() {
             }));
           }
         } else {
-          // Verify OTP
           const otpString = onboardingData.auth.otp.join("");
           if (otpString.length !== 5) {
             setErrors((prev) => ({
@@ -666,7 +635,6 @@ export default function OnboardingPage() {
           }
         }
       } else {
-        // Handle login
         if (!onboardingData.auth.email || !onboardingData.auth.password) {
           setErrors((prev) => ({
             ...prev,
@@ -704,21 +672,38 @@ export default function OnboardingPage() {
   const submitIdentityStep = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const validationErrors = validateIdentity(onboardingData.identity);
+    // Validate only required fields: phone and address
+    if (!onboardingData.identity.phone) {
+      setErrors((prev) => ({
+        ...prev,
+        phone: true,
+        general: "Phone number is required",
+      }));
+      return;
+    }
+
     if (
-      Object.values(validationErrors).some(
-        (v) =>
-          v === true ||
-          (typeof v === "object" && Object.values(v).some(Boolean))
-      )
+      !onboardingData.identity.address.street ||
+      !onboardingData.identity.address.city ||
+      !onboardingData.identity.address.state ||
+      !onboardingData.identity.address.pincode
     ) {
-      setErrors((prev) => ({ ...prev, ...validationErrors }));
+      setErrors((prev) => ({
+        ...prev,
+        address: {
+          street: !onboardingData.identity.address.street,
+          city: !onboardingData.identity.address.city,
+          state: !onboardingData.identity.address.state,
+          pincode: !onboardingData.identity.address.pincode,
+        },
+        general: "Please fill all address fields",
+      }));
       return;
     }
 
     clearErrors();
     setIsLoading(true);
-    const loadingToast = toast.loading("Uploading documents...", {
+    const loadingToast = toast.loading("Saving your information...", {
       closeButton: true,
     });
 
@@ -736,7 +721,7 @@ export default function OnboardingPage() {
       );
 
       const res = await axios.post("/api/owner/register", {
-        aadhaarNumber: onboardingData.identity.aadhaar,
+        aadhaarNumber: onboardingData.identity.aadhaar || "",
         phone: onboardingData.identity.phone,
         aadhaarFront: aadhaarFrontBase64,
         aadhaarBack: aadhaarBackBase64,
@@ -747,17 +732,13 @@ export default function OnboardingPage() {
         documents: documentsBase64,
       });
 
-
       toast.dismiss(loadingToast);
 
       if (res?.data?.success) {
-        toast.success(res.data.message || "Owner profile created!", {
+        toast.success(res.data.message || "Information saved!", {
           duration: 3000,
           closeButton: true,
         });
-
-        // Proceed to next step
-        // setCurrentStep("bank-details");
         goToNextStep();
       } else {
         toast.error(res.data?.message || "Something went wrong", {
@@ -771,13 +752,13 @@ export default function OnboardingPage() {
       }
     } catch (error) {
       toast.dismiss(loadingToast);
-      toast.error("Failed to submit identity. Try again.", {
+      toast.error("Failed to submit information. Try again.", {
         duration: 3000,
         closeButton: true,
       });
       setErrors((prev) => ({
         ...prev,
-        general: "Failed to submit identity. Try again.",
+        general: "Failed to submit information. Try again.",
       }));
     } finally {
       setIsLoading(false);
@@ -834,10 +815,8 @@ export default function OnboardingPage() {
     setIsLoading(true);
 
     try {
-      // Make API call to update user status to pending
       const res = await axios.post("/api/owner/saveBankDetails", {
         userId: user?.id,
-        // Send empty bank details to indicate skipping
         accountNumber: "",
         ifscCode: "",
         accountHolderName: "",
@@ -846,7 +825,6 @@ export default function OnboardingPage() {
       });
 
       if (res?.data?.success) {
-        // Update user status locally
         if (user) {
           const updatedUser = {
             ...user,
@@ -1015,6 +993,7 @@ export default function OnboardingPage() {
   //     setIsLoading(false);
   //   }
   // };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
     const existingFiles = onboardingData.identity.documents;
@@ -1122,7 +1101,6 @@ export default function OnboardingPage() {
             {!onboardingData.auth.showOTP ? (
               <form onSubmit={submitAuthStep}>
                 <motion.div variants={containerVariants} className="space-y-4">
-                  {/* Toggle between signup and login */}
                   <motion.div
                     variants={itemVariants}
                     className="flex gap-2 p-1 bg-gray-100 rounded-lg"
@@ -1316,53 +1294,49 @@ export default function OnboardingPage() {
               variants={itemVariants}
               className="md:text-[22px] font-normal text-gray-900 mb-1 font-poppins"
             >
-              Step 2: Let&apos;s verify your identity
+              Step 2: Basic Information
             </motion.h2>
             <motion.p
               variants={itemVariants}
               className="text-xs md:text-[15px] text-gray-500 mb-8 md:mb-10 font-inter"
             >
-              Enter your phone, Aadhaar number, and optionally upload ID
-              documents
+              Enter your phone and address. You can add Aadhaar & documents
+              later from your profile.
             </motion.p>
 
             <ErrorMessage message={errors.general} />
 
             <form onSubmit={submitIdentityStep}>
               <motion.div variants={containerVariants} className="space-y-4">
-                <div className="flex gap-4 w-full flex-col md:flex-row">
-                  <FormInput
-                    id="aadhaar"
-                    label="Aadhaar Number"
-                    type="text"
-                    value={onboardingData.identity.aadhaar}
-                    onChange={(value) =>
-                      updateOnboardingData("identity", {
-                        aadhaar: value.replace(/\D/g, ""),
-                      })
-                    }
-                    placeholder="1234 5678 9012"
-                    icon={CreditCard}
-                    hasError={errors.aadhaar}
+                <FormInput
+                  id="phone"
+                  label="Phone Number *"
+                  type="tel"
+                  value={onboardingData.identity.phone}
+                  onChange={(value) =>
+                    updateOnboardingData("identity", {
+                      phone: value.replace(/\D/g, ""),
+                    })
+                  }
+                  placeholder="9876543210"
+                  icon={Phone}
+                  hasError={errors.phone}
+                />
 
-                    // required
-                  />
-
-                  <FormInput
-                    id="phone"
-                    label="Phone Number"
-                    type="tel"
-                    value={onboardingData.identity.phone}
-                    onChange={(value) =>
-                      updateOnboardingData("identity", {
-                        phone: value.replace(/\D/g, ""),
-                      })
-                    }
-                    placeholder="9876543210"
-                    icon={Phone}
-                    hasError={errors.phone}
-                  />
-                </div>
+                <FormInput
+                  id="aadhaar"
+                  label="Aadhaar Number (Optional)"
+                  type="text"
+                  value={onboardingData.identity.aadhaar}
+                  onChange={(value) =>
+                    updateOnboardingData("identity", {
+                      aadhaar: value.replace(/\D/g, ""),
+                    })
+                  }
+                  placeholder="1234 5678 9012 (can add later)"
+                  icon={CreditCard}
+                  hasError={errors.aadhaar}
+                />
 
                 <motion.div variants={itemVariants} className="flex gap-4">
                   <div className="relative w-[65vw] h-[25vw] md:h-[45vw] max-w-[300px] max-h-[150px] overflow-hidden">
@@ -1402,7 +1376,7 @@ export default function OnboardingPage() {
                         >
                           <Upload className="w-4 h-4 md:w-6 md:h-6 text-gray-400 mx-auto " />
                           <p className="text-xs md:text-sm text-gray-600 ">
-                            Upload aadhaar front
+                            Upload aadhaar front (optional)
                           </p>
                         </div>
                       )}
@@ -1438,14 +1412,14 @@ export default function OnboardingPage() {
                       ) : (
                         <div
                           className={`flex gap-2 text-xs md:text-base  flex-col justify-center items-center h-full bg-HG-400/10  border-2 border-dashed  rounded-lg   text-center hover:border-gray-400 transition-colors ${
-                            errors.aadharFront
+                            errors.aadharBack
                               ? "border-red-400"
                               : "border-gray-300"
                           }`}
                         >
                           <Upload className="w-4 h-4 md:w-6 md:h-6 text-gray-400 mx-auto " />
                           <p className="text-xs md:text-sm text-gray-600 ">
-                            Upload aadhaar back
+                            Upload aadhaar back (optional)
                           </p>
                         </div>
                       )}
@@ -1454,8 +1428,8 @@ export default function OnboardingPage() {
                 </motion.div>
 
                 <FormInput
-                  id="area"
-                  label="Street Address"
+                  id="street"
+                  label="Street Address *"
                   type="text"
                   value={onboardingData.identity.address.street}
                   onChange={(value) =>
@@ -1466,37 +1440,15 @@ export default function OnboardingPage() {
                       },
                     })
                   }
-                  placeholder="sector 10"
+                  placeholder="Sector 10, Near Market"
                   icon={MapPin}
                   hasError={errors.address.street}
-
-                  // required
                 />
 
-                <div className="flex gap-4 w-full flex-col md:flex-row">
-                  <FormInput
-                    id="state"
-                    label="State"
-                    type="text"
-                    value={onboardingData.identity.address.state}
-                    onChange={(value) =>
-                      updateOnboardingData("identity", {
-                        address: {
-                          ...onboardingData.identity.address,
-                          state: value,
-                        },
-                      })
-                    }
-                    placeholder="Punjab"
-                    icon={Building}
-                    hasError={errors.address.state}
-
-                    // required
-                  />
-
+                <div className="grid grid-cols-2 gap-4">
                   <FormInput
                     id="city"
-                    label="City"
+                    label="City *"
                     type="text"
                     value={onboardingData.identity.address.city}
                     onChange={(value) =>
@@ -1510,35 +1462,50 @@ export default function OnboardingPage() {
                     placeholder="Chandigarh"
                     icon={Map}
                     hasError={errors.address.city}
-                    // required
                   />
+
                   <FormInput
-                    id="pincode"
-                    label="Pincode"
+                    id="state"
+                    label="State *"
                     type="text"
-                    value={onboardingData.identity.address.pincode}
+                    value={onboardingData.identity.address.state}
                     onChange={(value) =>
                       updateOnboardingData("identity", {
                         address: {
                           ...onboardingData.identity.address,
-                          pincode: value,
+                          state: value,
                         },
                       })
                     }
-                    placeholder="123456"
-                    icon={Hash}
-                    hasError={errors.address.pincode}
-
-                    // required
+                    placeholder="Punjab"
+                    icon={Building}
+                    hasError={errors.address.state}
                   />
                 </div>
+
+                <FormInput
+                  id="pincode"
+                  label="Pincode *"
+                  type="text"
+                  value={onboardingData.identity.address.pincode}
+                  onChange={(value) =>
+                    updateOnboardingData("identity", {
+                      address: {
+                        ...onboardingData.identity.address,
+                        pincode: value.replace(/\D/g, ""),
+                      },
+                    })
+                  }
+                  placeholder="160017"
+                  icon={Hash}
+                  hasError={errors.address.pincode}
+                />
 
                 <motion.div variants={itemVariants}>
                   <label className="text-[14px] font-normal text-gray-700 mb-1.5 block">
                     Upload Additional Documents (optional)
                   </label>
 
-                  {/* Make this label clickable to trigger file input */}
                   <label
                     htmlFor="document-upload"
                     className="cursor-pointer border-2 border-dashed border-gray-300 bg-HG-400/10 rounded-lg flex items-center justify-between gap-2 px-4 py-2 text-center hover:border-gray-400 transition-colors"
@@ -1555,7 +1522,7 @@ export default function OnboardingPage() {
                     accept=".pdf,.jpg,.jpeg,.png"
                     onChange={handleFileUpload}
                     className="hidden"
-                    id="document-upload" // matched with label's htmlFor
+                    id="document-upload"
                   />
 
                   {onboardingData.identity.documents.length > 0 && (
@@ -1591,15 +1558,27 @@ export default function OnboardingPage() {
                     </>
                   )}
                 </motion.div>
+
+                <motion.div
+                  variants={itemVariants}
+                  className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Complete profile later</p>
+                      <p>
+                        Aadhaar card upload and additional documents can be
+                        added anytime from your dashboard → Profile section.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
 
               <motion.div variants={itemVariants} className="pt-5">
-                <LoadingButton
-                  type="submit"
-                  isLoading={isLoading}
-                  loadingText=""
-                >
-                  Continue
+                <LoadingButton type="submit" isLoading={isLoading}>
+                  Continue → Bank Details (Optional)
                 </LoadingButton>
               </motion.div>
             </form>
@@ -1607,74 +1586,74 @@ export default function OnboardingPage() {
         );
 
       // case "phone-otp":
-      // return (
-      //   <div className="bg-white rounded-lg  border-gray-200 p-8">
-      //     <motion.div
-      //       initial="hidden"
-      //       animate="visible"
-      //       variants={containerVariants}
-      //     >
-      //       <motion.div variants={itemVariants} className="mb-8 text-center">
-      //         <h2 className="text-[22px] font-normal text-gray-900 mb-2">
-      //           Step 2: Verify your phone number
-      //         </h2>
-      //         <p className="text-[15px] text-gray-500">
-      //           We've sent a 5-digit code to +91{" "}
-      //           {onboardingData.identity.phone}. Enter it below to continue.
-      //         </p>
-      //       </motion.div>
-
-      //       <ErrorMessage message={errors.general} />
-
-      //       <form>
-      //         {/* <form onSubmit={submitPhoneOTP}> */}
-      //         <motion.div variants={containerVariants} className="space-y-6">
-      //           <OTPInput
-      //             otp={otp}
-      //             onChange={handleOTPChange}
-      //             onKeyDown={handleOTPKeyDown}
-      //           />
-
-      //           <motion.div variants={itemVariants} className="pt-2">
-      //             <LoadingButton
-      //               type="submit"
-      //               isLoading={isLoading}
-      //               loadingText="Verifying"
-      //               disabled={!isOTPComplete || otp.some((digit) => !digit)}
-      //             >
-      //               Verify & Continue
-      //             </LoadingButton>
-      //           </motion.div>
-
-      //           <motion.div variants={itemVariants} className="text-center">
-      //             <p className="text-[14px] text-gray-500">
-      //               Didn&apos;t receive the code?{" "}
-      //               {isTimerExpired ? (
-      //                 <motion.button
-      //                   type="button"
-      //                   // onClick={resendOTP}
-      //                   whileHover={{ scale: 1.02 }}
-      //                   whileTap={{ scale: 0.98 }}
-      //                   className="font-normal text-gray-900 hover:text-gray-700 transition-colors"
-      //                 >
-      //                   Resend code
-      //                 </motion.button>
-      //               ) : (
-      //                 <span className="font-normal text-gray-500">
-      //                   Resend code in {formatTimer(timer)}
-      //                 </span>
-      //               )}
-      //             </p>
-      //           </motion.div>
+      //   return (
+      //     <div className="bg-white rounded-lg  border-gray-200 p-8">
+      //       <motion.div
+      //         initial="hidden"
+      //         animate="visible"
+      //         variants={containerVariants}
+      //       >
+      //         <motion.div variants={itemVariants} className="mb-8 text-center">
+      //           <h2 className="text-[22px] font-normal text-gray-900 mb-2">
+      //             Step 2: Verify your phone number
+      //           </h2>
+      //           <p className="text-[15px] text-gray-500">
+      //             We've sent a 5-digit code to +91{" "}
+      //             {onboardingData.identity.phone}. Enter it below to continue.
+      //           </p>
       //         </motion.div>
-      //       </form>
-      //     </motion.div>
-      //   </div>
-      // );
+
+      //         <ErrorMessage message={errors.general} />
+
+      //         <form>
+      //           {/* <form onSubmit={submitPhoneOTP}> */}
+      //           <motion.div variants={containerVariants} className="space-y-6">
+      //             <OTPInput
+      //               otp={otp}
+      //               onChange={handleOTPChange}
+      //               onKeyDown={handleOTPKeyDown}
+      //             />
+
+      //             <motion.div variants={itemVariants} className="pt-2">
+      //               <LoadingButton
+      //                 type="submit"
+      //                 isLoading={isLoading}
+      //                 loadingText="Verifying"
+      //                 disabled={!isOTPComplete || otp.some((digit) => !digit)}
+      //               >
+      //                 Verify & Continue
+      //               </LoadingButton>
+      //             </motion.div>
+
+      //             <motion.div variants={itemVariants} className="text-center">
+      //               <p className="text-[14px] text-gray-500">
+      //                 Didn&apos;t receive the code?{" "}
+      //                 {isTimerExpired ? (
+      //                   <motion.button
+      //                     type="button"
+      //                     // onClick={resendOTP}
+      //                     whileHover={{ scale: 1.02 }}
+      //                     whileTap={{ scale: 0.98 }}
+      //                     className="font-normal text-gray-900 hover:text-gray-700 transition-colors"
+      //                   >
+      //                     Resend code
+      //                   </motion.button>
+      //                 ) : (
+      //                   <span className="font-normal text-gray-500">
+      //                     Resend code in {formatTimer(timer)}
+      //                   </span>
+      //                 )}
+      //               </p>
+      //             </motion.div>
+      //           </motion.div>
+      //         </form>
+      //       </motion.div>
+      //     </div>
+      //   );
 
       case "bank-details":
         return (
-          <div className="bg-white rounded-lg  ">
+          <div className="bg-white rounded-lg">
             <motion.div
               initial="hidden"
               animate="visible"
@@ -1684,7 +1663,7 @@ export default function OnboardingPage() {
                 <h2 className="md:text-[22px] font-normal text-gray-900 mb-1">
                   Step 3: Bank account details (Optional)
                 </h2>
-                <p className=" text-xs md:text-[15px] text-gray-500">
+                <p className="text-xs md:text-[15px] text-gray-500">
                   Enter your bank account information for payments, or skip to
                   add later
                 </p>
@@ -1692,7 +1671,6 @@ export default function OnboardingPage() {
 
               <ErrorMessage message={errors.general} />
 
-              {/* <form> */}
               <form onSubmit={submitBankDetails}>
                 <motion.div variants={containerVariants} className="space-y-4">
                   <div className="flex gap-4 w-full flex-col md:flex-row">
@@ -1796,9 +1774,10 @@ export default function OnboardingPage() {
             </motion.div>
           </div>
         );
+
       case "confirmation":
         return (
-          <div className="bg-white rounded-lg ">
+          <div className="bg-white rounded-lg">
             <motion.div
               initial="hidden"
               animate="visible"
@@ -1814,7 +1793,7 @@ export default function OnboardingPage() {
                 <h2 className="md:text-[22px] font-normal text-gray-900 mb-2 font-poppins">
                   Step 4: Application Submitted Successfully!
                 </h2>
-                <p className=" text-xs md:text-[15px] text-gray-500  font-poppins">
+                <p className="text-xs md:text-[15px] text-gray-500 font-poppins">
                   Your onboarding application is now under review
                 </p>
               </motion.div>
@@ -1830,7 +1809,7 @@ export default function OnboardingPage() {
                       <h3 className="text-sm font-medium text-yellow-800 mb-1">
                         Admin Approval Pending
                       </h3>
-                      <p className=" text-xs md:text-sm text-yellow-700">
+                      <p className="text-xs md:text-sm text-yellow-700">
                         Our team will review your application within 24-48
                         hours. You&apos;ll receive an email notification once
                         approved.
@@ -1846,7 +1825,7 @@ export default function OnboardingPage() {
                   <h3 className="text-sm font-medium text-blue-800 mb-4 md:mb-2">
                     What happens next?
                   </h3>
-                  <ul className=" text-xs md:text-sm text-blue-700 space-y-1">
+                  <ul className="text-xs md:text-sm text-blue-700 space-y-1">
                     <li className="flex items-center">
                       <Mail className="w-4 h-4 mr-4 md:mr-2 flex-shrink-0" />
                       You&apos;ll receive email updates on your application
@@ -1869,7 +1848,7 @@ export default function OnboardingPage() {
                   onClick={() => {
                     router.replace("/");
                   }}
-                  className="w-full  py-6"
+                  className="w-full py-6"
                 >
                   Continue
                 </Button>
@@ -1887,18 +1866,17 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
       <div className="md:hidden bg-HG-400/10 items-center justify-center px-4 pt-4 pb-1">
         <div className="flex items-start justify-start flex-col">
-          <h1 className="text-[18px] font-inter leading-[1.2]  text-gray-600 mb-1">
+          <h1 className="text-[18px] font-inter leading-[1.2] text-gray-600 mb-1">
             Get Started as an Owner
           </h1>
           <p className="text-gray-500 text-[14px] tracking-wide">
             Complete your setup in minutes
           </p>
         </div>
-        <div className="mt-4 ">
+        <div className="mt-4">
           <Stepper
             currentStep={getCurrentStepNumber()}
             completedSteps={completedSteps}
-            // onStepClick={handleStepClick}
             orientation="horizontal"
           />
         </div>
@@ -1924,7 +1902,6 @@ export default function OnboardingPage() {
             <Stepper
               currentStep={getCurrentStepNumber()}
               completedSteps={completedSteps}
-              // onStepClick={handleStepClick}
               orientation="vertical"
             />
           </div>
@@ -1937,7 +1914,7 @@ export default function OnboardingPage() {
           animate="visible"
           exit={{ opacity: 0, x: -20 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="w-full max-w-[600px] "
+          className="w-full max-w-[600px]"
         >
           {renderCurrentStep()}
         </motion.div>
