@@ -1,6 +1,43 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Listing from "@/models/listing";
+import axios from "axios";
+
+// Helper to fetch real-world locations from OpenStreetMap
+async function fetchNominatimSuggestions(query: string) {
+  try {
+    const response = await axios.get(
+      `https://nominatim.openstreetmap.org/search`,
+      {
+        params: {
+          q: `${query}, India`, // Focused on India
+          format: "json",
+          addressdetails: 1,
+          limit: 5,
+          featuretype: "settlement", // Prefer cities/towns/villages
+        },
+        headers: {
+          "User-Agent": "SYPG-App/1.0", // Required by Nominatim
+        },
+      }
+    );
+
+    return response.data.map((place: any) => ({
+      name: place.name || place.display_name.split(",")[0],
+      displayText: place.display_name,
+      type: place.addresstype === "city" ? "city" : "area",
+      city: place.address?.city || place.address?.town || place.address?.village || place.name,
+      state: place.address?.state,
+      count: 0, // External location, count unknown until clicked
+      lat: parseFloat(place.lat),
+      lng: parseFloat(place.lon),
+      isExternal: true, // Flag to identify map results
+    }));
+  } catch (error) {
+    console.error("Nominatim Fetch Error:", error);
+    return [];
+  }
+}
 
 export async function GET(req: Request) {
   try {
@@ -18,8 +55,8 @@ export async function GET(req: Request) {
     }
 
     const search = q.toLowerCase();
-
-    // Create flexible regex for better matching (handles "vijaynagar" → "Vijay Nagar")
+    
+    // Create flexible regex
     const normalizedSearch = search.replace(/\s+/g, "");
     const flexiblePattern = normalizedSearch
       .split("")
@@ -27,115 +64,41 @@ export async function GET(req: Request) {
       .join("\\s*");
     const flexibleRegex = new RegExp(flexiblePattern, "i");
 
-    // 1) Get distinct locations (city + area) from active/approved listings
-    const locationsAgg = await Listing.aggregate([
-      {
-        $match: {
+    // PARALLEL EXECUTION: 
+    // 1. Search DB for matching Property Names
+    // 2. Search OpenStreetMap for matching Location Names
+    const [properties, mapLocations] = await Promise.all([
+      Listing.find(
+        {
           isActive: true,
           isApproved: true,
           $or: [
-            { "location.city": { $regex: flexibleRegex } },
-            { "location.area": { $regex: flexibleRegex } },
+            { pgName: { $regex: flexibleRegex } },
+            { "location.area": { $regex: flexibleRegex } }, // Also match DB areas
           ],
         },
-      },
-      {
-        $group: {
-          _id: {
-            city: "$location.city",
-            area: "$location.area",
-            state: "$location.state",
-          },
-          count: { $sum: 1 },
-          // Get first listing's coordinates for this location
-          sampleCoordinates: { $first: "$location.coordinates.coordinates" },
-        },
-      },
-      { $sort: { count: -1 } }, // Sort by number of listings
-      { $limit: limit },
-      {
-        $project: {
-          _id: 0,
-          city: "$_id.city",
-          area: "$_id.area",
-          state: "$_id.state",
-          count: 1,
-          coordinates: "$sampleCoordinates",
-        },
-      },
+        {
+          _id: 1,
+          slug: 1,
+          pgName: 1,
+          type: 1,
+          subType: 1,
+          genderPreference: 1,
+          location: 1,
+          primaryImage: 1,
+          roomTypes: 1,
+          isFeatured: 1,
+          createdAt: 1,
+        }
+      )
+        .sort({ isFeatured: -1, createdAt: -1 })
+        .limit(5)
+        .lean(),
+
+      fetchNominatimSuggestions(q),
     ]);
 
-    console.log("📊 Locations aggregation result:", JSON.stringify(locationsAgg, null, 2));
-
-    // Format locations for frontend
-    const locations = locationsAgg.map((loc: any) => {
-      const displayText = loc.area
-        ? `${loc.area}, ${loc.city}`
-        : `${loc.city}, ${loc.state}`;
-
-      const type: "city" | "area" =
-        loc.area && loc.area.toLowerCase() !== loc.city.toLowerCase()
-          ? "area"
-          : "city";
-
-      // Extract lat/lng from coordinates array [lng, lat]
-      let lat = null;
-      let lng = null;
-      
-      if (loc.coordinates && Array.isArray(loc.coordinates) && loc.coordinates.length === 2) {
-        lng = loc.coordinates[0]; // MongoDB stores as [lng, lat]
-        lat = loc.coordinates[1];
-      }
-
-      console.log(`📍 Location: ${displayText}`, { 
-        rawCoords: loc.coordinates, 
-        extractedLat: lat, 
-        extractedLng: lng 
-      });
-
-      return {
-        name: loc.city,
-        displayText,
-        type,
-        city: loc.city,
-        area: loc.area,
-        state: loc.state,
-        count: loc.count,
-        // Include coordinates if available
-        lat,
-        lng,
-      };
-    });
-
-    // 2) Get matching properties
-    const properties = await Listing.find(
-      {
-        isActive: true,
-        isApproved: true,
-        $or: [
-          { pgName: { $regex: flexibleRegex } },
-          { "location.area": { $regex: flexibleRegex } },
-          { "location.city": { $regex: flexibleRegex } },
-        ],
-      },
-      {
-        _id: 1,
-        slug: 1,
-        pgName: 1,
-        type: 1,
-        subType: 1,
-        genderPreference: 1,
-        location: 1,
-        primaryImage: 1,
-        roomTypes: 1,
-        isFeatured: 1,
-        createdAt: 1,
-      }
-    )
-      .sort({ isFeatured: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
-
+    // Format Properties
     const formattedProperties = properties.map((p: any) => ({
       ...p,
       minRent:
@@ -145,19 +108,17 @@ export async function GET(req: Request) {
       propertyType: "property" as const,
     }));
 
-    console.log("✅ Suggestions response:", {
-      locationsCount: locations.length,
-      propertiesCount: formattedProperties.length,
-      firstLocation: locations[0],
-    });
+    // Combine Map Locations (Priority) + Existing DB Locations (Fallback)
+    // We prioritize Map results because they have real coordinates
+    const combinedLocations = [...mapLocations];
 
     return NextResponse.json({
       success: true,
       data: {
         properties: formattedProperties,
-        locations,
+        locations: combinedLocations,
         query: q,
-        total: formattedProperties.length + locations.length,
+        total: formattedProperties.length + combinedLocations.length,
       },
     });
   } catch (error: any) {

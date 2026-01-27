@@ -20,9 +20,7 @@ import { Input } from "./ui/input";
 import { Search, X, Filter, MapPin } from "lucide-react";
 import { useAdvancedFilters } from "@/hooks/useAdvancedFilters";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import AdvancedFilter from "./AdvancedFilter";
 import { Badge } from "./ui/badge";
-import SearchDropdown from "./SearchDropdown";
 import EnhancedSearchDropdown from "./EnhancedSearchDropdown";
 
 const NavBar = () => {
