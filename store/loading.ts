@@ -3,13 +3,12 @@ import { create } from "zustand";
 // Define all container loading keys here
 export type ContainerKey =
   | "homeContainer"
-  // | "profileSidebar"
-  // | "reviewSection"
   | "ownerListings"
   | "pgDetails"
   | "userFavorites"
   | "visitRequests"
-  | "ownerVisitRequests";
+  | "ownerVisitRequests"
+  | "roomAllocation";
 
 type LoadingState = {
   isLoading: boolean;
@@ -24,12 +23,11 @@ export const useLoadingStore = create<LoadingState>((set) => ({
   containerLoading: {
     homeContainer: true,
     ownerListings: true,
-    // profileSidebar: false,
-    // reviewSection: false,
     pgDetails: true,
     userFavorites: true,
     visitRequests: true,
     ownerVisitRequests: true,
+    roomAllocation: true,
   },
   setLoading: (value) => set({ isLoading: value }),
   setContainerLoading: (key, value) =>
@@ -41,12 +39,11 @@ export const useLoadingStore = create<LoadingState>((set) => ({
       containerLoading: {
         homeContainer: false,
         ownerListings: false,
-        // profileSidebar: false,
-        // reviewSection: false,
         pgDetails: false,
         userFavorites: false,
         visitRequests: false,
         ownerVisitRequests: false,
+        roomAllocation: false,
       },
     }),
 }));

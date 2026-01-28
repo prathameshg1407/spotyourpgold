@@ -80,78 +80,6 @@ export interface TicketMessage {
   createdAt: string;
 }
 
-// Mock data
-export const mockUser: User = {
-  id: "1",
-  name: "John Doe",
-  email: "john@example.com",
-  role: "admin",
-};
-
-export const mockPGListings: PGListing[] = [
-  {
-    id: "1",
-    name: "Cozy Downtown PG",
-    ownerId: "2",
-    location: "Mumbai, Maharashtra",
-    rent: 15000,
-    amenities: ["WiFi", "AC", "Laundry", "Kitchen"],
-    rules: ["No smoking", "No pets", "Quiet hours 10 PM - 7 AM"],
-    images: ["/placeholder.svg?height=200&width=300"],
-    featured: true,
-    status: "active",
-    createdAt: "2024-01-15",
-    geolocation: { lat: 19.076, lng: 72.8777 },
-  },
-  {
-    id: "2",
-    name: "Student Friendly PG",
-    ownerId: "3",
-    location: "Pune, Maharashtra",
-    rent: 12000,
-    amenities: ["WiFi", "Study Room", "Mess", "Security"],
-    rules: ["Students only", "No visitors after 9 PM"],
-    images: ["/placeholder.svg?height=200&width=300"],
-    featured: false,
-    status: "active",
-    createdAt: "2024-01-20",
-    geolocation: { lat: 18.5204, lng: 73.8567 },
-  },
-];
-
-export const mockBookings: Booking[] = [
-  {
-    id: "1",
-    userId: "1",
-    pgId: "1",
-    checkIn: "2024-02-01",
-    checkOut: "2024-02-28",
-    status: "confirmed",
-    amount: 15000,
-  },
-];
-
-export const mockReviews: Review[] = [
-  {
-    id: "1",
-    userId: "1",
-    pgId: "1",
-    rating: 4,
-    comment: "Great place to stay, very clean and well-maintained.",
-    createdAt: "2024-01-25",
-  },
-];
-
-export const mockOwnerRequests: OwnerRequest[] = [
-  {
-    id: "1",
-    userId: "4",
-    documents: ["aadhar.pdf", "pan.pdf", "property_papers.pdf"],
-    status: "pending",
-    submittedAt: "2024-01-30",
-  },
-];
-
 // Navigation items for different roles
 export const getNavigationItems = (role: UserRole): NavItem[] => {
   const baseItems: NavItem[] = [
@@ -162,6 +90,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "user":
       return [
         ...baseItems,
+        {
+          name: "My Room",
+          href: "/routes/dashboard/user/my-room",
+          icon: "Home",
+        },
         {
           name: "Visit Requests",
           href: "/routes/dashboard/user/visit-requests",
@@ -215,6 +148,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
         {
           name: "Room Management",
           href: "/routes/dashboard/owners/room-management",
+          icon: "Bed",
+        },
+        {
+          name: "Room Allocation",
+          href: "/routes/dashboard/owners/room-allocation",
           icon: "Bed",
         },
         {
@@ -303,6 +241,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Bed",
         },
         {
+          name: "Room Allocation",
+          href: "/routes/dashboard/owners/room-allocation",
+          icon: "Bed",
+        },
+        {
           name: "Favorites",
           href: "/routes/dashboard/admin/favorites",
           icon: "Heart",
@@ -316,32 +259,32 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
 
 // Statistics functions
 export const getUserStats = () => ({
-  totalBookings: 5,
-  activeBookings: 2,
-  totalReviews: 8,
-  favoritesPGs: 12,
+  totalBookings: 0,
+  activeBookings: 0,
+  totalReviews: 0,
+  favoritesPGs: 0,
 });
 
 export const getOwnerStats = () => ({
-  totalListings: 3,
-  activeListings: 2,
-  featuredListings: 1,
+  totalListings: 0,
+  activeListings: 0,
+  featuredListings: 0,
   totalRevenue: 0,
   monthlyRevenue: 0,
-  totalReviews: 24,
-  averageRating: 4.2,
-  pendingVisitRequests: 5,
-  totalWishlist: 12,
-  openTickets: 3,
+  totalReviews: 0,
+  averageRating: 0,
+  pendingVisitRequests: 0,
+  totalWishlist: 0,
+  openTickets: 0,
 });
 
 export const getAdminStats = () => ({
-  totalUsers: 1284,
-  totalOwners: 156,
-  totalListings: 342,
-  pendingRequests: 24,
-  monthlyRevenue: 125000,
-  featuredListings: 45,
-  openTickets: 15,
-  escalatedTickets: 3,
+  totalUsers: 0,
+  totalOwners: 0,
+  totalListings: 0,
+  pendingRequests: 0,
+  monthlyRevenue: 0,
+  featuredListings: 0,
+  openTickets: 0,
+  escalatedTickets: 0,
 });
