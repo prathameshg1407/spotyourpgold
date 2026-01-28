@@ -89,7 +89,7 @@ export async function PUT(
     }
 
     const updates = await req.json();
-    
+
     // Update allowed fields
     const allowedUpdates = [
       "roomNumber",

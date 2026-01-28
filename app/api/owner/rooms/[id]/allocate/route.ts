@@ -23,6 +23,7 @@ export async function POST(
     const { id: roomId } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
+      await session.abortTransaction();
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -39,6 +40,7 @@ export async function POST(
 
     // Validate required fields
     if (!bookingId || !bedNumber) {
+      await session.abortTransaction();
       return NextResponse.json(
         { success: false, message: "Booking ID and bed number are required" },
         { status: 400 }

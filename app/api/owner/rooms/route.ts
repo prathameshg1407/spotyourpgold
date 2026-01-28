@@ -112,9 +112,16 @@ export async function POST(req: NextRequest) {
     const {
       listingId,
       roomTypeId,
-      roomType,
       rooms, // Array of room configurations
     } = body;
+
+    // Validate required fields
+    if (!listingId || !roomTypeId || !rooms || rooms.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Missing required fields: listingId, roomTypeId, rooms" },
+        { status: 400 }
+      );
+    }
 
     // Verify ownership
     const listing = await Listing.findById(listingId);
@@ -125,14 +132,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find the room type configuration
+    // Check if listing has roomTypes
+    if (!listing.roomTypes || listing.roomTypes.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Listing has no room types configured. Please add room types first." },
+        { status: 400 }
+      );
+    }
+
+    // Find the room type configuration by _id
     const roomTypeConfig = listing.roomTypes.find(
-      (rt: any) => rt._id.toString() === roomTypeId || rt.type === roomType
+      (rt: any) => rt._id.toString() === roomTypeId
     );
 
     if (!roomTypeConfig) {
       return NextResponse.json(
-        { success: false, message: "Room type not found in listing" },
+        { success: false, message: "Room type not found in listing. Please select a valid room type." },
         { status: 400 }
       );
     }
@@ -176,7 +191,7 @@ export async function POST(req: NextRequest) {
         floor: roomConfig.floor || 0,
         capacity,
         beds,
-        isAC: roomConfig.isAC || roomTypeConfig.isAC || false,
+        isAC: roomConfig.isAC !== undefined ? roomConfig.isAC : roomTypeConfig.isAC,
         hasAttachedBathroom: roomConfig.hasAttachedBathroom || false,
         amenities: roomConfig.amenities || [],
         notes: roomConfig.notes || "",

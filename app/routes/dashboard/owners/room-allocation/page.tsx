@@ -71,6 +71,17 @@ interface Room {
   monthlyRent: number;
 }
 
+interface RoomTypeConfig {
+  _id: string;
+  type: string;
+  isAC: boolean;
+  numberOfRooms: number;
+  availableRooms: number;
+  capacityPerRoom: number;
+  monthlyRent: number;
+  securityDeposit: number;
+}
+
 interface ListingStats {
   _id: string;
   pgName: string;
@@ -78,6 +89,7 @@ interface ListingStats {
     area: string;
     city: string;
   };
+  roomTypes: RoomTypeConfig[];
   totalRooms: number;
   totalBeds: number;
   occupiedBeds: number;
@@ -139,7 +151,7 @@ export default function RoomAllocationPage() {
   // Create room form state
   const [createRoomForm, setCreateRoomForm] = useState({
     listingId: "",
-    roomType: "",
+    roomTypeId: "",
     roomNumber: "",
     floor: 0,
     capacity: 1,
@@ -148,6 +160,8 @@ export default function RoomAllocationPage() {
     monthlyRent: 0,
     securityDeposit: 0,
   });
+
+  const [selectedListingForRoom, setSelectedListingForRoom] = useState<ListingStats | null>(null);
 
   useEffect(() => {
     fetchOccupancyData();
@@ -301,7 +315,7 @@ export default function RoomAllocationPage() {
   };
 
   const handleCreateRoom = async () => {
-    if (!createRoomForm.listingId || !createRoomForm.roomNumber || !createRoomForm.roomType) {
+    if (!createRoomForm.listingId || !createRoomForm.roomNumber || !createRoomForm.roomTypeId) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -310,7 +324,7 @@ export default function RoomAllocationPage() {
     try {
       const res = await axios.post("/api/owner/rooms", {
         listingId: createRoomForm.listingId,
-        roomType: createRoomForm.roomType,
+        roomTypeId: createRoomForm.roomTypeId,
         rooms: [
           {
             roomNumber: createRoomForm.roomNumber,
@@ -330,7 +344,7 @@ export default function RoomAllocationPage() {
         setShowCreateRoomDialog(false);
         setCreateRoomForm({
           listingId: "",
-          roomType: "",
+          roomTypeId: "",
           roomNumber: "",
           floor: 0,
           capacity: 1,
@@ -339,6 +353,7 @@ export default function RoomAllocationPage() {
           monthlyRent: 0,
           securityDeposit: 0,
         });
+        setSelectedListingForRoom(null);
         fetchOccupancyData();
       } else {
         toast.dismiss(loadingToast);
@@ -347,6 +362,33 @@ export default function RoomAllocationPage() {
     } catch (error: any) {
       toast.dismiss(loadingToast);
       toast.error(error.response?.data?.message || "Failed to create room");
+    }
+  };
+
+  const handleListingChangeForRoom = (listingId: string) => {
+    const listing = listingsData.find((l) => l._id === listingId);
+    setSelectedListingForRoom(listing || null);
+    setCreateRoomForm((prev) => ({
+      ...prev,
+      listingId,
+      roomTypeId: "",
+      capacity: 1,
+      monthlyRent: 0,
+      securityDeposit: 0,
+    }));
+  };
+
+  const handleRoomTypeChange = (roomTypeId: string) => {
+    const roomType = selectedListingForRoom?.roomTypes.find((rt) => rt._id === roomTypeId);
+    if (roomType) {
+      setCreateRoomForm((prev) => ({
+        ...prev,
+        roomTypeId,
+        capacity: roomType.capacityPerRoom,
+        isAC: roomType.isAC,
+        monthlyRent: roomType.monthlyRent,
+        securityDeposit: roomType.securityDeposit,
+      }));
     }
   };
 
@@ -641,7 +683,7 @@ export default function RoomAllocationPage() {
                         size="sm"
                         className="mt-3"
                         onClick={() => {
-                          setCreateRoomForm((prev) => ({ ...prev, listingId: listing._id }));
+                          handleListingChangeForRoom(listing._id);
                           setShowCreateRoomDialog(true);
                         }}
                       >
@@ -911,7 +953,7 @@ export default function RoomAllocationPage() {
               <label className="text-sm font-medium">Property *</label>
               <Select
                 value={createRoomForm.listingId}
-                onValueChange={(v) => setCreateRoomForm((prev) => ({ ...prev, listingId: v }))}
+                onValueChange={handleListingChangeForRoom}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select property..." />
@@ -926,6 +968,35 @@ export default function RoomAllocationPage() {
               </Select>
             </div>
 
+            {selectedListingForRoom && selectedListingForRoom.roomTypes.length > 0 && (
+              <div>
+                <label className="text-sm font-medium">Room Type *</label>
+                <Select
+                  value={createRoomForm.roomTypeId}
+                  onValueChange={handleRoomTypeChange}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select room type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedListingForRoom.roomTypes.map((rt) => (
+                      <SelectItem key={rt._id} value={rt._id}>
+                        {rt.type} {rt.isAC ? "(AC)" : "(Non-AC)"} - ₹{rt.monthlyRent.toLocaleString()} - {rt.capacityPerRoom} bed(s)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {selectedListingForRoom && selectedListingForRoom.roomTypes.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ This property has no room types configured. Please add room types in the listing settings first.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Room Number *</label>
@@ -938,28 +1009,6 @@ export default function RoomAllocationPage() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Room Type *</label>
-                <Select
-                  value={createRoomForm.roomType}
-                  onValueChange={(v) =>
-                    setCreateRoomForm((prev) => ({ ...prev, roomType: v }))
-                  }
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">Single</SelectItem>
-                    <SelectItem value="double">Double</SelectItem>
-                    <SelectItem value="triple">Triple</SelectItem>
-                    <SelectItem value="dormitory">Dormitory</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Floor</label>
                 <Input
@@ -974,6 +1023,9 @@ export default function RoomAllocationPage() {
                   className="mt-1"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Capacity (Beds)</label>
                 <Input
@@ -989,9 +1041,6 @@ export default function RoomAllocationPage() {
                   className="mt-1"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Monthly Rent (₹)</label>
                 <Input
@@ -1006,20 +1055,21 @@ export default function RoomAllocationPage() {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Security Deposit (₹)</label>
-                <Input
-                  type="number"
-                  value={createRoomForm.securityDeposit}
-                  onChange={(e) =>
-                    setCreateRoomForm((prev) => ({
-                      ...prev,
-                      securityDeposit: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  className="mt-1"
-                />
-              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Security Deposit (₹)</label>
+              <Input
+                type="number"
+                value={createRoomForm.securityDeposit}
+                onChange={(e) =>
+                  setCreateRoomForm((prev) => ({
+                    ...prev,
+                    securityDeposit: parseInt(e.target.value) || 0,
+                  }))
+                }
+                className="mt-1"
+              />
             </div>
 
             <div className="flex gap-4">
@@ -1054,7 +1104,11 @@ export default function RoomAllocationPage() {
             <Button variant="outline" onClick={() => setShowCreateRoomDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateRoom} className="bg-HG-500 hover:bg-HG-600">
+            <Button 
+              onClick={handleCreateRoom} 
+              className="bg-HG-500 hover:bg-HG-600"
+              disabled={!createRoomForm.listingId || !createRoomForm.roomTypeId || !createRoomForm.roomNumber}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Room
             </Button>
