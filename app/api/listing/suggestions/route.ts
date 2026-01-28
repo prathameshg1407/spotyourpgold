@@ -10,14 +10,14 @@ async function fetchNominatimSuggestions(query: string) {
       `https://nominatim.openstreetmap.org/search`,
       {
         params: {
-          q: `${query}, India`, // Focused on India
+          q: query,
+          countrycodes: "in",
           format: "json",
           addressdetails: 1,
           limit: 5,
-          featuretype: "settlement", // Prefer cities/towns/villages
         },
         headers: {
-          "User-Agent": "SYPG-App/1.0", // Required by Nominatim
+          "User-Agent": "SYPG-App/1.0",
         },
       }
     );
@@ -25,13 +25,12 @@ async function fetchNominatimSuggestions(query: string) {
     return response.data.map((place: any) => ({
       name: place.name || place.display_name.split(",")[0],
       displayText: place.display_name,
-      type: place.addresstype === "city" ? "city" : "area",
+      type: place.addresstype,
       city: place.address?.city || place.address?.town || place.address?.village || place.name,
       state: place.address?.state,
-      count: 0, // External location, count unknown until clicked
       lat: parseFloat(place.lat),
       lng: parseFloat(place.lon),
-      isExternal: true, // Flag to identify map results
+      isExternal: true,
     }));
   } catch (error) {
     console.error("Nominatim Fetch Error:", error);
@@ -45,8 +44,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") || "").trim();
-    const limit = Math.min(Number(searchParams.get("limit") || 8), 20);
-
+    
     if (!q || q.length < 2) {
       return NextResponse.json({
         success: true,
@@ -56,7 +54,7 @@ export async function GET(req: Request) {
 
     const search = q.toLowerCase();
     
-    // Create flexible regex
+    // Flexible Regex
     const normalizedSearch = search.replace(/\s+/g, "");
     const flexiblePattern = normalizedSearch
       .split("")
@@ -64,17 +62,22 @@ export async function GET(req: Request) {
       .join("\\s*");
     const flexibleRegex = new RegExp(flexiblePattern, "i");
 
-    // PARALLEL EXECUTION: 
-    // 1. Search DB for matching Property Names
-    // 2. Search OpenStreetMap for matching Location Names
+    // Define the EXACT base query used in search.ts to match counts
+    const baseMatchQuery = {
+      isActive: true,
+      isApproved: true,
+      type: { $ne: null, $exists: true } // This is the filter that was missing!
+    };
+
+    // 1. Parallel Fetch: Properties from DB + Locations from Maps
     const [properties, mapLocations] = await Promise.all([
       Listing.find(
         {
-          isActive: true,
-          isApproved: true,
+          ...baseMatchQuery, // Use the strict query
           $or: [
             { pgName: { $regex: flexibleRegex } },
-            { "location.area": { $regex: flexibleRegex } }, // Also match DB areas
+            { "location.area": { $regex: flexibleRegex } },
+            { "location.city": { $regex: flexibleRegex } },
           ],
         },
         {
@@ -82,23 +85,20 @@ export async function GET(req: Request) {
           slug: 1,
           pgName: 1,
           type: 1,
-          subType: 1,
-          genderPreference: 1,
           location: 1,
           primaryImage: 1,
           roomTypes: 1,
           isFeatured: 1,
-          createdAt: 1,
         }
       )
         .sort({ isFeatured: -1, createdAt: -1 })
-        .limit(5)
+        .limit(3)
         .lean(),
 
       fetchNominatimSuggestions(q),
     ]);
 
-    // Format Properties
+    // 2. Format Properties
     const formattedProperties = properties.map((p: any) => ({
       ...p,
       minRent:
@@ -108,27 +108,49 @@ export async function GET(req: Request) {
       propertyType: "property" as const,
     }));
 
-    // Combine Map Locations (Priority) + Existing DB Locations (Fallback)
-    // We prioritize Map results because they have real coordinates
-    const combinedLocations = [...mapLocations];
+    // 3. ENRICH LOCATIONS WITH COUNTS using Aggregation (Robust & Precise)
+    const enrichedLocations = await Promise.all(
+      mapLocations.map(async (loc: any) => {
+        try {
+          if (!loc.lat || !loc.lng || isNaN(loc.lat) || isNaN(loc.lng)) {
+            return { ...loc, count: 0 };
+          }
+
+          // Aggregation pipeline matching search.ts EXACTLY
+          const countResult = await Listing.aggregate([
+            {
+              $geoNear: {
+                near: { type: "Point", coordinates: [loc.lng, loc.lat] },
+                distanceField: "distance",
+                spherical: true,
+                query: baseMatchQuery, // Using strict query (Active + Approved + HasType)
+                maxDistance: 10000, // 10km in meters
+              },
+            },
+            { $count: "total" }
+          ]);
+
+          return { ...loc, count: countResult[0]?.total || 0 };
+        } catch (err) {
+          console.error("Count Error for", loc.name, err);
+          return { ...loc, count: 0 };
+        }
+      })
+    );
 
     return NextResponse.json({
       success: true,
       data: {
         properties: formattedProperties,
-        locations: combinedLocations,
+        locations: enrichedLocations,
         query: q,
-        total: formattedProperties.length + combinedLocations.length,
+        total: formattedProperties.length + enrichedLocations.length,
       },
     });
   } catch (error: any) {
     console.error("❌ Suggestions API error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Search failed",
-        error: error.message,
-      },
+      { success: false, message: "Search failed" },
       { status: 500 }
     );
   }
