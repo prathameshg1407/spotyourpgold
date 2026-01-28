@@ -1,3 +1,4 @@
+// app/routes/dashboard/dashboard.ts
 // Dashboard utility functions and data
 
 import { NavItem } from "@/components/sidebar";
@@ -57,12 +58,34 @@ export interface OwnerRequest {
   submittedAt: string;
 }
 
+export interface Ticket {
+  id: string;
+  oderId: string;
+  subject: string;
+  description: string;
+  status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
+  priority: "low" | "medium" | "high" | "urgent";
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: TicketMessage[];
+}
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderRole: "user" | "owner" | "admin";
+  message: string;
+  createdAt: string;
+}
+
 // Mock data
 export const mockUser: User = {
   id: "1",
   name: "John Doe",
   email: "john@example.com",
-  role: "admin", // Change this to test different roles: 'user', 'owner', 'admin'
+  role: "admin",
 };
 
 export const mockPGListings: PGListing[] = [
@@ -144,21 +167,21 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/user/visit-requests",
           icon: "Calendar",
         },
-         {
-      name: "Payments",
-      href: "/routes/dashboard/user/payments",
-      icon: "CreditCard",
-    },
-    {
-      name: "Move-in Support",
-      href: "/routes/dashboard/user/move-in",
-      icon: "Home",
-    },
-     {
-      name: "Support",
-      href: "/routes/dashboard/user/support",
-      icon: "Headphones",
-    },
+        {
+          name: "Payments",
+          href: "/routes/dashboard/user/payments",
+          icon: "CreditCard",
+        },
+        {
+          name: "Move-in Support",
+          href: "/routes/dashboard/user/move-in",
+          icon: "Home",
+        },
+        {
+          name: "Support",
+          href: "/routes/dashboard/user/support",
+          icon: "Headphones",
+        },
         {
           name: "My Reviews",
           href: "/routes/dashboard/user/reviews",
@@ -184,7 +207,6 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/listings",
           icon: "Building",
         },
-        // { name: "Add New PG", href: "/add-pg", icon: "Plus" },
         {
           name: "Add New PG",
           href: "/routes/dashboard/owners/add-pg",
@@ -205,8 +227,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/booking-requests",
           icon: "UserCheck",
         },
-        // { name: "Bookings", href: "/owner-bookings", icon: "Calendar" },
-        // { name: "Analytics", href: "/analytics", icon: "BarChart3" },
+        {
+          name: "Support Tickets",
+          href: "/routes/dashboard/owners/tickets",
+          icon: "Headphones",
+        },
         {
           name: "Subscription",
           href: "/routes/dashboard/owners/subscription",
@@ -217,7 +242,6 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/profile",
           icon: "User",
         },
-        // { name: "Payments", href: "/payments", icon: "CreditCard" },
       ];
 
     case "admin":
@@ -259,6 +283,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Calendar",
         },
         {
+          name: "Support Tickets",
+          href: "/routes/dashboard/admin/tickets",
+          icon: "Headphones",
+        },
+        {
           name: "My Listings",
           href: "/routes/dashboard/owners/listings",
           icon: "Building",
@@ -274,16 +303,10 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Bed",
         },
         {
-          name: "favorites",
+          name: "Favorites",
           href: "/routes/dashboard/admin/favorites",
           icon: "Heart",
         },
-        // { name: "User Management", href: "/users", icon: "Users" },
-        // { name: "Featured Requests", href: "/featured-requests", icon: "Star" },
-        // { name: "Ad Management", href: "/ads", icon: "Megaphone" },
-        // { name: "Analytics", href: "/admin-analytics", icon: "TrendingUp" },
-        // { name: "Payments", href: "/admin-payments", icon: "Wallet" },
-        // { name: "Settings", href: "/settings", icon: "Settings" },
       ];
 
     default:
@@ -309,6 +332,7 @@ export const getOwnerStats = () => ({
   averageRating: 4.2,
   pendingVisitRequests: 5,
   totalWishlist: 12,
+  openTickets: 3,
 });
 
 export const getAdminStats = () => ({
@@ -318,4 +342,6 @@ export const getAdminStats = () => ({
   pendingRequests: 24,
   monthlyRevenue: 125000,
   featuredListings: 45,
+  openTickets: 15,
+  escalatedTickets: 3,
 });

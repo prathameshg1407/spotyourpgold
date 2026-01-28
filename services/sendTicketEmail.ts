@@ -1,251 +1,178 @@
 // services/sendTicketEmail.ts
-"use server";
-
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
-
 interface TicketEmailParams {
-  type: "ticket_created" | "ticket_updated" | "ticket_resolved" | "new_response";
+  type: 
+    | "ticket_created"
+    | "ticket_response"
+    | "ticket_resolved"
+    | "ticket_escalated_admin"
+    | "ticket_escalated_user"
+    | "ticket_escalated_owner";
   to: string;
   ticketNumber: string;
-  subject: string;
+  subject?: string;
   category?: string;
   priority?: string;
   message?: string;
   resolution?: string;
+  userName?: string;
+  pgName?: string;
+  daysElapsed?: number;
 }
 
-export const sendTicketEmail = async (params: TicketEmailParams) => {
-  const { type, to, ticketNumber, subject, category, priority, message, resolution } = params;
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
-  if (!to) return { success: false, message: "Email address not provided" };
+export async function sendTicketEmail(params: TicketEmailParams) {
+  const { type, to, ticketNumber, subject, category, priority, message, resolution, userName, pgName, daysElapsed } = params;
 
-  const subjectMap = {
-    ticket_created: `Ticket ${ticketNumber} Created - SpotYourPG Support`,
-    ticket_updated: `Update on Ticket ${ticketNumber} - SpotYourPG`,
-    ticket_resolved: `Ticket ${ticketNumber} Resolved - SpotYourPG`,
-    new_response: `New Response on Ticket ${ticketNumber} - SpotYourPG`,
-  };
+  let emailSubject = "";
+  let emailBody = "";
 
-  const getPriorityColor = (p: string) => {
-    switch (p) {
-      case "urgent": return "#dc3545";
-      case "high": return "#fd7e14";
-      case "medium": return "#0d6efd";
-      case "low": return "#6c757d";
-      default: return "#0d6efd";
-    }
-  };
-
-  let htmlContent = "";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://spotyourpg.com";
 
   switch (type) {
     case "ticket_created":
-      htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #E67E22;">Spot<span style="color: #333;">Your</span>PG</h2>
+      emailSubject = `Ticket Created: ${ticketNumber} - ${subject}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">SpotYourPG Support</h1>
           </div>
-          
-          <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-            <h3 style="color: #155724; margin: 0;">✅ Ticket Created Successfully</h3>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #333;">Ticket Created Successfully</h2>
+            <p>Your support ticket has been created with the following details:</p>
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Ticket Number:</strong> ${ticketNumber}</p>
+              <p><strong>Subject:</strong> ${subject}</p>
+              <p><strong>Category:</strong> ${category?.replace("_", " ")}</p>
+              <p><strong>Priority:</strong> ${priority}</p>
+            </div>
+            <p>We will review your ticket and respond as soon as possible.</p>
+            <a href="${baseUrl}/routes/dashboard/user/support" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">View Ticket</a>
           </div>
-
-          <p>Your support ticket has been created. Here are the details:</p>
-
-          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #666; width: 40%;">Ticket Number:</td>
-                <td style="padding: 8px 0; font-weight: bold; font-family: monospace; color: #E67E22;">${ticketNumber}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #666;">Subject:</td>
-                <td style="padding: 8px 0; font-weight: bold;">${subject}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #666;">Category:</td>
-                <td style="padding: 8px 0;">${category?.replace("_", " ").toUpperCase()}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #666;">Priority:</td>
-                <td style="padding: 8px 0;">
-                  <span style="background: ${getPriorityColor(priority || "medium")}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
-                    ${priority?.toUpperCase()}
-                  </span>
-                </td>
-              </tr>
-            </table>
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+            <p>© 2025 SpotYourPG. All rights reserved.</p>
           </div>
+        </div>
+      `;
+      break;
 
-          <p>Our team will review your ticket and respond as soon as possible.</p>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/routes/dashboard/user/support" 
-               style="background: #E67E22; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Track Your Ticket
-            </a>
+    case "ticket_response":
+      emailSubject = `New Response: ${ticketNumber}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">SpotYourPG Support</h1>
           </div>
-
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          
-          <p style="color: #888; font-size: 12px; text-align: center;">
-            This is an automated email from SpotYourPG Support.<br/>
-            Please do not reply to this email directly.
-          </p>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #333;">New Response on Your Ticket</h2>
+            <p>There's a new response on your ticket <strong>${ticketNumber}</strong>:</p>
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316;">
+              <p>${message}</p>
+            </div>
+            <a href="${baseUrl}/routes/dashboard/user/support" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">View & Reply</a>
+          </div>
         </div>
       `;
       break;
 
     case "ticket_resolved":
-      htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #E67E22;">Spot<span style="color: #333;">Your</span>PG</h2>
+      emailSubject = `Ticket Resolved: ${ticketNumber}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">✓ Ticket Resolved</h1>
           </div>
-          
-          <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-            <h3 style="color: #155724; margin: 0;">✅ Ticket Resolved</h3>
-          </div>
-
-          <p>Great news! Your support ticket <strong>${ticketNumber}</strong> has been resolved.</p>
-
-          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; font-weight: bold;">Subject:</p>
-            <p style="margin: 0;">${subject}</p>
-            
-            ${resolution ? `
-            <p style="margin: 20px 0 10px 0; font-weight: bold;">Resolution:</p>
-            <p style="margin: 0; background: #e8f5e9; padding: 10px; border-radius: 4px;">${resolution}</p>
-            ` : ""}
-          </div>
-
-          <p>Please rate your experience to help us improve our support.</p>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/routes/dashboard/user/support" 
-               style="background: #E67E22; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Rate Your Experience
-            </a>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          
-          <p style="color: #888; font-size: 12px; text-align: center;">
-            Thank you for using SpotYourPG!
-          </p>
-        </div>
-      `;
-      break;
-
-    case "new_response":
-      htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #E67E22;">Spot<span style="color: #333;">Your</span>PG</h2>
-          </div>
-          
-          <div style="background: #cce5ff; border-left: 4px solid #0d6efd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-            <h3 style="color: #004085; margin: 0;">💬 New Response on Your Ticket</h3>
-          </div>
-
-          <p>You have received a new response on ticket <strong>${ticketNumber}</strong>.</p>
-
-          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; font-weight: bold;">Subject:</p>
-            <p style="margin: 0 0 20px 0;">${subject}</p>
-            
-            ${message ? `
-            <p style="margin: 0 0 10px 0; font-weight: bold;">Latest Response:</p>
-            <div style="background: white; padding: 15px; border-radius: 4px; border-left: 3px solid #E67E22;">
-              <p style="margin: 0;">${message}</p>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #333;">Your Ticket Has Been Resolved</h2>
+            <p>Ticket <strong>${ticketNumber}</strong> - "${subject}" has been resolved.</p>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+              <p><strong>Resolution:</strong></p>
+              <p>${resolution}</p>
             </div>
-            ` : ""}
+            <p>Please take a moment to rate your experience.</p>
+            <a href="${baseUrl}/routes/dashboard/user/support" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">Rate Experience</a>
           </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/routes/dashboard/user/support" 
-               style="background: #E67E22; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              View Full Conversation
-            </a>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          
-          <p style="color: #888; font-size: 12px; text-align: center;">
-            This is an automated email from SpotYourPG Support.<br/>
-            Please do not reply to this email directly.
-          </p>
         </div>
       `;
       break;
 
-    case "ticket_updated":
-      htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #E67E22;">Spot<span style="color: #333;">Your</span>PG</h2>
+    case "ticket_escalated_admin":
+      emailSubject = `🚨 ESCALATED: ${ticketNumber} - Requires Immediate Attention`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">🚨 Escalated Ticket</h1>
           </div>
-          
-          <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-            <h3 style="color: #856404; margin: 0;">🔄 Ticket Status Updated</h3>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #dc2626;">Immediate Attention Required</h2>
+            <p>A ticket has been automatically escalated to you due to no resolution within 3 days.</p>
+            <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #fca5a5;">
+              <p><strong>Ticket Number:</strong> ${ticketNumber}</p>
+              <p><strong>Subject:</strong> ${subject}</p>
+              <p><strong>Category:</strong> ${category?.replace("_", " ")}</p>
+              <p><strong>Priority:</strong> ${priority}</p>
+              <p><strong>User:</strong> ${userName}</p>
+              <p><strong>PG:</strong> ${pgName}</p>
+              <p><strong>Days Elapsed:</strong> ${daysElapsed} days</p>
+            </div>
+            <a href="${baseUrl}/routes/dashboard/admin/tickets" style="display: inline-block; background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">Take Action Now</a>
           </div>
-
-          <p>Your support ticket <strong>${ticketNumber}</strong> has been updated.</p>
-
-          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; font-weight: bold;">Subject:</p>
-            <p style="margin: 0;">${subject}</p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/routes/dashboard/user/support" 
-               style="background: #E67E22; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              View Ticket Details
-            </a>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          
-          <p style="color: #888; font-size: 12px; text-align: center;">
-            This is an automated email from SpotYourPG Support.
-          </p>
         </div>
       `;
       break;
 
-    default:
-      return { success: false, message: "Invalid email type" };
+    case "ticket_escalated_user":
+      emailSubject = `Your Ticket ${ticketNumber} Has Been Escalated`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Ticket Escalated</h1>
+          </div>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #333;">Your Ticket Has Been Escalated</h2>
+            <p>We apologize for the delay. Your ticket <strong>${ticketNumber}</strong> - "${subject}" has been escalated to our admin team for faster resolution.</p>
+            <p>Our admin team will prioritize your request and respond shortly.</p>
+            <a href="${baseUrl}/routes/dashboard/user/support" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">View Ticket</a>
+          </div>
+        </div>
+      `;
+      break;
+
+    case "ticket_escalated_owner":
+      emailSubject = `⚠️ Ticket Escalated: ${ticketNumber} - ${pgName}`;
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">⚠️ Ticket Escalated</h1>
+          </div>
+          <div style="padding: 30px; background: #fff;">
+            <h2 style="color: #333;">Ticket Escalated to Admin</h2>
+            <p>The following ticket for your property <strong>${pgName}</strong> has been escalated to admin due to delayed resolution:</p>
+            <div style="background: #fffbeb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #fcd34d;">
+              <p><strong>Ticket Number:</strong> ${ticketNumber}</p>
+              <p><strong>Subject:</strong> ${subject}</p>
+            </div>
+            <p>Please ensure faster resolution of future tickets to maintain service quality.</p>
+          </div>
+        </div>
+      `;
+      break;
   }
 
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error("Email configuration missing");
-      return { success: false, message: "Email service not configured" };
-    }
-
-    await transporter.verify();
-
-    await transporter.sendMail({
-      from: `"SpotYourPG Support" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: subjectMap[type],
-      html: htmlContent,
-    });
-
-    return { success: true, message: "Email sent successfully" };
-  } catch (error: any) {
-    console.error("Error sending ticket email:", error);
-    return { success: false, message: "Failed to send email" };
-  }
-};
+  await transporter.sendMail({
+    from: `"SpotYourPG Support" <${process.env.SMTP_FROM || "support@spotyourpg.com"}>`,
+    to,
+    subject: emailSubject,
+    html: emailBody,
+  });
+}
