@@ -36,7 +36,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  mockUser,
   getNavigationItems,
   UserRole,
 } from "@/app/routes/dashboard/dashboard";
@@ -99,7 +98,6 @@ export function Sidebar() {
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 bg-[#fbf6ef] border-r border-HG-500/20",
           "transition-transform duration-300 ease-in-out",
-          // ✅ Add flex column and height constraint
           "flex flex-col h-screen",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0"
@@ -127,9 +125,9 @@ export function Sidebar() {
           <X onClick={toggle} className="h-5 w-5 md:hidden cursor-pointer" />
         </div>
 
-        {/* ✅ Main content area - flex-1 to take remaining space, min-h-0 is crucial! */}
+        {/* Main content area - flex-1 to take remaining space, min-h-0 is crucial! */}
         <div className="flex flex-col flex-1 min-h-0">
-          {/* ✅ Scrollable navigation area */}
+          {/* Scrollable navigation area */}
           <div className="flex-1 overflow-y-auto py-2">
             <nav className="grid gap-1 px-4">
               {navItems?.map((item, index) => {
@@ -155,7 +153,7 @@ export function Sidebar() {
             </nav>
           </div>
 
-          {/* ✅ Footer - Fixed at bottom, won't shrink */}
+          {/* Footer - Fixed at bottom, won't shrink */}
           <div className="shrink-0">
             <div className="border-t-2 border-HG-400/20 my-2 mx-4" />
             <nav className="grid py-2 gap-1 px-4">

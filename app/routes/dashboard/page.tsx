@@ -30,14 +30,9 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  mockUser,
   getUserStats,
   getOwnerStats,
   getAdminStats,
-  mockPGListings,
-  mockBookings,
-  mockReviews,
-  mockOwnerRequests,
   UserRole,
 } from "@/app/routes/dashboard/dashboard";
 import Link from "next/link";
@@ -574,7 +569,6 @@ const UserBookingsSection = ({ userId }: { userId?: string }) => {
 };
 
 export default function DashboardPage() {
-  // const user =
   const { user } = useUserStore();
   const userRole = user?.role as UserRole;
 
@@ -649,7 +643,7 @@ export default function DashboardPage() {
                 Watchlist
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                {userStats.totalWatchlist}
+                {userStats.totalWatchlist || 0}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
                 Saved listings
@@ -687,7 +681,7 @@ export default function DashboardPage() {
                 Visit Requests
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                {userStats.totalVisitRequests}
+                {userStats.totalVisitRequests || 0}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
                 Property visits
@@ -856,83 +850,6 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
-
-      {/* <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-golden">Your PG Listings</CardTitle>
-            <CardDescription>Manage your properties</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockPGListings.slice(0, 3).map((pg) => (
-                <div key={pg.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{pg.name}</p>
-                    <p className="text-sm text-muted-foreground">{pg.location}</p>
-                    <p className="text-sm font-medium text-golden">₹{pg.rent}/month</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {pg.featured && <Badge className="bg-golden-gradient">Featured</Badge>}
-                    <Badge variant={pg.status === "active" ? "default" : "secondary"}>{pg.status}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button asChild className="flex-1 bg-golden-gradient hover:opacity-90">
-                <Link href="/listings">Manage Listings</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="flex-1 border-golden text-golden hover:bg-golden/10 bg-transparent"
-              >
-                <Link href="/add-pg">Add New PG</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-golden">Recent Activity</CardTitle>
-            <CardDescription>Latest updates on your properties</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">New booking confirmed</p>
-                  <p className="text-xs text-muted-foreground">Cozy Downtown PG - 2 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <Star className="h-4 w-4 text-golden" />
-                <div>
-                  <p className="text-sm font-medium">New review received</p>
-                  <p className="text-xs text-muted-foreground">4.5 stars - Student Friendly PG</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <DollarSign className="h-4 w-4 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">Payment received</p>
-                  <p className="text-xs text-muted-foreground">₹15,000 - Monthly rent</p>
-                </div>
-              </div>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              className="w-full mt-4 border-golden text-golden hover:bg-golden/10 bg-transparent"
-            >
-              <Link href="/analytics">View Detailed Analytics</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div> */}
     </div>
   );
 
@@ -1072,9 +989,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Bottom Section: Owner Requests + Recent Activity */}
-      {/* <div className="grid gap-6 md:grid-cols-2"> */}
-      {/* Pending Owner Requests */}
+      {/* Ad Management Section */}
       <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white w-full">
         <CardHeader>
           <CardTitle className="text-HG-500 font-semibold">
@@ -1106,56 +1021,7 @@ export default function DashboardPage() {
           </form>
         </CardContent>
       </Card>
-
-      {/* Recent Activity */}
-      {/* <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
-          <CardHeader>
-            <CardTitle className="text-HG-500">Recent Activity</CardTitle>
-            <CardDescription>Latest platform activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <UserCheck className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="text-sm font-medium">New owner verified</p>
-                  <p className="text-xs text-muted-foreground">
-                    John Smith - 1 hour ago
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <Building className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="text-sm font-medium">New PG listing added</p>
-                  <p className="text-xs text-muted-foreground">
-                    Premium Hostel - Mumbai
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 border rounded-lg">
-                <Star className="h-5 w-5 text-HG-500" />
-                <div>
-                  <p className="text-sm font-medium">
-                    Featured request approved
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Cozy Downtown PG
-                  </p>
-                </div>
-              </div>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              className="w-full mt-4 border-HG-500 text-HG-500 hover:bg-HG-100 bg-transparent"
-            >
-              <Link href="/admin-analytics">View System Analytics</Link>
-            </Button>
-          </CardContent>
-        </Card> */}
     </div>
-    // </div>
   );
 
   return (
