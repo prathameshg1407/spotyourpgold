@@ -19,10 +19,12 @@ const notificationSchema = new mongoose.Schema(
         "booking_cancelled",
         "visit_request",
         "payment_reminder",
-        "ticket_created",     
-    "ticket_response",     
-    "ticket_resolved",     
+        "ticket_created",
+        "ticket_response",
+        "ticket_resolved",
         "general",
+        "move_out_completed",
+        "room_allocated", // <--- Added this to fix the error
       ],
       required: true,
     },
@@ -50,7 +52,7 @@ const notificationSchema = new mongoose.Schema(
     // Related type (booking, listing, etc.)
     relatedType: {
       type: String,
-      enum: ["booking", "listing", "visit_request","ticket"],
+      enum: ["booking", "listing", "visit_request", "ticket", "allocation"], // <--- Added "allocation" here
       required: false,
     },
 
