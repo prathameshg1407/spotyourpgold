@@ -64,8 +64,8 @@ export async function GET(req: NextRequest) {
         });
       });
 
-      // Room type breakdown
-      const roomTypeBreakdown = listing.roomTypes.map((rt: any) => {
+      // Room type breakdown - handle missing or empty roomTypes
+      const roomTypeBreakdown = (listing.roomTypes || []).map((rt: any) => {
         const typeRooms = listingRooms.filter((r: any) => r.roomType === rt.type);
         const typeTotalBeds = typeRooms.reduce((acc, r: any) => acc + r.beds.length, 0);
         const typeOccupiedBeds = typeRooms.reduce((acc, r: any) => acc + r.occupiedBeds, 0);
@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
         _id: listing._id,
         pgName: listing.pgName,
         location: listing.location,
+        roomTypes: listing.roomTypes || [], // ✅ Include roomTypes in response
         totalRooms: listingRooms.length,
         totalBeds,
         occupiedBeds,
@@ -100,6 +101,7 @@ export async function GET(req: NextRequest) {
           capacity: room.capacity,
           occupiedBeds: room.occupiedBeds,
           availableBeds: room.availableBeds,
+          monthlyRent: room.monthlyRent, // ✅ Include rent
           beds: room.beds.map((bed: any) => ({
             bedNumber: bed.bedNumber,
             status: bed.status,
