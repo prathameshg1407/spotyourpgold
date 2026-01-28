@@ -203,8 +203,11 @@ export async function GET(req: NextRequest) {
     );
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
+    // Default to 10km if radius not provided
+    const radiusParam = searchParams.get("radius"); 
+    const radiusKm = radiusParam ? parseFloat(radiusParam) : 10; 
+    
     const hasLocation = lat && lng;
-
     const baseQuery = { isApproved: true, isActive: true };
 
     const user = await authUser().catch(() => null);
@@ -226,7 +229,9 @@ export async function GET(req: NextRequest) {
       const userLat = parseFloat(lat!);
       const userLng = parseFloat(lng!);
 
-      // Geo-based listing with minRent
+      console.log(`[GEO_SEARCH] Lat: ${userLat}, Lng: ${userLng}, Radius: ${radiusKm}km`);
+
+      // Geo-based listing
       listings = await Listing.aggregate([
         {
           $geoNear: {
@@ -234,7 +239,8 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
-            distanceMultiplier: 0.001,
+            maxDistance: radiusKm * 1000, // Convert km to meters (10km = 10000m)
+            distanceMultiplier: 0.001,    // Convert result back to km
           },
         },
         {
@@ -254,10 +260,10 @@ export async function GET(req: NextRequest) {
             amenities: 1,
             rentInclusions: 1,
             mealTimings: 1,
-            minRent: { $min: "$roomTypes.monthlyRent" }, // ✅ minRent from array
+            minRent: { $min: "$roomTypes.monthlyRent" },
           },
         },
-        { $sort: { distance: 1 } },
+        { $sort: { distance: 1 } }, // Closest first
         { $skip: (page - 1) * per_page },
         { $limit: per_page },
       ]);
@@ -270,28 +276,15 @@ export async function GET(req: NextRequest) {
             distanceField: "distance",
             spherical: true,
             query: baseQuery,
+            maxDistance: radiusKm * 1000,
           },
         },
         { $count: "total" },
       ]);
       total = totalResult[0]?.total || 0;
 
-      // Debug log for primaryLine in listings
-      if (process.env.NODE_ENV === "development" && listings.length > 0) {
-        console.log(
-          "API Debug - Sample listing primaryLine:",
-          listings[0].primaryLine
-        );
-        listings.forEach((listing, index) => {
-          if (listing.primaryLine) {
-            console.log(
-              `Listing ${index} - ${listing.pgName}: "${listing.primaryLine}"`
-            );
-          }
-        });
-      }
     } else {
-      // Fallback to createdAt ordering
+      // Fallback: Standard Search
       [listings, total] = await Promise.all([
         Listing.find(baseQuery)
           .select(
@@ -305,23 +298,17 @@ export async function GET(req: NextRequest) {
         Listing.countDocuments(baseQuery),
       ]);
 
-      // ✅ Add minRent manually
-      listings = listings.map((listing: any) => {
-        const result = {
-          ...listing,
-          minRent: Math.min(
-            ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [
-              Infinity,
-            ])
-          ),
-        };
-        
-        return result;
-      });
+      // Add minRent manually
+      listings = listings.map((listing: any) => ({
+        ...listing,
+        minRent: Math.min(
+          ...(listing.roomTypes?.map((room: any) => room.monthlyRent) || [Infinity])
+        ),
+      }));
     }
 
-    // Populate owner name manually for aggregated listings
-    if (hasLocation) {
+    // Populate owner name for aggregated (geo) listings
+    if (hasLocation && listings.length > 0) {
       const ids = listings.map((l: any) => l._id);
       const populated = await Listing.find({ _id: { $in: ids } })
         .select("ownerId")

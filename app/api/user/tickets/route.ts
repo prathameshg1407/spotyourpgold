@@ -7,25 +7,28 @@ import Notification from "@/models/notification";
 import Listing from "@/models/listing";
 import { sendTicketEmail } from "@/services/sendTicketEmail";
 
-// Helper function to generate ticket number
+import Counter from "@/models/counter";
+
+// Helper function to generate ticket number (SAFE)
 async function generateTicketNumber(): Promise<string> {
   const prefix = "TKT";
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  
-  // Get count of tickets created today for sequential numbering
-  const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-  
-  const todayCount = await SupportTicket.countDocuments({
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  });
-  
-  const sequence = (todayCount + 1).toString().padStart(4, "0");
-  
+
+  const counterName = `supportTicket-${year}${month}`;
+
+  const counter = await Counter.findOneAndUpdate(
+    { name: counterName },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const sequence = counter.seq.toString().padStart(4, "0");
+
   return `${prefix}-${year}${month}-${sequence}`;
 }
+
 
 // GET - Fetch user's tickets
 export async function GET(req: NextRequest) {

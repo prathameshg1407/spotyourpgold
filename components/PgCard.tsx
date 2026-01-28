@@ -549,7 +549,7 @@ const PgCard = ({
         </div>
 
         {/* Pink Ribbon for Female-only Properties - Bottom Right */}
-        {genderPreference === "female" && (
+        {/* {genderPreference === "female" && (
           <div
             className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
             style={{ width: "100px", height: "100px" }}
@@ -570,10 +570,10 @@ const PgCard = ({
               GIRLS ONLY
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Blue Ribbon for Male-only Properties - Bottom Right */}
-        {genderPreference === "male" && (
+        {/* {genderPreference === "male" && (
           <div
             className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
             style={{ width: "100px", height: "100px" }}
@@ -594,10 +594,10 @@ const PgCard = ({
               BOYS ONLY
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Orange Ribbon for Unisex Properties - Bottom Right */}
-        {genderPreference === "both" && (
+        {/* {genderPreference === "both" && (
           <div
             className="absolute bottom-0 right-0 z-30 overflow-hidden pointer-events-none"
             style={{ width: "100px", height: "100px" }}
@@ -618,7 +618,7 @@ const PgCard = ({
               UNISEX
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </Link>
   );
