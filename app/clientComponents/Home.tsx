@@ -188,17 +188,8 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
       try {
         // If user location is available, fetch listings with distance calculation
         let res;
-        if (userLocation && !locationDenied) {
-          const queryParams = new URLSearchParams({
-            page: "1",
-            per_page: "5",
-            lat: userLocation.lat.toString(),
-            lng: userLocation.lng.toString(),
-          });
-          res = await axios.get(`/api/listing?${queryParams.toString()}`);
-        } else {
+        
           res = await axios.get(`/api/listing?page=1&per_page=5`);
-        }
 
         if (res?.data?.success && !ignore) {
           setAllListings(res.data.data);
@@ -666,127 +657,6 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                 </span>
               )}
 
-              {/* Advanced Filter Button */}
-              {/* <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">
-                    Find Your Perfect PG
-                  </h2>
-                  <p className="text-gray-600 text-sm md:text-base">
-                    Use advanced filters to discover properties that match your
-                    preferences
-                  </p>
-                </div>
-                <AdvancedFilter
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  onApplyFilters={applyFilters}
-                  onClearFilters={clearFilters}
-                  activeFiltersCount={activeFiltersCount}
-                />
-              </div> */}
-
-              {/* Active Filters Display for Home Page */}
-              {/* {activeFiltersCount > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-medium text-gray-600">
-                      Active Filters:
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="text-xs h-auto p-1 text-HG-500 hover:text-HG-600"
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {filters.type && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        Type: {filters.type}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("type")}
-                        />
-                      </Badge>
-                    )}
-                    {filters.genderPreference && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        Gender: {filters.genderPreference}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("genderPreference")}
-                        />
-                      </Badge>
-                    )}
-                    {(filters.minPrice || filters.maxPrice) && (
-                      <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        Price: ₹{filters.minPrice || "0"} - ₹
-                        {filters.maxPrice || "∞"}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => {
-                            removeFilter("minPrice");
-                            removeFilter("maxPrice");
-                          }}
-                        />
-                      </Badge>
-                    )}
-                    {filters.amenities.map((amenity) => (
-                      <Badge
-                        key={amenity}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        {amenity}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("amenities", amenity)}
-                        />
-                      </Badge>
-                    ))}
-                    {filters.roomTypes.map((roomType) => (
-                      <Badge
-                        key={roomType}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        {roomType}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("roomTypes", roomType)}
-                        />
-                      </Badge>
-                    ))}
-                    {filters.visible.map((visible) => (
-                      <Badge
-                        key={visible}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        {visible.charAt(0).toUpperCase() +
-                          visible.slice(1).replace(/-/g, " ")}
-                        <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => removeFilter("visible", visible)}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )} */}
-
               {/* Category Section */}
               <CategorySection />
 
@@ -842,54 +712,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
               {/* Discount Section */}
               <DiscountSection />
 
-              {/* Section 2: Property Listings */}
-              <section>
-                <SectionHeading
-                  rightSide={
-                    <Link
-                      href={"/routes/all-listings"}
-                      className="flex items-center gap-2"
-                    >
-                      <p className="font-inter text-xs md:text-base text-HG-500">
-                        View All
-                      </p>
-                      <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
-                    </Link>
-                  }
-                >
-                  Property Listings
-                </SectionHeading>
-
-                {loading.all ? (
-                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
-                    {Array.from({ length: 5 }).map((_, idx) => (
-                      <Skeleton key={idx} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
-                    {allListings?.map((pg, idx) => (
-                      <PgCard
-                        key={idx}
-                        id={pg?._id}
-                        slug={pg?.slug}
-                        image={pg?.primaryImage}
-                        images={pg?.images?.map((img: any) => img.url) || []}
-                        area={pg?.location?.area}
-                        pgName={pg?.pgName}
-                        ownerName={pg?.ownerId?.fullName}
-                        price={pg?.minRent}
-                        genderPreference={pg?.genderPreference}
-                        isWishlisted={pg?.inWatchList}
-                        type={pg?.type}
-                        distance={pg?.distance}
-                        amenities={pg?.amenities || []}
-                        rentInclusions={pg?.rentInclusions || {}}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
+              
 
               {/* Section 3: PG Near Me - Only show if location is available */}
               {userLocation && !locationDenied && (
@@ -1034,6 +857,55 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
                   </Button>
                 </div>
               )}
+
+              {/* Section 2: Property Listings */}
+              <section>
+                <SectionHeading
+                  rightSide={
+                    <Link
+                      href={"/routes/all-listings"}
+                      className="flex items-center gap-2"
+                    >
+                      <p className="font-inter text-xs md:text-base text-HG-500">
+                        View All
+                      </p>
+                      <IconArrowRight className="text-HG-500 w-4 h-4 md:w-5 md:h-5" />
+                    </Link>
+                  }
+                >
+                  Property Listings
+                </SectionHeading>
+
+                {loading.all ? (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Skeleton key={idx} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid justify-center mt-10 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5">
+                    {allListings?.map((pg, idx) => (
+                      <PgCard
+                        key={idx}
+                        id={pg?._id}
+                        slug={pg?.slug}
+                        image={pg?.primaryImage}
+                        images={pg?.images?.map((img: any) => img.url) || []}
+                        area={pg?.location?.area}
+                        pgName={pg?.pgName}
+                        ownerName={pg?.ownerId?.fullName}
+                        price={pg?.minRent}
+                        genderPreference={pg?.genderPreference}
+                        isWishlisted={pg?.inWatchList}
+                        type={pg?.type}
+                        distance={pg?.distance}
+                        amenities={pg?.amenities || []}
+                        rentInclusions={pg?.rentInclusions || {}}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
             </>
           )}
         </div>
