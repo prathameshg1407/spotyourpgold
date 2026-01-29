@@ -30,13 +30,12 @@ import {
   Bell,
   X,
   DollarSign,
-  Home, // 👈 Add this import
+  Home,
   Headphones,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  mockUser,
   getNavigationItems,
   UserRole,
 } from "@/app/routes/dashboard/dashboard";
@@ -44,7 +43,6 @@ import { useUserStore } from "@/store/userStore";
 import axios from "axios";
 import { toast } from "sonner";
 
-// 👇 Add "Home" to the iconMap
 export const iconMap = {
   LayoutDashboard,
   Calendar,
@@ -65,7 +63,7 @@ export const iconMap = {
   Wallet,
   Settings,
   DollarSign,
-  Home, // 👈 Add this
+  Home,
   Headphones,
 };
 
@@ -77,7 +75,6 @@ export interface NavItem {
   icon: IconName;
 }
 
-// ... rest of your sidebar code remains the same
 export function Sidebar() {
   const pathname = usePathname();
   const { isOpen, toggle } = useSidebar();
@@ -87,6 +84,7 @@ export function Sidebar() {
 
   return (
     <>
+      {/* Backdrop */}
       <div
         className={cn(
           "fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:hidden",
@@ -94,15 +92,19 @@ export function Sidebar() {
         )}
         onClick={toggle}
       />
+
+      {/* Sidebar */}
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 bg-[#fbf6ef] border-r border-HG-500/20",
           "transition-transform duration-300 ease-in-out",
+          "flex flex-col h-screen",
           isOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0"
         )}
       >
-        <div className="flex h-20 items-center p-4">
+        {/* Header - Fixed height, won't shrink */}
+        <div className="flex h-20 items-center p-4 shrink-0">
           <div className="w-full flex flex-col gap-1 pt-2 md:pt-0 md:flex-row md:justify-between items-start md:items-center">
             <Link href={"/"}>
               <p className="font-poppins select-none font-bold text-HG-500 text-xl md:text-3xl">
@@ -123,8 +125,10 @@ export function Sidebar() {
           <X onClick={toggle} className="h-5 w-5 md:hidden cursor-pointer" />
         </div>
 
-        <div className="flex flex-col pt-2">
-          <div className="flex-1 overflow-auto py-2">
+        {/* Main content area - flex-1 to take remaining space, min-h-0 is crucial! */}
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Scrollable navigation area */}
+          <div className="flex-1 overflow-y-auto py-2">
             <nav className="grid gap-1 px-4">
               {navItems?.map((item, index) => {
                 const IconComponent = iconMap[item.icon];
@@ -141,7 +145,7 @@ export function Sidebar() {
                         : "text-muted-foreground"
                     )}
                   >
-                    <IconComponent className="h-5 w-5" />
+                    <IconComponent className="h-5 w-5 shrink-0" />
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -149,9 +153,9 @@ export function Sidebar() {
             </nav>
           </div>
 
-          <div className="border-t-2 border-HG-400/20 my-2 mx-4" />
-
-          <div>
+          {/* Footer - Fixed at bottom, won't shrink */}
+          <div className="shrink-0">
+            <div className="border-t-2 border-HG-400/20 my-2 mx-4" />
             <nav className="grid py-2 gap-1 px-4">
               <div
                 onClick={async () => {

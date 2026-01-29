@@ -4,53 +4,167 @@ import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import SupportTicket from "@/models/supportTicket";
 import Listing from "@/models/listing";
+import Notification from "@/models/notification";
+import User from "@/models/user";
 
-// GET - Fetch tickets assigned to owner
+// GET - Fetch tickets for owner's listings
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
     const { searchParams } = new URL(req.url);
     const ownerId = searchParams.get("ownerId");
+    const status = searchParams.get("status");
+    const priority = searchParams.get("priority");
+    const category = searchParams.get("category");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
-    if (!ownerId) {
+    if (!ownerId || !mongoose.Types.ObjectId.isValid(ownerId)) {
       return NextResponse.json(
-        { success: false, message: "Owner ID is required" },
+        { success: false, message: "Valid Owner ID is required" },
         { status: 400 }
       );
     }
 
-    // Get owner's listings
+    // First, get all listings owned by this owner
     const ownerListings = await Listing.find({
       ownerId: new mongoose.Types.ObjectId(ownerId),
     }).select("_id");
 
-    const listingIds = ownerListings.map((l) => l._id);
+    const listingIds = ownerListings.map((listing) => listing._id);
 
-    // Get tickets related to owner's listings or assigned to owner
-    const tickets = await SupportTicket.find({
+    if (listingIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: {
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        },
+        stats: {
+          total: 0,
+          open: 0,
+          inProgress: 0,
+          waitingResponse: 0,
+          resolved: 0,
+          escalated: 0,
+        },
+      });
+    }
+
+    // Build query for tickets related to owner's listings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const query: any = {
       $or: [
         { listingId: { $in: listingIds } },
         { assignedTo: new mongoose.Types.ObjectId(ownerId) },
       ],
-    })
+    };
+
+    // Apply filters
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    if (priority && priority !== "all") {
+      query.priority = priority;
+    }
+
+    if (category && category !== "all") {
+      query.category = category;
+    }
+
+    // Get total count for pagination
+    const total = await SupportTicket.countDocuments(query);
+
+    // Get tickets with pagination
+    const tickets = await SupportTicket.find(query)
       .populate({
         path: "userId",
-        select: "fullName email phone",
+        select: "fullName email phone profileImage",
       })
       .populate({
         path: "listingId",
-        select: "pgName location",
+        select: "pgName location images",
       })
       .populate({
         path: "bookingId",
-        select: "roomType moveInDate",
+        select: "roomType moveInDate status",
       })
-      .sort({ createdAt: -1 });
+      .populate({
+        path: "assignedTo",
+        select: "fullName email",
+      })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    // Get stats for dashboard
+    const stats = await SupportTicket.aggregate([
+      { $match: { $or: query.$or } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          open: {
+            $sum: { $cond: [{ $eq: ["$status", "open"] }, 1, 0] },
+          },
+          inProgress: {
+            $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] },
+          },
+          waitingResponse: {
+            $sum: { $cond: [{ $eq: ["$status", "waiting_response"] }, 1, 0] },
+          },
+          resolved: {
+            $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] },
+          },
+          closed: {
+            $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] },
+          },
+          escalated: {
+            $sum: { $cond: [{ $eq: ["$isEscalated", true] }, 1, 0] },
+          },
+          urgent: {
+            $sum: { $cond: [{ $eq: ["$priority", "urgent"] }, 1, 0] },
+          },
+          high: {
+            $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    // Get overdue tickets count (past expected resolution date but not resolved)
+    const overdueCount = await SupportTicket.countDocuments({
+      ...query,
+      status: { $nin: ["resolved", "closed"] },
+      expectedResolutionDate: { $lt: new Date() },
+    });
 
     return NextResponse.json({
       success: true,
       data: tickets,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      stats: stats[0] || {
+        total: 0,
+        open: 0,
+        inProgress: 0,
+        waitingResponse: 0,
+        resolved: 0,
+        closed: 0,
+        escalated: 0,
+        urgent: 0,
+        high: 0,
+      },
+      overdueCount,
     });
   } catch (error) {
     console.error("Get owner tickets error:", error);
@@ -65,13 +179,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Owner responds to ticket
+// POST - Assign ticket to self or update assignment
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
     const body = await req.json();
-    const { ticketId, ownerId, ownerName, message, action, resolution } = body;
+    const { ticketId, ownerId, action } = body;
 
     if (!ticketId || !ownerId) {
       return NextResponse.json(
@@ -89,52 +203,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify owner owns the listing
+    const listing = await Listing.findOne({
+      _id: ticket.listingId,
+      ownerId: new mongoose.Types.ObjectId(ownerId),
+    });
+
+    if (!listing && !ticket.assignedTo?.equals(new mongoose.Types.ObjectId(ownerId))) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized access to this ticket" },
+        { status: 403 }
+      );
+    }
+
+    const owner = await User.findById(ownerId).select("fullName");
+
     switch (action) {
-      case "respond":
-        if (!message) {
-          return NextResponse.json(
-            { success: false, message: "Message is required" },
-            { status: 400 }
-          );
+      case "assign_self":
+        ticket.assignedTo = new mongoose.Types.ObjectId(ownerId);
+        ticket.assignedToRole = "owner";
+        if (ticket.status === "open") {
+          ticket.status = "in_progress";
         }
+        await ticket.save();
 
-        ticket.comments.push({
-          userId: new mongoose.Types.ObjectId(ownerId),
-          userRole: "owner",
-          userName: ownerName,
-          message,
-          createdAt: new Date(),
+        // Notify user
+        await Notification.create({
+          userId: ticket.userId,
+          type: "general",
+          title: "Ticket Assigned",
+          message: `Your ticket ${ticket.ticketNumber} has been assigned to ${owner?.fullName || "the property owner"}`,
+          relatedId: ticket._id,
+          priority: "low",
         });
-
-        if (!ticket.firstResponseAt) {
-          ticket.firstResponseAt = new Date();
-        }
-
-        ticket.status = "in_progress";
-        break;
-
-      case "resolve":
-        ticket.status = "resolved";
-        ticket.resolvedAt = new Date();
-        ticket.resolvedBy = new mongoose.Types.ObjectId(ownerId);
-        ticket.resolution = resolution || "Issue resolved by PG owner.";
-
-        if (message) {
-          ticket.comments.push({
-            userId: new mongoose.Types.ObjectId(ownerId),
-            userRole: "owner",
-            userName: ownerName,
-            message,
-            createdAt: new Date(),
-          });
-        }
-        break;
-
-      case "escalate":
-        ticket.isEscalated = true;
-        ticket.escalatedAt = new Date();
-        ticket.escalationReason = message || "Escalated by owner";
-        ticket.assignedToRole = "admin";
         break;
 
       default:
@@ -144,9 +245,6 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    await ticket.save();
-
-    // Fetch updated ticket
     const updatedTicket = await SupportTicket.findById(ticketId)
       .populate({
         path: "userId",
@@ -163,7 +261,7 @@ export async function POST(req: NextRequest) {
       data: updatedTicket,
     });
   } catch (error) {
-    console.error("Owner ticket action error:", error);
+    console.error("Update owner ticket error:", error);
     return NextResponse.json(
       {
         success: false,

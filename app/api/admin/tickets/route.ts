@@ -3,105 +3,159 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import SupportTicket from "@/models/supportTicket";
+import Notification from "@/models/notification";
 import User from "@/models/user";
-import { sendTicketEmail } from "@/services/sendTicketEmail";
 
-// GET - Fetch all tickets (with filters)
+// GET - Fetch all tickets for admin (with escalated filter)
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
     const { searchParams } = new URL(req.url);
+    const adminId = searchParams.get("adminId");
     const status = searchParams.get("status");
     const priority = searchParams.get("priority");
     const category = searchParams.get("category");
-    const escalated = searchParams.get("escalated");
+    const escalatedOnly = searchParams.get("escalated") === "true";
+    const assignedToMe = searchParams.get("assignedToMe") === "true";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
+    const search = searchParams.get("search") || "";
 
-    // Build filter
-    const filter: any = {};
+    // Build query
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const query: any = {};
 
     if (status && status !== "all") {
-      filter.status = status;
+      query.status = status;
     }
 
     if (priority && priority !== "all") {
-      filter.priority = priority;
+      query.priority = priority;
     }
 
     if (category && category !== "all") {
-      filter.category = category;
+      query.category = category;
     }
 
-    if (escalated === "true") {
-      filter.isEscalated = true;
+    if (escalatedOnly) {
+      query.isEscalated = true;
     }
 
-    const skip = (page - 1) * limit;
+    if (assignedToMe && adminId) {
+      query.assignedTo = new mongoose.Types.ObjectId(adminId);
+    }
 
-    const [tickets, total] = await Promise.all([
-      SupportTicket.find(filter)
-        .populate({
-          path: "userId",
+    if (search) {
+      query.$or = [
+        { ticketNumber: { $regex: search, $options: "i" } },
+        { subject: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Get total count
+    const total = await SupportTicket.countDocuments(query);
+
+    // Get tickets with pagination
+    const tickets = await SupportTicket.find(query)
+      .populate({
+        path: "userId",
+        select: "fullName email phone profileImage",
+      })
+      .populate({
+        path: "listingId",
+        select: "pgName location ownerId",
+        populate: {
+          path: "ownerId",
           select: "fullName email phone",
-        })
-        .populate({
-          path: "listingId",
-          select: "pgName location ownerId",
-          populate: {
-            path: "ownerId",
-            select: "fullName email",
-          },
-        })
-        .populate({
-          path: "assignedTo",
-          select: "fullName email",
-        })
-        .sort({ priority: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      SupportTicket.countDocuments(filter),
-    ]);
+        },
+      })
+      .populate({
+        path: "bookingId",
+        select: "roomType moveInDate status",
+      })
+      .populate({
+        path: "assignedTo",
+        select: "fullName email role",
+      })
+      .populate({
+        path: "resolvedBy",
+        select: "fullName email",
+      })
+      .sort({ isEscalated: -1, priority: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-    // Get stats
+    // Get comprehensive stats
     const stats = await SupportTicket.aggregate([
       {
         $group: {
-          _id: "$status",
-          count: { $sum: 1 },
+          _id: null,
+          total: { $sum: 1 },
+          open: { $sum: { $cond: [{ $eq: ["$status", "open"] }, 1, 0] } },
+          inProgress: { $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] } },
+          waitingResponse: { $sum: { $cond: [{ $eq: ["$status", "waiting_response"] }, 1, 0] } },
+          resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
+          closed: { $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] } },
+          escalated: { $sum: { $cond: [{ $eq: ["$isEscalated", true] }, 1, 0] } },
+          urgent: { $sum: { $cond: [{ $eq: ["$priority", "urgent"] }, 1, 0] } },
+          high: { $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] } },
+          unassigned: { $sum: { $cond: [{ $eq: ["$assignedTo", null] }, 1, 0] } },
         },
       },
     ]);
 
-    const priorityStats = await SupportTicket.aggregate([
-      {
-        $match: { status: { $nin: ["resolved", "closed"] } },
-      },
-      {
-        $group: {
-          _id: "$priority",
-          count: { $sum: 1 },
-        },
-      },
+    // Get overdue count
+    const overdueCount = await SupportTicket.countDocuments({
+      status: { $nin: ["resolved", "closed"] },
+      expectedResolutionDate: { $lt: new Date() },
+    });
+
+    // Get assigned to current admin count
+    let assignedToMeCount = 0;
+    if (adminId) {
+      assignedToMeCount = await SupportTicket.countDocuments({
+        assignedTo: new mongoose.Types.ObjectId(adminId),
+        status: { $nin: ["resolved", "closed"] },
+      });
+    }
+
+    // Category breakdown
+    const categoryStats = await SupportTicket.aggregate([
+      { $match: { status: { $nin: ["resolved", "closed"] } } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
     ]);
 
     return NextResponse.json({
       success: true,
       data: tickets,
       pagination: {
+        total,
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit),
       },
       stats: {
-        byStatus: stats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
-        byPriority: priorityStats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
+        ...(stats[0] || {
+          total: 0,
+          open: 0,
+          inProgress: 0,
+          waitingResponse: 0,
+          resolved: 0,
+          closed: 0,
+          escalated: 0,
+          urgent: 0,
+          high: 0,
+          unassigned: 0,
+        }),
+        overdue: overdueCount,
+        assignedToMe: assignedToMeCount,
       },
+      categoryStats,
     });
   } catch (error) {
-    console.error("Get admin tickets error:", error);
+    console.error("Admin get tickets error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -113,13 +167,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Admin actions on ticket
+// POST - Admin assign ticket to self or another admin
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
     const body = await req.json();
-    const { ticketId, adminId, adminName, action, message, resolution, assignTo } = body;
+    const { ticketId, adminId, action, assignToId, message } = body;
 
     if (!ticketId || !adminId) {
       return NextResponse.json(
@@ -128,10 +182,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ticket = await SupportTicket.findById(ticketId).populate({
-      path: "userId",
-      select: "fullName email",
-    });
+    const ticket = await SupportTicket.findById(ticketId);
 
     if (!ticket) {
       return NextResponse.json(
@@ -140,10 +191,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = ticket.userId as any;
+    const admin = await User.findById(adminId).select("fullName email role");
+
+    if (!admin || admin.role !== "admin") {
+      return NextResponse.json(
+        { success: false, message: "Invalid admin user" },
+        { status: 403 }
+      );
+    }
 
     switch (action) {
-      case "respond":
+      case "assign_self":
+        ticket.assignedTo = new mongoose.Types.ObjectId(adminId);
+        ticket.assignedToRole = "admin";
+        if (ticket.status === "open") {
+          ticket.status = "in_progress";
+        }
+        await ticket.save();
+
+        // Notify user
+        await Notification.create({
+          userId: ticket.userId,
+          type: "general",
+          title: "Admin Assigned",
+          message: `An admin has been assigned to your ticket ${ticket.ticketNumber}`,
+          relatedId: ticket._id,
+          priority: "low",
+        });
+        break;
+
+      case "assign_to":
+        if (!assignToId) {
+          return NextResponse.json(
+            { success: false, message: "Assign to ID is required" },
+            { status: 400 }
+          );
+        }
+
+        const assignee = await User.findById(assignToId).select("fullName role");
+        if (!assignee) {
+          return NextResponse.json(
+            { success: false, message: "Assignee not found" },
+            { status: 404 }
+          );
+        }
+
+        ticket.assignedTo = new mongoose.Types.ObjectId(assignToId);
+        ticket.assignedToRole = assignee.role as "owner" | "admin" | "support";
+        await ticket.save();
+
+        // Notify new assignee
+        await Notification.create({
+          userId: assignToId,
+          type: "general",
+          title: "Ticket Assigned to You",
+          message: `Ticket ${ticket.ticketNumber} has been assigned to you by admin`,
+          relatedId: ticket._id,
+          priority: "medium",
+        });
+        break;
+
+      case "add_internal_note":
         if (!message) {
           return NextResponse.json(
             { success: false, message: "Message is required" },
@@ -154,114 +262,11 @@ export async function POST(req: NextRequest) {
         ticket.comments.push({
           userId: new mongoose.Types.ObjectId(adminId),
           userRole: "admin",
-          userName: adminName || "Admin",
-          message,
+          userName: `${admin.fullName} (Admin)`,
+          message: `[Internal Note] ${message}`,
           createdAt: new Date(),
         });
-
-        if (!ticket.firstResponseAt) {
-          ticket.firstResponseAt = new Date();
-        }
-
-        ticket.status = "in_progress";
-
-        // Send email notification to user
-        if (user?.email) {
-          await sendTicketEmail({
-            type: "new_response",
-            to: user.email,
-            ticketNumber: ticket.ticketNumber,
-            subject: ticket.subject,
-            message,
-          });
-        }
-        break;
-
-      case "resolve":
-        ticket.status = "resolved";
-        ticket.resolvedAt = new Date();
-        ticket.resolvedBy = new mongoose.Types.ObjectId(adminId);
-        ticket.resolution = resolution || "Issue resolved by admin.";
-
-        if (message) {
-          ticket.comments.push({
-            userId: new mongoose.Types.ObjectId(adminId),
-            userRole: "admin",
-            userName: adminName || "Admin",
-            message,
-            createdAt: new Date(),
-          });
-        }
-
-        // Send resolution email
-        if (user?.email) {
-          await sendTicketEmail({
-            type: "ticket_resolved",
-            to: user.email,
-            ticketNumber: ticket.ticketNumber,
-            subject: ticket.subject,
-            resolution: ticket.resolution,
-          });
-        }
-        break;
-
-      case "assign":
-        if (!assignTo) {
-          return NextResponse.json(
-            { success: false, message: "Assignee is required" },
-            { status: 400 }
-          );
-        }
-
-        const assignee = await User.findById(assignTo);
-        if (!assignee) {
-          return NextResponse.json(
-            { success: false, message: "Assignee not found" },
-            { status: 404 }
-          );
-        }
-
-        ticket.assignedTo = new mongoose.Types.ObjectId(assignTo);
-        ticket.assignedToRole = assignee.role;
-        break;
-
-      case "change_priority":
-        const { priority } = body;
-        if (!priority) {
-          return NextResponse.json(
-            { success: false, message: "Priority is required" },
-            { status: 400 }
-          );
-        }
-
-        ticket.priority = priority;
-
-        // Recalculate expected resolution date
-        const now = new Date();
-        switch (priority) {
-          case "urgent":
-            ticket.expectedResolutionDate = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-            break;
-          case "high":
-            ticket.expectedResolutionDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            break;
-          case "medium":
-            ticket.expectedResolutionDate = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-            break;
-          case "low":
-            ticket.expectedResolutionDate = new Date(now.getTime() + 72 * 60 * 60 * 1000);
-            break;
-        }
-        break;
-
-      case "close":
-        ticket.status = "closed";
-        break;
-
-      case "reopen":
-        ticket.status = "reopened";
-        ticket.resolvedAt = null;
-        ticket.resolvedBy = null;
+        await ticket.save();
         break;
 
       default:
@@ -271,9 +276,6 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    await ticket.save();
-
-    // Fetch updated ticket with all populated fields
     const updatedTicket = await SupportTicket.findById(ticketId)
       .populate({
         path: "userId",
@@ -289,7 +291,7 @@ export async function POST(req: NextRequest) {
       })
       .populate({
         path: "assignedTo",
-        select: "fullName email",
+        select: "fullName email role",
       });
 
     return NextResponse.json({

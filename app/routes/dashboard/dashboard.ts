@@ -1,3 +1,4 @@
+// app/routes/dashboard/dashboard.ts
 // Dashboard utility functions and data
 
 import { NavItem } from "@/components/sidebar";
@@ -57,77 +58,27 @@ export interface OwnerRequest {
   submittedAt: string;
 }
 
-// Mock data
-export const mockUser: User = {
-  id: "1",
-  name: "John Doe",
-  email: "john@example.com",
-  role: "admin", // Change this to test different roles: 'user', 'owner', 'admin'
-};
+export interface Ticket {
+  id: string;
+  oderId: string;
+  subject: string;
+  description: string;
+  status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
+  priority: "low" | "medium" | "high" | "urgent";
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: TicketMessage[];
+}
 
-export const mockPGListings: PGListing[] = [
-  {
-    id: "1",
-    name: "Cozy Downtown PG",
-    ownerId: "2",
-    location: "Mumbai, Maharashtra",
-    rent: 15000,
-    amenities: ["WiFi", "AC", "Laundry", "Kitchen"],
-    rules: ["No smoking", "No pets", "Quiet hours 10 PM - 7 AM"],
-    images: ["/placeholder.svg?height=200&width=300"],
-    featured: true,
-    status: "active",
-    createdAt: "2024-01-15",
-    geolocation: { lat: 19.076, lng: 72.8777 },
-  },
-  {
-    id: "2",
-    name: "Student Friendly PG",
-    ownerId: "3",
-    location: "Pune, Maharashtra",
-    rent: 12000,
-    amenities: ["WiFi", "Study Room", "Mess", "Security"],
-    rules: ["Students only", "No visitors after 9 PM"],
-    images: ["/placeholder.svg?height=200&width=300"],
-    featured: false,
-    status: "active",
-    createdAt: "2024-01-20",
-    geolocation: { lat: 18.5204, lng: 73.8567 },
-  },
-];
-
-export const mockBookings: Booking[] = [
-  {
-    id: "1",
-    userId: "1",
-    pgId: "1",
-    checkIn: "2024-02-01",
-    checkOut: "2024-02-28",
-    status: "confirmed",
-    amount: 15000,
-  },
-];
-
-export const mockReviews: Review[] = [
-  {
-    id: "1",
-    userId: "1",
-    pgId: "1",
-    rating: 4,
-    comment: "Great place to stay, very clean and well-maintained.",
-    createdAt: "2024-01-25",
-  },
-];
-
-export const mockOwnerRequests: OwnerRequest[] = [
-  {
-    id: "1",
-    userId: "4",
-    documents: ["aadhar.pdf", "pan.pdf", "property_papers.pdf"],
-    status: "pending",
-    submittedAt: "2024-01-30",
-  },
-];
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderRole: "user" | "owner" | "admin";
+  message: string;
+  createdAt: string;
+}
 
 // Navigation items for different roles
 export const getNavigationItems = (role: UserRole): NavItem[] => {
@@ -140,25 +91,30 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
       return [
         ...baseItems,
         {
+          name: "My Room",
+          href: "/routes/dashboard/user/my-room",
+          icon: "Home",
+        },
+        {
           name: "Visit Requests",
           href: "/routes/dashboard/user/visit-requests",
           icon: "Calendar",
         },
-         {
-      name: "Payments",
-      href: "/routes/dashboard/user/payments",
-      icon: "CreditCard",
-    },
-    {
-      name: "Move-in Support",
-      href: "/routes/dashboard/user/move-in",
-      icon: "Home",
-    },
-     {
-      name: "Support",
-      href: "/routes/dashboard/user/support",
-      icon: "Headphones",
-    },
+        {
+          name: "Payments",
+          href: "/routes/dashboard/user/payments",
+          icon: "CreditCard",
+        },
+        {
+          name: "Move-in Support",
+          href: "/routes/dashboard/user/move-in",
+          icon: "Home",
+        },
+        {
+          name: "Support",
+          href: "/routes/dashboard/user/support",
+          icon: "Headphones",
+        },
         {
           name: "My Reviews",
           href: "/routes/dashboard/user/reviews",
@@ -184,7 +140,6 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/listings",
           icon: "Building",
         },
-        // { name: "Add New PG", href: "/add-pg", icon: "Plus" },
         {
           name: "Add New PG",
           href: "/routes/dashboard/owners/add-pg",
@@ -193,6 +148,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
         {
           name: "Room Management",
           href: "/routes/dashboard/owners/room-management",
+          icon: "Bed",
+        },
+        {
+          name: "Room Allocation",
+          href: "/routes/dashboard/owners/room-allocation",
           icon: "Bed",
         },
         {
@@ -205,8 +165,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/booking-requests",
           icon: "UserCheck",
         },
-        // { name: "Bookings", href: "/owner-bookings", icon: "Calendar" },
-        // { name: "Analytics", href: "/analytics", icon: "BarChart3" },
+        {
+          name: "Support Tickets",
+          href: "/routes/dashboard/owners/tickets",
+          icon: "Headphones",
+        },
         {
           name: "Subscription",
           href: "/routes/dashboard/owners/subscription",
@@ -217,7 +180,6 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           href: "/routes/dashboard/owners/profile",
           icon: "User",
         },
-        // { name: "Payments", href: "/payments", icon: "CreditCard" },
       ];
 
     case "admin":
@@ -259,6 +221,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Calendar",
         },
         {
+          name: "Support Tickets",
+          href: "/routes/dashboard/admin/tickets",
+          icon: "Headphones",
+        },
+        {
           name: "My Listings",
           href: "/routes/dashboard/owners/listings",
           icon: "Building",
@@ -274,16 +241,15 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Bed",
         },
         {
-          name: "favorites",
+          name: "Room Allocation",
+          href: "/routes/dashboard/owners/room-allocation",
+          icon: "Bed",
+        },
+        {
+          name: "Favorites",
           href: "/routes/dashboard/admin/favorites",
           icon: "Heart",
         },
-        // { name: "User Management", href: "/users", icon: "Users" },
-        // { name: "Featured Requests", href: "/featured-requests", icon: "Star" },
-        // { name: "Ad Management", href: "/ads", icon: "Megaphone" },
-        // { name: "Analytics", href: "/admin-analytics", icon: "TrendingUp" },
-        // { name: "Payments", href: "/admin-payments", icon: "Wallet" },
-        // { name: "Settings", href: "/settings", icon: "Settings" },
       ];
 
     default:
@@ -293,29 +259,32 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
 
 // Statistics functions
 export const getUserStats = () => ({
-  totalBookings: 5,
-  activeBookings: 2,
-  totalReviews: 8,
-  favoritesPGs: 12,
+  totalBookings: 0,
+  activeBookings: 0,
+  totalReviews: 0,
+  favoritesPGs: 0,
 });
 
 export const getOwnerStats = () => ({
-  totalListings: 3,
-  activeListings: 2,
-  featuredListings: 1,
+  totalListings: 0,
+  activeListings: 0,
+  featuredListings: 0,
   totalRevenue: 0,
   monthlyRevenue: 0,
-  totalReviews: 24,
-  averageRating: 4.2,
-  pendingVisitRequests: 5,
-  totalWishlist: 12,
+  totalReviews: 0,
+  averageRating: 0,
+  pendingVisitRequests: 0,
+  totalWishlist: 0,
+  openTickets: 0,
 });
 
 export const getAdminStats = () => ({
-  totalUsers: 1284,
-  totalOwners: 156,
-  totalListings: 342,
-  pendingRequests: 24,
-  monthlyRevenue: 125000,
-  featuredListings: 45,
+  totalUsers: 0,
+  totalOwners: 0,
+  totalListings: 0,
+  pendingRequests: 0,
+  monthlyRevenue: 0,
+  featuredListings: 0,
+  openTickets: 0,
+  escalatedTickets: 0,
 });

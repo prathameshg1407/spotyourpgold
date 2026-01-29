@@ -4,11 +4,9 @@ import { useSidebar } from "./sidebar-provider";
 import { Menu } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 
-import { mockUser } from "@/app/routes/dashboard/dashboard";
 
 export function Header() {
   const { toggle } = useSidebar();
-  const user = mockUser;
 
   return (
     <header className="sticky top-0 z-40  md:hidden  ">

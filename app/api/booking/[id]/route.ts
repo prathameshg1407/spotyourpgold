@@ -73,17 +73,43 @@ export async function PATCH(
       "fullName email phoneNumber"
     );
 
+    // Room allocation logic for confirmed bookings
+    let responseData = booking.toObject();
+    let notificationMessage = "";
+
+    if (status === "confirmed") {
+      // Check if rooms are set up for this listing
+      const Room = (await import("@/models/room")).default;
+      const availableRooms = await Room.find({
+        listingId: booking.listingId._id || booking.listingId,
+        roomType: booking.roomType,
+        "beds.status": "available",
+      }).countDocuments();
+
+      // Add room allocation metadata to response
+      responseData = {
+        ...booking.toObject(),
+        _roomAllocationRequired: true,
+        _availableRooms: availableRooms,
+      };
+
+      // Set notification message based on room availability
+      notificationMessage =
+        availableRooms > 0
+          ? `Your booking request for ${listing.pgName} has been approved. The owner will allocate you a room shortly.`
+          : `Your booking request for ${listing.pgName} has been approved. Please complete payment to confirm your booking.`;
+    } else {
+      // Rejected booking message
+      notificationMessage = `Your booking request for ${listing.pgName} has been rejected. ${
+        ownerNotes ? `Reason: ${ownerNotes}` : ""
+      }`;
+    }
+
     // Create notification for user
     const notificationType =
       status === "confirmed" ? "booking_approved" : "booking_rejected";
     const notificationTitle =
       status === "confirmed" ? "Booking Approved!" : "Booking Request Rejected";
-    const notificationMessage =
-      status === "confirmed"
-        ? `Your booking request for ${listing.pgName} has been approved. Please complete payment to confirm your booking.`
-        : `Your booking request for ${listing.pgName} has been rejected. ${
-            ownerNotes ? `Reason: ${ownerNotes}` : ""
-          }`;
 
     await Notification.create({
       userId: booking.userId,
@@ -96,6 +122,7 @@ export async function PATCH(
       metadata: {
         listingName: listing.pgName,
         ownerNotes: ownerNotes || null,
+        roomAllocationRequired: status === "confirmed",
       },
     });
 
@@ -112,7 +139,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       message: `Booking ${status} successfully`,
-      data: booking,
+      data: responseData,
     });
   } catch (error) {
     console.error("Booking update error:", error);
