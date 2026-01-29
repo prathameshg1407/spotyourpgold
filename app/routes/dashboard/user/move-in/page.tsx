@@ -432,7 +432,7 @@ export default function MoveInSupportPage() {
             <Home className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No Active Bookings</h3>
             <p className="text-gray-500 mb-4">
-              You don't have any confirmed bookings yet.
+              You dont have any confirmed bookings yet.
             </p>
             <Button className="bg-HG-500 hover:bg-HG-600 text-white">
               Browse PGs
@@ -1123,13 +1123,13 @@ export default function MoveInSupportPage() {
                   <div className="border-t pt-6 mt-8">
                     <div className="grid md:grid-cols-2 gap-8">
                       <div>
-                        <p className="font-semibold mb-8">Landlord's Signature</p>
+                        <p className="font-semibold mb-8">Landlord Signature</p>
                         <div className="border-t border-dashed pt-2">
                           <p className="text-sm text-muted-foreground">{selectedBooking.listingId.ownerId?.fullName || "PG Owner"}</p>
                         </div>
                       </div>
                       <div>
-                        <p className="font-semibold mb-8">Tenant's Signature</p>
+                        <p className="font-semibold mb-8">Tenants Signature</p>
                         <div className="border-t border-dashed pt-2">
                           <p className="text-sm text-muted-foreground">{selectedBooking.fullName}</p>
                         </div>
