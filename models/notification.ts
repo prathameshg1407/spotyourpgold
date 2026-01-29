@@ -19,9 +19,14 @@ const notificationSchema = new mongoose.Schema(
         "booking_cancelled",
         "visit_request",
         "payment_reminder",
-        "ticket_created",     
-    "ticket_response",     
-    "ticket_resolved",     
+        "ticket_created",
+        "ticket_response",
+        "ticket_resolved",
+        "room_allocated",           // ✅ NEW
+        "move_out_processed",       // ✅ NEW
+        "notice_period_recorded",   // ✅ NEW
+        "rent_due",                 // ✅ NEW (for future use)
+        "rent_paid",                // ✅ NEW (for future use)
         "general",
       ],
       required: true,
@@ -50,7 +55,7 @@ const notificationSchema = new mongoose.Schema(
     // Related type (booking, listing, etc.)
     relatedType: {
       type: String,
-      enum: ["booking", "listing", "visit_request","ticket"],
+      enum: ["booking", "listing", "visit_request", "ticket", "allocation", "room"], // ✅ Added allocation & room
       required: false,
     },
 
@@ -81,6 +86,7 @@ const notificationSchema = new mongoose.Schema(
 // Indexes for efficient queries
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ type: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, type: 1 });
 
 const Notification =
   mongoose.models.Notification ||

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { useLoadingStore } from "@/store/loading"
-import { Building2, Search } from "lucide-react"
+import { Building2, Search, AlertCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface RoomType {
@@ -15,12 +15,21 @@ interface RoomType {
   type: "single" | "double" | "triple" | "dormitory"
   numberOfRooms: number
   availableRooms: number
+  isAC?: boolean
+  monthlyRent?: number
+  capacityPerRoom?: number
 }
 
 interface PGWithRooms {
   _id: string
   pgName: string
+  location?: {
+    area?: string
+    city?: string
+  }
   roomTypes: RoomType[]
+  isActive?: boolean
+  isApproved?: boolean
 }
 
 export default function RoomManagementPage() {
@@ -31,59 +40,43 @@ export default function RoomManagementPage() {
   const { containerLoading, setContainerLoading } = useLoadingStore()
 
   useEffect(() => {
-    setContainerLoading("ownerListings", true)
-    const fetchPGsWithRooms = async () => {
-      try {
-        const res = await axios.get("/api/owner/getOwnerPgRooms")
-
-        if (res?.data?.success) {
-          setPgsWithRooms(res.data.data)
-          const initialState: { [key: string]: { [key: string]: number } } = {}
-          res.data.data.forEach((pg: PGWithRooms) => {
-            initialState[pg._id] = {}
-            pg.roomTypes.forEach((room) => {
-              initialState[pg._id][room._id] = room.availableRooms
-            })
-          })
-          setUpdatingRooms(initialState)
-        } else {
-          toast.error("Failed to fetch room data")
-        }
-      } catch (error) {
-        toast.error("Something went wrong")
-      } finally {
-        setContainerLoading("ownerListings", false)
-      }
-    }
-
     fetchPGsWithRooms()
-
-    // setPgsWithRooms([{
-    //   _id: "pg1",
-    //   pgName: "Sunrise PG",
-    //   roomTypes: [
-    //     {
-    //       _id: "room1",
-    //       type: "single",
-    //       totalRooms: 10,
-    //       availableRooms: 5,
-    //       monthlyRent: 5000,
-    //     },
-    //     {
-    //       _id: "room2",
-    //       type: "double",
-    //       totalRooms: 8,
-    //       availableRooms: 3,
-    //       monthlyRent: 4000,
-    //     },
-    //   ],
-    // }])
     
-
     return () => {
       setContainerLoading("ownerListings", false)
     }
   }, [setContainerLoading])
+
+  const fetchPGsWithRooms = async () => {
+    setContainerLoading("ownerListings", true)
+    try {
+      const res = await axios.get("/api/owner/getOwnerPgRooms")
+
+      if (res?.data?.success) {
+        const pgsData = res.data.data || []
+        setPgsWithRooms(pgsData)
+        
+        // Initialize updating rooms state
+        const initialState: { [key: string]: { [key: string]: number } } = {}
+        pgsData.forEach((pg: PGWithRooms) => {
+          initialState[pg._id] = {}
+          if (pg.roomTypes && pg.roomTypes.length > 0) {
+            pg.roomTypes.forEach((room) => {
+              initialState[pg._id][room._id] = room.availableRooms || 0
+            })
+          }
+        })
+        setUpdatingRooms(initialState)
+      } else {
+        toast.error("Failed to fetch room data")
+      }
+    } catch (error: any) {
+      console.error("Error fetching PGs:", error)
+      toast.error(error.response?.data?.message || "Something went wrong")
+    } finally {
+      setContainerLoading("ownerListings", false)
+    }
+  }
 
   const handleAvailabilityChange = (pgId: string, roomId: string, value: string) => {
     const numValue = Number.parseInt(value) || 0
@@ -138,9 +131,9 @@ export default function RoomManagementPage() {
           duration: 2000,
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.dismiss(loadingToast)
-      toast.error("Failed to update room availability. Try again.", {
+      toast.error(error.response?.data?.message || "Failed to update room availability. Try again.", {
         closeButton: true,
         duration: 2000,
       })
@@ -148,7 +141,7 @@ export default function RoomManagementPage() {
   }
 
   const getRoomTypeDisplayName = (type: string) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case "single":
         return "Single Room"
       case "double":
@@ -158,16 +151,24 @@ export default function RoomManagementPage() {
       case "dormitory":
         return "Dormitory"
       default:
-        return type.charAt(0).toUpperCase() + type.slice(1)
+        return type ? type.charAt(0).toUpperCase() + type.slice(1) : "Unknown"
     }
   }
 
-  const filteredPGs = pgsWithRooms
-    .filter((pg) => {
-      const search = searchQuery.toLowerCase()
-      return pg.pgName.toLowerCase().includes(search) ;
-    })
-
+  const filteredPGs = pgsWithRooms.filter((pg) => {
+    const search = searchQuery.toLowerCase()
+    const matchesSearch = pg.pgName.toLowerCase().includes(search) ||
+                         pg.location?.area?.toLowerCase().includes(search) ||
+                         pg.location?.city?.toLowerCase().includes(search)
+    
+    if (pgFilter === "all") return matchesSearch
+    if (pgFilter === "active") return matchesSearch && pg.isActive
+    if (pgFilter === "inactive") return matchesSearch && !pg.isActive
+    if (pgFilter === "approved") return matchesSearch && pg.isApproved
+    if (pgFilter === "unapproved") return matchesSearch && !pg.isApproved
+    
+    return matchesSearch
+  })
 
   return (
     <div className="flex flex-col gap-6 min-h-[calc(100vh-15px)]">
@@ -212,7 +213,7 @@ export default function RoomManagementPage() {
         </div>
 
         {/* Filters */}
-        {/* <div className="flex justify-end flex-wrap gap-3 text-gray-600 font-inter">
+        <div className="flex justify-end flex-wrap gap-3 text-gray-600 font-inter">
           <Select value={pgFilter} onValueChange={setPgFilter}>
             <SelectTrigger className="w-32 md:w-[130px] border-gray-200">
               <SelectValue placeholder="PG Status" />
@@ -225,13 +226,13 @@ export default function RoomManagementPage() {
               <SelectItem value="unapproved">Unapproved</SelectItem>
             </SelectContent>
           </Select>
-        </div> */}
+        </div>
       </div>
 
       {/* Room Management Cards */}
       <div className="w-full pb-14 space-y-6">
         {containerLoading.ownerListings ? (
-           <div className="h-[60vh] z-[99999] flex items-center justify-center bg-white bg-opacity-60 backdrop-blur-sm transition-opacity duration-500">
+          <div className="h-[60vh] z-[99999] flex items-center justify-center bg-white bg-opacity-60 backdrop-blur-sm transition-opacity duration-500">
             <svg
               aria-hidden="true"
               className="inline w-14 h-14 md:w-14 md:h-14 animate-spin fill-[#ffe0ae]"
@@ -251,8 +252,14 @@ export default function RoomManagementPage() {
           <Card className="h-[60vh] w-full flex justify-center items-center shadow-none border-none">
             <CardContent className="p-12 text-center font-inter">
               <Building2 className="w-20 h-20 mx-auto text-HG-500 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No PGs found</h3>
-              <p className="text-gray-500">Try adjusting your search or filters</p>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                {searchQuery || pgFilter !== "all" ? "No PGs found" : "No properties yet"}
+              </h3>
+              <p className="text-gray-500">
+                {searchQuery || pgFilter !== "all"
+                  ? "Try adjusting your search or filters"
+                  : "Create your first PG listing to get started"}
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -262,79 +269,116 @@ export default function RoomManagementPage() {
                 <CardHeader className="pb-4 border-b border-gray-100">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl font-bold font-poppins text-gray-900">{pg.pgName}</CardTitle>
-                      {/* <p className="text-sm text-gray-500 font-inter mt-1">{pg.area}</p> */}
+                      <CardTitle className="text-xl font-bold font-poppins text-gray-900">
+                        {pg.pgName}
+                      </CardTitle>
+                      {pg.location && (
+                        <p className="text-sm text-gray-500 font-inter mt-1">
+                          {pg.location.area}, {pg.location.city}
+                        </p>
+                      )}
                     </div>
-                    {/* <div className="flex gap-2">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${
-                          pg.isActive ? "text-green-500 bg-green-400/20" : "text-red-500 bg-red-400/20"
-                        }`}
-                      >
-                        {pg.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${
-                          pg.isApproved ? "text-blue-500 bg-blue-400/20" : "text-yellow-500 bg-yellow-400/20"
-                        }`}
-                      >
-                        {pg.isApproved ? "Approved" : "Pending"}
-                      </Badge>
-                    </div> */}
+                    <div className="flex gap-2">
+                      {pg.isActive !== undefined && (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs flex items-center gap-1 ${
+                            pg.isActive
+                              ? "text-green-600 bg-green-50 border-green-200"
+                              : "text-red-600 bg-red-50 border-red-200"
+                          }`}
+                        >
+                          {pg.isActive ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3" />
+                          )}
+                          {pg.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      )}
+                      {pg.isApproved !== undefined && (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            pg.isApproved
+                              ? "text-blue-600 bg-blue-50 border-blue-200"
+                              : "text-yellow-600 bg-yellow-50 border-yellow-200"
+                          }`}
+                        >
+                          {pg.isApproved ? "Approved" : "Pending"}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                 
-
-                  <div className="space-y-0">
-                    {pg?.roomTypes?.map((room, index) => (
-                      <div
-                        key={room._id}
-                        className={`flex items-center justify-between px-6 py-4 ${
-                          index !== pg.roomTypes.length - 1 ? "border-b border-gray-100" : ""
-                        } hover:bg-gray-50 transition-colors`}
-                      >
-                        <div className="flex-1">
-                          <h4 className="text-base font-medium text-gray-900 font-inter">
-                            {getRoomTypeDisplayName(room.type)}
-                          </h4>
-                        </div>
-
-                        <div className="flex items-center gap-8">
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500 font-inter mb-1">Total Beds</p>
-                            <p className="text-2xl font-bold text-gray-900 font-poppins">{room?.numberOfRooms}</p>
+                  {!pg.roomTypes || pg.roomTypes.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
+                      <p className="text-gray-600 font-inter">
+                        No room types configured for this property
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Please add room types in the listing settings
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0">
+                      {pg.roomTypes.map((room, index) => (
+                        <div
+                          key={room._id}
+                          className={`flex items-center justify-between px-6 py-4 ${
+                            index !== pg.roomTypes.length - 1 ? "border-b border-gray-100" : ""
+                          } hover:bg-gray-50 transition-colors`}
+                        >
+                          <div className="flex-1">
+                            <h4 className="text-base font-medium text-gray-900 font-inter">
+                              {getRoomTypeDisplayName(room.type)}
+                            </h4>
+                            {room.monthlyRent && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                ₹{room.monthlyRent.toLocaleString()}/month
+                                {room.isAC && " • AC"}
+                              </p>
+                            )}
                           </div>
 
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500 font-inter mb-1">Available</p>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={room.numberOfRooms}
-                              value={updatingRooms[pg._id]?.[room._id] ?? room.availableRooms}
-                              onChange={(e) => handleAvailabilityChange(pg._id, room._id, e.target.value)}
-                              className=" h-10 text-center text-xl font-bold font-poppins border-gray-300 focus:border-HG-400"
-                            />
-                          </div>
+                          <div className="flex items-center gap-8">
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 font-inter mb-1">Total Beds</p>
+                              <p className="text-2xl font-bold text-gray-900 font-poppins">
+                                {room.numberOfRooms || 0}
+                              </p>
+                            </div>
 
-                          <Button
-                            onClick={() => handleUpdateAvailability(pg._id, room._id)}
-                            className="bg-HG-400 hover:bg-HG-500 text-white font-poppins px-8 py-2 rounded-lg transition-colors"
-                            disabled={
-                              updatingRooms[pg._id]?.[room._id] === room.availableRooms ||
-                              (updatingRooms[pg._id]?.[room._id] ?? 0) > room.numberOfRooms ||
-                              (updatingRooms[pg._id]?.[room._id] ?? 0) < 0
-                            }
-                          >
-                            Update
-                          </Button>
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 font-inter mb-1">Available</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={room.numberOfRooms || 0}
+                                value={updatingRooms[pg._id]?.[room._id] ?? room.availableRooms ?? 0}
+                                onChange={(e) => handleAvailabilityChange(pg._id, room._id, e.target.value)}
+                                className="w-24 h-10 text-center text-xl font-bold font-poppins border-gray-300 focus:border-HG-400"
+                              />
+                            </div>
+
+                            <Button
+                              onClick={() => handleUpdateAvailability(pg._id, room._id)}
+                              className="bg-HG-400 hover:bg-HG-500 text-white font-poppins px-8 py-2 rounded-lg transition-colors"
+                              disabled={
+                                updatingRooms[pg._id]?.[room._id] === room.availableRooms ||
+                                (updatingRooms[pg._id]?.[room._id] ?? 0) > (room.numberOfRooms || 0) ||
+                                (updatingRooms[pg._id]?.[room._id] ?? 0) < 0
+                              }
+                            >
+                              Update
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

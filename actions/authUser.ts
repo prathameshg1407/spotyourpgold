@@ -1,3 +1,4 @@
+// actions/authUser.ts
 "use server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
@@ -18,6 +19,7 @@ const authUser = async () => {
       id: string;
       fullName: string;
       role: string;
+      email: string;  // ✅ Added email field
     };
   } catch (err) {
     return null;
