@@ -205,6 +205,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "admin":
       return [
         ...baseItems,
+         {
+      name: "Students",  // ✅ NEW - Add this at the top of admin items
+      href: "/routes/dashboard/admin/students",
+      icon: "Users",
+    },
         {
           name: "Owner Requests",
           href: "/routes/dashboard/admin/owner-management",
