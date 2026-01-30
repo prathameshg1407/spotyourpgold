@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
+import { connectToDB } from "@/services/connectdb";
 import Room from "@/models/room";
-import TenantAllocation from "@/models/tenantAllocation";
 import Listing from "@/models/listing";
-import Notification from "@/models/notification";
 import { authUser } from "@/actions/authUser";
+import AllocationService from "@/services/allocationService";
 
-// POST - Vacate tenant from a bed
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// Response helpers
+function jsonResponse(data: object, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+function errorResponse(message: string, status: number = 400) {
+  return jsonResponse({ success: false, message }, status);
+}
+
+type RouteParams = { params: Promise<{ id: string }> };
+
+/**
+ * POST - Vacate tenant from a bed
+ */
+export async function POST(req: NextRequest, { params }: RouteParams) {
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     await connectToDB();
@@ -21,175 +29,85 @@ export async function POST(
     const { id: roomId } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return errorResponse("Invalid room ID");
+    }
+
+    // Verify ownership
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return errorResponse("Room not found", 404);
+    }
+
+    const listing = await Listing.findById(room.listingId);
+    if (!listing) {
+      return errorResponse("Listing not found", 404);
+    }
+
+    if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
+      return errorResponse("Unauthorized", 403);
+    }
+
+    const body = await req.json();
     const {
       bedNumber,
       actualMoveOutDate,
-      refundAmount = 0,
-      notes = "",
-    } = await req.json();
+      refundAmount,
+      deductions,
+      notes,
+    } = body;
 
-    // Validate required fields
     if (!bedNumber) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Bed number is required" },
-        { status: 400 }
-      );
+      return errorResponse("Bed number is required");
     }
 
-    // Get room
-    const room = await Room.findById(roomId).session(session);
-    if (!room) {
+    session.startTransaction();
+
+    const result = await AllocationService.vacateTenant(
+      {
+        roomId,
+        bedNumber,
+        actualMoveOutDate,
+        refundAmount,
+        deductions,
+        vacatedBy: user.id,
+        notes,
+      },
+      session
+    );
+
+    if (!result.success) {
       await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Room not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify ownership
-    const listing = await Listing.findById(room.listingId).session(session);
-    if (!listing || listing.ownerId.toString() !== user.id) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
-    }
-
-    // Find the bed
-    const bedIndex = room.beds.findIndex((b: any) => b.bedNumber === bedNumber);
-    if (bedIndex === -1) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Bed not found" },
-        { status: 404 }
-      );
-    }
-
-    const bed = room.beds[bedIndex];
-    if (bed.status !== "occupied") {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: `Bed ${bedNumber} is not occupied` },
-        { status: 400 }
-      );
-    }
-
-    // Get the allocation
-    const allocation = await TenantAllocation.findOne({
-      roomId: room._id,
-      bedNumber: bedNumber,
-      status: { $in: ["active", "notice_period"] },
-    }).session(session);
-
-    if (!allocation) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "No active allocation found for this bed" },
-        { status: 404 }
-      );
-    }
-
-    // Update allocation to vacated
-    const moveOutDate = actualMoveOutDate ? new Date(actualMoveOutDate) : new Date();
-    allocation.status = "vacated";
-    allocation.actualMoveOutDate = moveOutDate;
-    allocation.refundAmount = parseFloat(refundAmount.toString()) || 0;
-    allocation.ownerNotes = notes;
-    allocation.securityDepositRefunded = refundAmount > 0;
-
-    await allocation.save({ session });
-
-    // Update bed status
-    const tenantId = bed.currentTenantId;
-    room.beds[bedIndex].status = "available";
-    room.beds[bedIndex].currentTenantId = null;
-    room.beds[bedIndex].currentAllocationId = null;
-    room.beds[bedIndex].occupiedFrom = null;
-    room.beds[bedIndex].expectedVacateDate = null;
-    room.beds[bedIndex].noticeGiven = false;
-    room.beds[bedIndex].noticeDate = null;
-
-    await room.save({ session });
-
-    // Update listing available rooms count
-    await updateListingAvailability(room.listingId.toString(), session);
-
-    // Create notification for tenant (only if we have a tenantId)
-    if (tenantId) {
-      try {
-        const notificationData = {
-          userId: tenantId,
-          type: "move_out_processed", // ✅ This now matches the schema
-          title: "Move-out Processed",
-          message: `Your move-out from Room ${room.roomNumber}, Bed ${bedNumber} at ${listing.pgName} has been processed.${
-            refundAmount > 0
-              ? ` Security deposit refund: ₹${refundAmount.toLocaleString()}`
-              : ""
-          }`,
-          relatedId: allocation._id,
-          relatedType: "allocation", // ✅ This now matches the schema
-          priority: "high",
-          isRead: false,
-          metadata: {
-            roomNumber: room.roomNumber,
-            bedNumber: bedNumber,
-            pgName: listing.pgName,
-            moveOutDate: moveOutDate,
-            refundAmount: refundAmount,
-          },
-        };
-
-        await Notification.create([notificationData], { session });
-      } catch (notifError) {
-        // Log notification error but don't fail the transaction
-        console.error("Failed to create notification:", notifError);
-      }
+      return errorResponse(result.error || "Failed to vacate tenant");
     }
 
     await session.commitTransaction();
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: "Tenant vacated successfully",
       data: {
-        allocation,
-        refundAmount: refundAmount,
+        allocation: result.allocation,
+        refundAmount: result.refundAmount,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     console.error("Vacate tenant error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Internal server error",
-        details: error.errors
-          ? Object.keys(error.errors).map((key) => error.errors[key].message)
-          : [],
-      },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   } finally {
     session.endSession();
   }
 }
 
-// PUT - Record notice period
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * PUT - Record notice period
+ */
+export async function PUT(req: NextRequest, { params }: RouteParams) {
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     await connectToDB();
@@ -197,161 +115,69 @@ export async function PUT(
     const { id: roomId } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const { bedNumber, expectedVacateDate } = await req.json();
-
-    if (!bedNumber || !expectedVacateDate) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Bed number and expected vacate date are required" },
-        { status: 400 }
-      );
-    }
-
-    // Get room
-    const room = await Room.findById(roomId).session(session);
-    if (!room) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Room not found" },
-        { status: 404 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return errorResponse("Invalid room ID");
     }
 
     // Verify ownership
-    const listing = await Listing.findById(room.listingId).session(session);
-    if (!listing || listing.ownerId.toString() !== user.id) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return errorResponse("Room not found", 404);
     }
 
-    // Find the bed
-    const bedIndex = room.beds.findIndex((b: any) => b.bedNumber === bedNumber);
-    if (bedIndex === -1) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Bed not found" },
-        { status: 404 }
-      );
+    const listing = await Listing.findById(room.listingId);
+    if (!listing) {
+      return errorResponse("Listing not found", 404);
     }
 
-    const bed = room.beds[bedIndex];
-    if (bed.status !== "occupied") {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: `Bed ${bedNumber} is not occupied` },
-        { status: 400 }
-      );
+    if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
+      return errorResponse("Unauthorized", 403);
     }
 
-    // Update bed notice period
-    room.beds[bedIndex].noticeGiven = true;
-    room.beds[bedIndex].noticeDate = new Date();
-    room.beds[bedIndex].expectedVacateDate = new Date(expectedVacateDate);
+    const body = await req.json();
+    const { bedNumber, expectedVacateDate, reason } = body;
 
-    await room.save({ session });
+    if (!bedNumber) {
+      return errorResponse("Bed number is required");
+    }
 
-    // Update allocation status
-    const allocation = await TenantAllocation.findOne({
-      roomId: room._id,
-      bedNumber: bedNumber,
-      status: "active",
-    }).session(session);
+    if (!expectedVacateDate) {
+      return errorResponse("Expected vacate date is required");
+    }
 
-    if (allocation) {
-      allocation.status = "notice_period";
-      allocation.noticeGivenDate = new Date();
-      allocation.expectedVacateDate = new Date(expectedVacateDate);
-      await allocation.save({ session });
+    session.startTransaction();
 
-      // Create notification for tenant
-      if (allocation.tenantId) {
-        try {
-          const notificationData = {
-            userId: allocation.tenantId,
-            type: "notice_period_recorded", // ✅ This now matches the schema
-            title: "Notice Period Recorded",
-            message: `Notice period has been recorded for your stay at ${listing.pgName}, Room ${room.roomNumber}, Bed ${bedNumber}. Expected move-out date: ${new Date(
-              expectedVacateDate
-            ).toLocaleDateString()}`,
-            relatedId: allocation._id,
-            relatedType: "allocation", // ✅ This now matches the schema
-            priority: "high",
-            isRead: false,
-            metadata: {
-              roomNumber: room.roomNumber,
-              bedNumber: bedNumber,
-              pgName: listing.pgName,
-              expectedVacateDate: new Date(expectedVacateDate),
-            },
-          };
+    const result = await AllocationService.recordNotice(
+      {
+        roomId,
+        bedNumber,
+        expectedVacateDate,
+        reason,
+        recordedBy: user.id,
+      },
+      session
+    );
 
-          await Notification.create([notificationData], { session });
-        } catch (notifError) {
-          console.error("Failed to create notification:", notifError);
-        }
-      }
+    if (!result.success) {
+      await session.abortTransaction();
+      return errorResponse(result.error || "Failed to record notice");
     }
 
     await session.commitTransaction();
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: "Notice period recorded successfully",
-      data: room,
+      data: result.allocation,
     });
-  } catch (error: any) {
+  } catch (error) {
     await session.abortTransaction();
     console.error("Record notice error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Internal server error",
-        details: error.errors
-          ? Object.keys(error.errors).map((key) => error.errors[key].message)
-          : [],
-      },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   } finally {
     session.endSession();
-  }
-}
-
-// Helper function to update listing availability
-async function updateListingAvailability(listingId: string, session: any) {
-  const rooms = await Room.find({ listingId }).session(session);
-
-  // Group by room type and count available beds
-  const roomTypeAvailability: Record<string, number> = {};
-
-  rooms.forEach((room) => {
-    if (!roomTypeAvailability[room.roomType]) {
-      roomTypeAvailability[room.roomType] = 0;
-    }
-    roomTypeAvailability[room.roomType] += room.availableBeds;
-  });
-
-  // Update listing
-  const listing = await Listing.findById(listingId).session(session);
-  if (listing) {
-    listing.roomTypes = listing.roomTypes.map((rt: any) => {
-      // Count rooms that have at least one available bed
-      const roomsWithAvailability = rooms.filter(
-        (r) => r.roomType === rt.type && r.availableBeds > 0
-      ).length;
-      rt.availableRooms = roomsWithAvailability;
-      return rt;
-    });
-    await listing.save({ session });
   }
 }

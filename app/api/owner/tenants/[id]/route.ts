@@ -1,55 +1,57 @@
-// app/api/owner/tenants/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectToDB } from "@/services/connectdb";
 import TenantAllocation from "@/models/tenantAllocation";
-import Booking from "@/models/booking";
-import Listing from "@/models/listing";
 import Room from "@/models/room";
-import Notification from "@/models/notification";
+import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
+import AllocationService from "@/services/allocationService";
+import { createNotification } from "@/lib/utils/notificationHelper";
 
-// GET - Get single tenant details
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// Response helpers
+function jsonResponse(data: object, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+function errorResponse(message: string, status: number = 400) {
+  return jsonResponse({ success: false, message }, status);
+}
+
+type RouteParams = { params: Promise<{ id: string }> };
+
+/**
+ * GET - Get single tenant allocation details
+ */
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     await connectToDB();
     const user = await authUser();
     const { id } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const allocation = await TenantAllocation.findById(id)
-      .populate("tenantId", "fullName email phone createdAt")
-      .populate("listingId", "pgName location ownerId")
-      .populate("bookingId", "aadhaarNumber address phoneNumber email fullName moveInDate duration amount securityDeposit couponCode discountAmount additionalRequirements");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid allocation ID");
+    }
+
+    const allocation = await AllocationService.getAllocationDetails(id);
 
     if (!allocation) {
-      return NextResponse.json(
-        { success: false, message: "Tenant allocation not found" },
-        { status: 404 }
-      );
+      return errorResponse("Allocation not found", 404);
     }
 
     // Verify ownership
     const listing = allocation.listingId as any;
     if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+      return errorResponse("Unauthorized", 403);
     }
 
     // Get room details
     const room = await Room.findById(allocation.roomId);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: {
         allocation,
@@ -62,209 +64,151 @@ export async function GET(
               hasAttachedBathroom: room.hasAttachedBathroom,
               amenities: room.amenities,
               monthlyRent: room.monthlyRent,
+              capacity: room.capacity,
+              occupiedBeds: room.occupiedBeds,
+              availableBeds: room.availableBeds,
             }
           : null,
       },
     });
   } catch (error) {
     console.error("Get tenant details error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
 
-// PATCH - Update tenant (record notice, extend stay, add notes)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * PATCH - Update tenant allocation (record notice, extend stay, etc.)
+ */
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
     const user = await authUser();
     const { id } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const { action, data } = await req.json();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid allocation ID");
+    }
 
+    const { action, ...data } = await req.json();
+
+    if (!action) {
+      return errorResponse("Action is required");
+    }
+
+    // Get allocation and verify ownership
     const allocation = await TenantAllocation.findById(id).populate(
       "listingId",
       "ownerId pgName"
     );
 
     if (!allocation) {
-      return NextResponse.json(
-        { success: false, message: "Allocation not found" },
-        { status: 404 }
-      );
+      return errorResponse("Allocation not found", 404);
     }
 
-    // Verify ownership
     const listing = allocation.listingId as any;
     if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+      return errorResponse("Unauthorized", 403);
     }
+
+    session.startTransaction();
+
+    let result: { success: boolean; allocation?: any; error?: string };
 
     switch (action) {
       case "record_notice":
-        // Tenant has given notice to vacate
-        const noticeDays = data.noticePeriodDays || 30;
-        const expectedVacateDate = new Date();
-        expectedVacateDate.setDate(expectedVacateDate.getDate() + noticeDays);
-
-        allocation.status = "notice_period";
-        allocation.noticeGivenDate = new Date();
-        allocation.expectedVacateDate = expectedVacateDate;
-        allocation.ownerNotes = data.notes || allocation.ownerNotes;
-
-        // Update bed status
-        const room = await Room.findById(allocation.roomId);
-        if (room) {
-          const bed = room.beds.find(
-            (b: any) => b.bedNumber === allocation.bedNumber
-          );
-          if (bed) {
-            bed.noticeGiven = true;
-            bed.noticeDate = new Date();
-            bed.expectedVacateDate = expectedVacateDate;
-          }
-          await room.save();
+        if (!data.expectedVacateDate) {
+          return errorResponse("Expected vacate date is required");
         }
-
-        // Notify tenant
-        await Notification.create({
-          userId: allocation.tenantId,
-          type: "notice_period_recorded",
-          title: "Notice Period Recorded",
-          message: `Your notice to vacate ${listing.pgName} has been recorded. Expected move-out date: ${expectedVacateDate.toLocaleDateString("en-IN")}`,
-          relatedId: allocation._id,
-          relatedType: "allocation",
-          priority: "high",
-        });
-
+        result = await AllocationService.recordNotice(
+          {
+            roomId: allocation.roomId.toString(),
+            bedNumber: allocation.bedNumber,
+            expectedVacateDate: data.expectedVacateDate,
+            reason: data.reason,
+            recordedBy: user.id,
+          },
+          session
+        );
         break;
 
       case "extend_stay":
-        // Extend tenant's stay
-        const extensionMonths = data.months || 1;
-        const previousEndDate = new Date(allocation.expectedMoveOutDate);
-        const newEndDate = new Date(previousEndDate);
-        newEndDate.setMonth(newEndDate.getMonth() + extensionMonths);
-
-        allocation.expectedMoveOutDate = newEndDate;
-        allocation.status = "active"; // Reset from notice_period if applicable
-        allocation.noticeGivenDate = null;
-        allocation.expectedVacateDate = null;
-
-        // Add to extensions history
-        allocation.extensions.push({
-          previousEndDate,
-          newEndDate,
-          extendedAt: new Date(),
-          months: extensionMonths,
-        });
-
-        // Update bed status
-        const roomForExtend = await Room.findById(allocation.roomId);
-        if (roomForExtend) {
-          const bed = roomForExtend.beds.find(
-            (b: any) => b.bedNumber === allocation.bedNumber
-          );
-          if (bed) {
-            bed.noticeGiven = false;
-            bed.noticeDate = null;
-            bed.expectedVacateDate = null;
-          }
-          await roomForExtend.save();
+        if (!data.months || data.months < 1) {
+          return errorResponse("Extension months must be at least 1");
         }
+        result = await AllocationService.extendStay(
+          id,
+          data.months,
+          data.reason || "",
+          user.id,
+          session
+        );
+        break;
 
-        // Notify tenant
-        await Notification.create({
-          userId: allocation.tenantId,
-          type: "general",
-          title: "Stay Extended",
-          message: `Your stay at ${listing.pgName} has been extended by ${extensionMonths} month(s). New end date: ${newEndDate.toLocaleDateString("en-IN")}`,
-          relatedId: allocation._id,
-          relatedType: "allocation",
-          priority: "medium",
-        });
-
+      case "transfer":
+        if (!data.newRoomId || !data.newBedNumber) {
+          return errorResponse("New room ID and bed number are required");
+        }
+        result = await AllocationService.transferTenant(
+          id,
+          data.newRoomId,
+          data.newBedNumber,
+          data.transferDate ? new Date(data.transferDate) : new Date(),
+          data.reason || "",
+          user.id,
+          session
+        );
         break;
 
       case "update_notes":
-        allocation.ownerNotes = data.notes;
+        allocation.ownerNotes = data.notes || "";
+        allocation.lastModifiedBy = new mongoose.Types.ObjectId(user.id);
+        await allocation.save({ session });
+        result = { success: true, allocation };
         break;
 
       case "process_move_out":
-        // Process tenant move out
-        allocation.status = "vacated";
-        allocation.actualMoveOutDate = new Date();
-
-        // Calculate refund
-        const refundAmount = data.refundAmount || allocation.securityDeposit;
-        allocation.securityDepositRefunded = true;
-        allocation.refundAmount = refundAmount;
-
-        // Update room/bed status
-        const roomForMoveOut = await Room.findById(allocation.roomId);
-        if (roomForMoveOut) {
-          const bedIndex = roomForMoveOut.beds.findIndex(
-            (b: any) => b.bedNumber === allocation.bedNumber
-          );
-          if (bedIndex !== -1) {
-            roomForMoveOut.beds[bedIndex].status = "available";
-            roomForMoveOut.beds[bedIndex].currentTenantId = null;
-            roomForMoveOut.beds[bedIndex].currentAllocationId = null;
-            roomForMoveOut.beds[bedIndex].occupiedFrom = null;
-            roomForMoveOut.beds[bedIndex].expectedVacateDate = null;
-            roomForMoveOut.beds[bedIndex].noticeGiven = false;
-            roomForMoveOut.beds[bedIndex].noticeDate = null;
-          }
-          await roomForMoveOut.save();
-        }
-
-        // Notify tenant
-        await Notification.create({
-          userId: allocation.tenantId,
-          type: "move_out_processed",
-          title: "Move-out Processed",
-          message: `Your move-out from ${listing.pgName} has been processed. Security deposit refund: ₹${refundAmount.toLocaleString()}`,
-          relatedId: allocation._id,
-          relatedType: "allocation",
-          priority: "high",
-        });
-
+        result = await AllocationService.vacateTenant(
+          {
+            roomId: allocation.roomId.toString(),
+            bedNumber: allocation.bedNumber,
+            actualMoveOutDate: data.moveOutDate,
+            refundAmount: data.refundAmount,
+            deductions: data.deductions,
+            vacatedBy: user.id,
+            notes: data.notes,
+          },
+          session
+        );
         break;
 
       default:
-        return NextResponse.json(
-          { success: false, message: "Invalid action" },
-          { status: 400 }
-        );
+        return errorResponse(`Invalid action: ${action}`);
     }
 
-    await allocation.save();
+    if (!result.success) {
+      await session.abortTransaction();
+      return errorResponse(result.error || "Action failed");
+    }
 
-    return NextResponse.json({
+    await session.commitTransaction();
+
+    return jsonResponse({
       success: true,
       message: `Action '${action}' completed successfully`,
-      data: allocation,
+      data: result.allocation,
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Update tenant error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
+  } finally {
+    session.endSession();
   }
 }

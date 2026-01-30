@@ -1,253 +1,230 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectToDB } from "@/services/connectdb";
 import Room from "@/models/room";
 import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
+import RoomService from "@/services/roomService";
 
-// GET - Get all rooms for owner's listings
+// Response helper
+function jsonResponse(data: object, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+// Error response helper
+function errorResponse(message: string, status: number = 400) {
+  return jsonResponse({ success: false, message }, status);
+}
+
+/**
+ * GET - Get all rooms for owner's listings
+ */
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
     const user = await authUser();
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
     const { searchParams } = new URL(req.url);
     const listingId = searchParams.get("listingId");
     const status = searchParams.get("status");
     const roomType = searchParams.get("roomType");
+    const floor = searchParams.get("floor");
+    const hasAvailableBeds = searchParams.get("hasAvailableBeds") === "true";
 
-    // Build query
-    let query: any = {};
+    // Build listing filter
+    let listingIds: string[];
 
     if (listingId) {
-      // Get specific listing rooms
+      // Verify ownership of specific listing
       const listing = await Listing.findById(listingId);
-      if (!listing || listing.ownerId.toString() !== user.id) {
-        return NextResponse.json(
-          { success: false, message: "Listing not found or unauthorized" },
-          { status: 404 }
-        );
+      if (!listing) {
+        return errorResponse("Listing not found", 404);
       }
-      query.listingId = listingId;
+      if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
+        return errorResponse("Unauthorized", 403);
+      }
+      listingIds = [listingId];
     } else {
-      // Get all owner's listings' rooms
+      // Get all owner's listings
       const ownerListings = await Listing.find({ ownerId: user.id }).select("_id");
-      query.listingId = { $in: ownerListings.map((l) => l._id) };
+      listingIds = ownerListings.map((l) => l._id.toString());
     }
 
-    if (status) {
-      query.status = status;
-    }
+    // Get rooms with filters
+    const rooms = await Promise.all(
+      listingIds.map((lid) =>
+        RoomService.getRoomsByListing(lid, {
+          status: status || undefined,
+          roomType: roomType || undefined,
+          floor: floor ? parseInt(floor) : undefined,
+          hasAvailableBeds,
+        })
+      )
+    );
 
-    if (roomType) {
-      query.roomType = roomType;
-    }
+    const allRooms = rooms.flat();
 
-    const rooms = await Room.find(query)
-      .populate("listingId", "pgName location")
-      .populate("beds.currentTenantId", "fullName email phone")
-      .sort({ roomNumber: 1 });
+    // Calculate summary
+    const summary = {
+      totalRooms: allRooms.length,
+      totalBeds: allRooms.reduce((acc, r) => acc + r.beds.length, 0),
+      occupiedBeds: allRooms.reduce((acc, r) => acc + r.occupiedBeds, 0),
+      availableBeds: allRooms.reduce((acc, r) => acc + r.availableBeds, 0),
+      reservedBeds: allRooms.reduce((acc, r) => acc + r.reservedBeds, 0),
+      maintenanceBeds: allRooms.reduce(
+        (acc, r) => acc + r.beds.filter((b) => b.status === "maintenance").length,
+        0
+      ),
+      occupancyRate: 0,
+      upcomingVacancies: 0,
+    };
 
-    // Calculate summary stats
-    const totalRooms = rooms.length;
-    const totalBeds = rooms.reduce((acc, room) => acc + room.beds.length, 0);
-    const occupiedBeds = rooms.reduce((acc, room) => acc + room.occupiedBeds, 0);
-    const availableBeds = rooms.reduce((acc, room) => acc + room.availableBeds, 0);
+    // Calculate occupancy rate
+    const occupiableBeads = summary.totalBeds - summary.maintenanceBeds;
+    summary.occupancyRate =
+      occupiableBeads > 0
+        ? Math.round((summary.occupiedBeds / occupiableBeads) * 100)
+        : 0;
 
-    // Get upcoming vacancies (next 30 days)
-    const upcomingVacancyDate = new Date();
-    upcomingVacancyDate.setDate(upcomingVacancyDate.getDate() + 30);
+    // Count upcoming vacancies (next 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-    const upcomingVacancies = rooms.reduce((acc, room) => {
-      const vacatingBeds = room.beds.filter(
-        (bed: any) =>
+    allRooms.forEach((room) => {
+      room.beds.forEach((bed) => {
+        if (
           bed.expectedVacateDate &&
-          new Date(bed.expectedVacateDate) <= upcomingVacancyDate &&
+          new Date(bed.expectedVacateDate) <= thirtyDaysFromNow &&
           bed.status === "occupied"
-      );
-      return acc + vacatingBeds.length;
-    }, 0);
+        ) {
+          summary.upcomingVacancies++;
+        }
+      });
+    });
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
-      data: rooms,
-      summary: {
-        totalRooms,
-        totalBeds,
-        occupiedBeds,
-        availableBeds,
-        upcomingVacancies,
-        occupancyRate: totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0,
-      },
+      data: allRooms,
+      summary,
     });
   } catch (error) {
     console.error("Get rooms error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
 
-// POST - Create rooms for a listing
+/**
+ * POST - Create rooms for a listing
+ */
 export async function POST(req: NextRequest) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
     const user = await authUser();
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
     const body = await req.json();
-    const {
-      listingId,
-      roomTypeId,
-      rooms, // Array of room configurations
-    } = body;
+    const { listingId, roomTypeId, rooms } = body;
 
     // Validate required fields
-    if (!listingId || !roomTypeId || !rooms || rooms.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Missing required fields: listingId, roomTypeId, rooms" },
-        { status: 400 }
-      );
+    if (!listingId) {
+      return errorResponse("Listing ID is required");
+    }
+
+    if (!roomTypeId) {
+      return errorResponse("Room type ID is required");
+    }
+
+    if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
+      return errorResponse("At least one room configuration is required");
+    }
+
+    if (rooms.length > 50) {
+      return errorResponse("Cannot create more than 50 rooms at once");
     }
 
     // Verify ownership
     const listing = await Listing.findById(listingId);
-    if (!listing || listing.ownerId.toString() !== user.id) {
-      return NextResponse.json(
-        { success: false, message: "Listing not found or unauthorized" },
-        { status: 404 }
-      );
+    if (!listing) {
+      return errorResponse("Listing not found", 404);
     }
 
-    // Check if listing has roomTypes
-    if (!listing.roomTypes || listing.roomTypes.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Listing has no room types configured. Please add room types first." },
-        { status: 400 }
-      );
+    if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
+      return errorResponse("Unauthorized", 403);
     }
 
-    // Find the room type configuration by _id
-    const roomTypeConfig = listing.roomTypes.find(
+    // Find room type configuration
+    const roomTypeConfig = listing.roomTypes?.find(
       (rt: any) => rt._id.toString() === roomTypeId
     );
 
     if (!roomTypeConfig) {
-      return NextResponse.json(
-        { success: false, message: "Room type not found in listing. Please select a valid room type." },
-        { status: 400 }
+      return errorResponse(
+        "Room type not found. Please select a valid room type from the listing."
       );
     }
 
-    // Create rooms with beds
-    const createdRooms = [];
+    session.startTransaction();
+
+    const createdRooms: any[] = [];
+    const errors: string[] = [];
 
     for (const roomConfig of rooms) {
-      // Check if room number already exists
-      const existingRoom = await Room.findOne({
-        listingId,
-        roomNumber: roomConfig.roomNumber,
-      });
+      const result = await RoomService.createRoom(
+        {
+          listingId,
+          roomTypeId,
+          roomType: roomTypeConfig.type,
+          roomNumber: roomConfig.roomNumber,
+          floor: roomConfig.floor,
+          capacity: roomConfig.capacity || roomTypeConfig.capacityPerRoom,
+          isAC: roomConfig.isAC ?? roomTypeConfig.isAC,
+          hasAttachedBathroom: roomConfig.hasAttachedBathroom,
+          amenities: roomConfig.amenities,
+          notes: roomConfig.notes,
+          monthlyRent: roomConfig.monthlyRent || roomTypeConfig.monthlyRent,
+          securityDeposit: roomConfig.securityDeposit || roomTypeConfig.securityDeposit,
+        },
+        session
+      );
 
-      if (existingRoom) {
-        continue; // Skip duplicate room numbers
+      if (result.success && result.room) {
+        createdRooms.push(result.room);
+      } else {
+        errors.push(result.error || `Failed to create room ${roomConfig.roomNumber}`);
       }
-
-      // Generate beds based on capacity
-      const beds = [];
-      const capacity = roomConfig.capacity || roomTypeConfig.capacityPerRoom;
-      
-      for (let i = 0; i < capacity; i++) {
-        beds.push({
-          bedNumber: capacity === 1 ? "Single" : String.fromCharCode(65 + i), // A, B, C...
-          status: "available",
-          currentTenantId: null,
-          currentAllocationId: null,
-          occupiedFrom: null,
-          expectedVacateDate: null,
-          noticeGiven: false,
-          noticeDate: null,
-        });
-      }
-
-      const room = new Room({
-        listingId,
-        roomTypeId: roomTypeConfig._id,
-        roomType: roomTypeConfig.type,
-        roomNumber: roomConfig.roomNumber,
-        floor: roomConfig.floor || 0,
-        capacity,
-        beds,
-        isAC: roomConfig.isAC !== undefined ? roomConfig.isAC : roomTypeConfig.isAC,
-        hasAttachedBathroom: roomConfig.hasAttachedBathroom || false,
-        amenities: roomConfig.amenities || [],
-        notes: roomConfig.notes || "",
-        monthlyRent: roomConfig.monthlyRent || roomTypeConfig.monthlyRent,
-        securityDeposit: roomConfig.securityDeposit || roomTypeConfig.securityDeposit,
-      });
-
-      await room.save();
-      createdRooms.push(room);
     }
 
-    // Update listing's room count
-    await updateListingRoomCounts(listingId);
+    if (createdRooms.length === 0) {
+      await session.abortTransaction();
+      return errorResponse(`No rooms created. Errors: ${errors.join(", ")}`);
+    }
 
-    return NextResponse.json({
+    await session.commitTransaction();
+
+    return jsonResponse({
       success: true,
-      message: `${createdRooms.length} room(s) created successfully`,
-      data: createdRooms,
+      message: `${createdRooms.length} room(s) created successfully${
+        errors.length > 0 ? `. ${errors.length} failed.` : ""
+      }`,
+      data: {
+        created: createdRooms,
+        errors: errors.length > 0 ? errors : undefined,
+      },
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Create rooms error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-// Helper function to update listing room counts
-async function updateListingRoomCounts(listingId: string) {
-  const rooms = await Room.find({ listingId });
-
-  // Group by room type
-  const roomTypeStats: Record<string, { total: number; available: number }> = {};
-
-  rooms.forEach((room) => {
-    if (!roomTypeStats[room.roomType]) {
-      roomTypeStats[room.roomType] = { total: 0, available: 0 };
-    }
-    roomTypeStats[room.roomType].total++;
-    if (room.status === "available" || room.status === "partial") {
-      roomTypeStats[room.roomType].available++;
-    }
-  });
-
-  // Update listing
-  const listing = await Listing.findById(listingId);
-  if (listing) {
-    listing.roomTypes = listing.roomTypes.map((rt: any) => {
-      const stats = roomTypeStats[rt.type];
-      if (stats) {
-        rt.numberOfRooms = stats.total;
-        rt.availableRooms = stats.available;
-      }
-      return rt;
-    });
-    await listing.save();
+    return errorResponse("Internal server error", 500);
+  } finally {
+    session.endSession();
   }
 }
