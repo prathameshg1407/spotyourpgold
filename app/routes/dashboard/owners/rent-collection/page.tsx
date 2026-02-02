@@ -45,7 +45,6 @@ import {
   CreditCard,
   Wallet,
   TrendingUp,
-  Filter,
   RefreshCw,
   Building2,
   IndianRupee,
@@ -108,7 +107,7 @@ export default function RentCollectionPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
   const [selectedListing, setSelectedListing] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
 
   // Dialog states
   const [selectedRecord, setSelectedRecord] = useState<RentRecord | null>(null);
@@ -127,26 +126,27 @@ export default function RentCollectionPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      
+
       if (activeTab !== "all") {
         params.append("status", activeTab);
       }
       if (selectedListing !== "all") {
         params.append("listingId", selectedListing);
       }
-      if (selectedMonth) {
+      if (selectedMonth !== "all") {
         params.append("month", selectedMonth);
       }
 
       const response = await axios.get(`/api/owner/rent-collection?${params}`);
-      
+
       if (response.data.success) {
         setRentRecords(response.data.data);
         setSummary(response.data.summary);
-        setListings(response.data.listings);
+        setListings(response.data.listings || []);
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to fetch rent data");
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Failed to fetch rent data");
     } finally {
       setLoading(false);
     }
@@ -183,21 +183,22 @@ export default function RentCollectionPage() {
 
       if (response.data.success) {
         toast.success("Rent payment recorded successfully!");
-        
+
         if (response.data.data.commissionCreated > 0) {
           toast.info(
             `Commission of ₹${response.data.data.commissionCreated.toLocaleString()} added to pending`,
             { duration: 4000 }
           );
         }
-        
+
         closePaymentDialog();
         fetchRentData();
       } else {
         toast.error(response.data.message || "Failed to record payment");
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to record payment");
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Failed to record payment");
     } finally {
       setActionLoading(false);
     }
@@ -216,14 +217,16 @@ export default function RentCollectionPage() {
         toast.success("Late fee waived successfully");
         fetchRentData();
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to waive late fee");
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Failed to waive late fee");
     }
   };
 
   const openPaymentDialog = (record: RentRecord) => {
     setSelectedRecord(record);
-    const dueAmount = record.rent.amount + record.rent.lateFee - record.rent.paidAmount;
+    const dueAmount =
+      record.rent.amount + record.rent.lateFee - record.rent.paidAmount;
     setPaymentAmount(dueAmount.toString());
     setPaymentMethod("cash");
     setTransactionId("");
@@ -292,7 +295,8 @@ export default function RentCollectionPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+  const formatCurrency = (amount: number) =>
+    `₹${amount.toLocaleString("en-IN")}`;
 
   // Generate month options for filter
   const getMonthOptions = () => {
@@ -302,7 +306,10 @@ export default function RentCollectionPage() {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       options.push({
         value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
-        label: date.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
+        label: date.toLocaleDateString("en-IN", {
+          month: "long",
+          year: "numeric",
+        }),
       });
     }
     return options;
@@ -333,7 +340,9 @@ export default function RentCollectionPage() {
           </p>
         </div>
         <Button variant="outline" onClick={fetchRentData} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -349,7 +358,9 @@ export default function RentCollectionPage() {
                   <p className="text-2xl font-bold text-yellow-600">
                     {formatCurrency(summary.totalPending)}
                   </p>
-                  <p className="text-xs text-gray-500">{summary.pendingCount} payments</p>
+                  <p className="text-xs text-gray-500">
+                    {summary.pendingCount} payments
+                  </p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-500" />
               </div>
@@ -364,7 +375,9 @@ export default function RentCollectionPage() {
                   <p className="text-2xl font-bold text-red-600">
                     {formatCurrency(summary.totalOverdue)}
                   </p>
-                  <p className="text-xs text-gray-500">{summary.overdueCount} payments</p>
+                  <p className="text-xs text-gray-500">
+                    {summary.overdueCount} payments
+                  </p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-red-500" />
               </div>
@@ -379,7 +392,9 @@ export default function RentCollectionPage() {
                   <p className="text-2xl font-bold text-green-600">
                     {formatCurrency(summary.totalPaid)}
                   </p>
-                  <p className="text-xs text-gray-500">{summary.paidCount} payments</p>
+                  <p className="text-xs text-gray-500">
+                    {summary.paidCount} payments
+                  </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
@@ -428,7 +443,7 @@ export default function RentCollectionPage() {
             <SelectValue placeholder="All Months" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Months</SelectItem>
+            <SelectItem value="all">All Months</SelectItem>
             {getMonthOptions().map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -494,35 +509,39 @@ export default function RentCollectionPage() {
                     </TableHeader>
                     <TableBody>
                       {rentRecords.map((record) => {
-                        const dueAmount =
-                          record.rent.amount +
-                          record.rent.lateFee -
-                          record.rent.paidAmount -
-                          record.rent.waivedAmount;
-
                         return (
-                          <TableRow key={`${record.allocationId}-${record.rentId}`}>
+                          <TableRow
+                            key={`${record.allocationId}-${record.rentId}`}
+                          >
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-full bg-HG-100 flex items-center justify-center">
                                   <User className="h-4 w-4 text-HG-600" />
                                 </div>
                                 <div>
-                                  <p className="font-medium text-sm">{record.tenant.name}</p>
-                                  <p className="text-xs text-gray-500">{record.tenant.phone}</p>
+                                  <p className="font-medium text-sm">
+                                    {record.tenant.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {record.tenant.phone}
+                                  </p>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div>
-                                <p className="font-medium text-sm">{record.pg.name}</p>
+                                <p className="font-medium text-sm">
+                                  {record.pg.name}
+                                </p>
                                 <p className="text-xs text-gray-500">
                                   Room {record.room.number}, Bed {record.room.bed}
                                 </p>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <p className="text-sm">{formatMonth(record.rent.month)}</p>
+                              <p className="text-sm">
+                                {formatMonth(record.rent.month)}
+                              </p>
                             </TableCell>
                             <TableCell>
                               <div>
@@ -531,21 +550,27 @@ export default function RentCollectionPage() {
                                 </p>
                                 {record.rent.lateFee > 0 && (
                                   <p className="text-xs text-red-500">
-                                    +{formatCurrency(record.rent.lateFee)} late fee
+                                    +{formatCurrency(record.rent.lateFee)} late
+                                    fee
                                   </p>
                                 )}
                                 {record.rent.paidAmount > 0 &&
                                   record.rent.status !== "paid" && (
                                     <p className="text-xs text-green-500">
-                                      {formatCurrency(record.rent.paidAmount)} paid
+                                      {formatCurrency(record.rent.paidAmount)}{" "}
+                                      paid
                                     </p>
                                   )}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <p className="text-sm">{formatDate(record.rent.dueDate)}</p>
+                              <p className="text-sm">
+                                {formatDate(record.rent.dueDate)}
+                              </p>
                             </TableCell>
-                            <TableCell>{getStatusBadge(record.rent.status)}</TableCell>
+                            <TableCell>
+                              {getStatusBadge(record.rent.status)}
+                            </TableCell>
                             <TableCell className="text-right">
                               {record.rent.status !== "paid" ? (
                                 <div className="flex items-center justify-end gap-2">
@@ -615,7 +640,9 @@ export default function RentCollectionPage() {
                   </div>
                   <div>
                     <span className="text-gray-500">Month:</span>
-                    <p className="font-medium">{formatMonth(selectedRecord.rent.month)}</p>
+                    <p className="font-medium">
+                      {formatMonth(selectedRecord.rent.month)}
+                    </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Rent Amount:</span>
@@ -704,7 +731,8 @@ export default function RentCollectionPage() {
                       Waive Late Fee
                     </Label>
                     <p className="text-xs text-gray-500">
-                      Remove {formatCurrency(selectedRecord.rent.lateFee)} late fee
+                      Remove {formatCurrency(selectedRecord.rent.lateFee)} late
+                      fee
                     </p>
                   </div>
                   <Switch
@@ -731,8 +759,8 @@ export default function RentCollectionPage() {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
                   <strong>Note:</strong> 10% commission (
-                  {formatCurrency((parseFloat(paymentAmount) || 0) * 0.1)}) will be added to
-                  your pending commissions.
+                  {formatCurrency((parseFloat(paymentAmount) || 0) * 0.1)}) will
+                  be added to your pending commissions.
                 </p>
               </div>
             </div>

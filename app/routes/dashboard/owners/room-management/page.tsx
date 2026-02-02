@@ -1,7 +1,7 @@
 // app/routes/dashboard/owners/room-management/page.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -893,185 +893,174 @@ export default function RoomManagementPage() {
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {listingRooms.map((room) => (
-                        <>
-                          <TableRow
-                            key={room._id}
-                            className="cursor-pointer hover:bg-gray-50"
-                            onClick={() => toggleRoomExpand(room._id)}
-                          >
-                            <TableCell>
-                              {expandedRooms.has(room._id) ? (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                <Home className="w-4 h-4 text-gray-400" />
-                                Room {room.roomNumber}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                {room.roomType}
-                                {room.isAC && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs ml-1"
-                                  >
-                                    AC
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{room.floor}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <span className="text-green-600 font-medium">
-                                  {room.availableBeds}
-                                </span>
-                                <span className="text-gray-400">/</span>
-                                <span>{room.capacity}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={getStatusColor(room.status)}
-                              >
-                                {room.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <IndianRupee className="w-3 h-3" />
-                                {room.monthlyRent.toLocaleString()}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  asChild
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button variant="ghost" size="sm">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditDialog(room);
-                                    }}
-                                  >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit Room
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openDeleteDialog(room);
-                                    }}
-                                    className="text-red-600"
-                                    disabled={room.occupiedBeds > 0}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Room
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
+        
+                 <TableBody>
+  {listingRooms.map((room) => (
+    <Fragment key={room._id}>
+      <TableRow
+        className="cursor-pointer hover:bg-gray-50"
+        onClick={() => toggleRoomExpand(room._id)}
+      >
+        <TableCell>
+          {expandedRooms.has(room._id) ? (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          )}
+        </TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            <Home className="w-4 h-4 text-gray-400" />
+            Room {room.roomNumber}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            {room.roomType}
+            {room.isAC && (
+              <Badge variant="outline" className="text-xs ml-1">
+                AC
+              </Badge>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>{room.floor}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            <span className="text-green-600 font-medium">
+              {room.availableBeds}
+            </span>
+            <span className="text-gray-400">/</span>
+            <span>{room.capacity}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={getStatusColor(room.status)}
+          >
+            {room.status}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center">
+            <IndianRupee className="w-3 h-3" />
+            {room.monthlyRent.toLocaleString()}
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              asChild
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEditDialog(room);
+                }}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Room
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDeleteDialog(room);
+                }}
+                className="text-red-600"
+                disabled={room.occupiedBeds > 0}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Room
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
 
-                          {/* Expanded Beds Row */}
-                          {expandedRooms.has(room._id) && (
-                            <TableRow key={`${room._id}-beds`}>
-                              <TableCell colSpan={8} className="bg-gray-50 p-4">
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                  {room.beds.map((bed) => (
-                                    <div
-                                      key={bed._id}
-                                      className={`p-3 rounded-lg border-2 ${getStatusColor(bed.status)}`}
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        {getBedIcon(bed.status)}
-                                        <span className="text-sm font-medium">
-                                          Bed {bed.bedNumber}
-                                        </span>
-                                      </div>
-                                      <p className="text-xs capitalize mb-2">
-                                        {bed.status}
-                                      </p>
-                                      {bed.tenant && (
-                                        <div className="text-xs space-y-1 border-t pt-2">
-                                          <p className="font-medium truncate">
-                                            {bed.tenant.fullName}
-                                          </p>
-                                          <p className="text-gray-500 truncate">
-                                            {bed.tenant.phone}
-                                          </p>
-                                          {bed.noticeGiven && (
-                                            <Badge className="text-[10px] bg-orange-100 text-orange-800">
-                                              Vacating
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      )}
-                                      {bed.status === "available" && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="w-full mt-2 text-xs h-7"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSetBedMaintenance(
-                                              room,
-                                              bed,
-                                              true
-                                            );
-                                          }}
-                                        >
-                                          <Wrench className="w-3 h-3 mr-1" />
-                                          Set Maintenance
-                                        </Button>
-                                      )}
-                                      {bed.status === "maintenance" && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="w-full mt-2 text-xs h-7"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSetBedMaintenance(
-                                              room,
-                                              bed,
-                                              false
-                                            );
-                                          }}
-                                        >
-                                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                                          Mark Available
-                                        </Button>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                                {room.notes && (
-                                  <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
-                                    <strong>Notes:</strong> {room.notes}
-                                  </p>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </>
-                      ))}
-                    </TableBody>
+      {/* Expanded Beds Row */}
+      {expandedRooms.has(room._id) && (
+        <TableRow>
+          <TableCell colSpan={8} className="bg-gray-50 p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {room.beds.map((bed) => (
+                <div
+                  key={bed._id}
+                  className={`p-3 rounded-lg border-2 ${getStatusColor(bed.status)}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    {getBedIcon(bed.status)}
+                    <span className="text-sm font-medium">
+                      Bed {bed.bedNumber}
+                    </span>
+                  </div>
+                  <p className="text-xs capitalize mb-2">
+                    {bed.status}
+                  </p>
+                  {bed.tenant && (
+                    <div className="text-xs space-y-1 border-t pt-2">
+                      <p className="font-medium truncate">
+                        {bed.tenant.fullName}
+                      </p>
+                      <p className="text-gray-500 truncate">
+                        {bed.tenant.phone}
+                      </p>
+                      {bed.noticeGiven && (
+                        <Badge className="text-[10px] bg-orange-100 text-orange-800">
+                          Vacating
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  {bed.status === "available" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2 text-xs h-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSetBedMaintenance(room, bed, true);
+                      }}
+                    >
+                      <Wrench className="w-3 h-3 mr-1" />
+                      Set Maintenance
+                    </Button>
+                  )}
+                  {bed.status === "maintenance" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2 text-xs h-7"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSetBedMaintenance(room, bed, false);
+                      }}
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Mark Available
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {room.notes && (
+              <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
+                <strong>Notes:</strong> {room.notes}
+              </p>
+            )}
+          </TableCell>
+        </TableRow>
+      )}
+    </Fragment>
+  ))}
+</TableBody>
                   </Table>
                 </CardContent>
               </Card>
