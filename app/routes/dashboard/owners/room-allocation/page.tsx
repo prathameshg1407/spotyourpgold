@@ -974,7 +974,7 @@ export default function RoomAllocationPage() {
                 className="mt-1"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Leave empty to use booking's move-in date
+                Leave empty to use bookings move-in date
               </p>
             </div>
           </div>

@@ -1020,7 +1020,7 @@ export default function TenantsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Extend Stay</DialogTitle>
-            <DialogDescription>Extend the tenant's stay duration</DialogDescription>
+            <DialogDescription>Extend the tenants stay duration</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -1094,7 +1094,7 @@ export default function TenantsPage() {
           <DialogHeader>
             <DialogTitle>Process Move-out</DialogTitle>
             <DialogDescription>
-              Complete the tenant's move-out and process security deposit refund
+              Complete the tenants move-out and process security deposit refund
             </DialogDescription>
           </DialogHeader>
           

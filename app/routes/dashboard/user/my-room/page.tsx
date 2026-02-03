@@ -228,7 +228,7 @@ export default function MyRoomPage() {
             <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No Room Allocated</h3>
             <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              You don't have a room allocated yet. Once your booking is confirmed and you're
+              You do not have a room allocated yet. Once your booking is confirmed and you are
               allocated a room, your details will appear here.
             </p>
             <Button asChild className="bg-HG-500 hover:bg-HG-600">
@@ -278,7 +278,7 @@ export default function MyRoomPage() {
                 <AlertTriangle className="w-6 h-6 text-orange-600 mt-0.5" />
                 <div>
                   <p className="font-medium text-orange-800">
-                    You're in your notice period
+                    You are in your notice period
                   </p>
                   <p className="text-sm text-orange-700 mt-1">
                     Expected move-out date: {formatDate(allocation.expectedVacateDate!)}
@@ -706,7 +706,7 @@ export default function MyRoomPage() {
           <div className="space-y-4 py-4">
             <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <p className="text-sm text-orange-800">
-                <strong>Important:</strong> Once you submit notice, you'll be expected to vacate by
+                <strong>Important:</strong> Once you submit notice, you will be expected to vacate by
                 the selected date. Notice can only be cancelled within 48 hours of submission.
               </p>
             </div>
@@ -772,7 +772,7 @@ export default function MyRoomPage() {
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Note:</strong> Notice can only be cancelled within 48 hours of submission.
-                If approved, you'll continue as an active tenant with your original expected
+                If approved, you will continue as an active tenant with your original expected
                 move-out date.
               </p>
             </div>
