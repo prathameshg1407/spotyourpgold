@@ -3,6 +3,19 @@
 import type { PGFormData } from '../types';
 
 /**
+ * Room type interface (matching the one in PGFormData)
+ */
+export interface RoomType {
+  type: string;
+  isAC: boolean;
+  numberOfRooms: number;
+  availableRooms: number;
+  capacityPerRoom: number;
+  monthlyRent: number;
+  securityDeposit: number;
+}
+
+/**
  * Default location structure with all required fields
  */
 export const DEFAULT_LOCATION = {
@@ -16,6 +29,68 @@ export const DEFAULT_LOCATION = {
 };
 
 /**
+ * Get a default room type with valid values
+ * IMPORTANT: numberOfRooms and capacityPerRoom default to 1, not 0
+ */
+export const getDefaultRoomType = (): RoomType => ({
+  type: '',
+  isAC: false,
+  numberOfRooms: 1,      // Default to 1, not 0 - FIXES THE ERROR
+  availableRooms: 0,
+  capacityPerRoom: 1,    // Default to 1, not 0 - FIXES THE ERROR
+  monthlyRent: 0,
+  securityDeposit: 0,
+});
+
+/**
+ * Normalize a single room type to ensure valid values
+ * Ensures capacity and numberOfRooms are at least 1
+ */
+export const normalizeRoomType = (room: any): RoomType => {
+  // Ensure capacityPerRoom is at least 1
+  let capacityPerRoom = 1;
+  if (room?.capacityPerRoom !== undefined && room?.capacityPerRoom !== null && room?.capacityPerRoom !== '') {
+    const parsed = Number(room.capacityPerRoom);
+    capacityPerRoom = !isNaN(parsed) && parsed > 0 ? parsed : 1;
+  }
+
+  // Ensure numberOfRooms is at least 1
+  let numberOfRooms = 1;
+  if (room?.numberOfRooms !== undefined && room?.numberOfRooms !== null && room?.numberOfRooms !== '') {
+    const parsed = Number(room.numberOfRooms);
+    numberOfRooms = !isNaN(parsed) && parsed > 0 ? parsed : 1;
+  }
+
+  // Ensure availableRooms is not negative and not more than numberOfRooms
+  let availableRooms = 0;
+  if (room?.availableRooms !== undefined && room?.availableRooms !== null) {
+    const parsed = Number(room.availableRooms);
+    availableRooms = !isNaN(parsed) && parsed >= 0 ? Math.min(parsed, numberOfRooms) : 0;
+  }
+
+  return {
+    type: room?.type || '',
+    isAC: Boolean(room?.isAC),
+    numberOfRooms,
+    availableRooms,
+    capacityPerRoom,
+    monthlyRent: Math.max(0, Number(room?.monthlyRent) || 0),
+    securityDeposit: Math.max(0, Number(room?.securityDeposit) || 0),
+  };
+};
+
+/**
+ * Normalize room types array - ensures all rooms have valid capacity
+ */
+export const normalizeRoomTypes = (roomTypes: any): RoomType[] => {
+  if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
+    return [getDefaultRoomType()];
+  }
+
+  return roomTypes.map((room) => normalizeRoomType(room));
+};
+
+/**
  * Default form data structure
  */
 export const getDefaultFormData = (): PGFormData => ({
@@ -24,9 +99,9 @@ export const getDefaultFormData = (): PGFormData => ({
   primaryLine: '',
   type: '',
   subType: '',
-  roomTypes: [],
-  genderPreference: 'unisex', // Changed from 'both' to 'unisex' to match the type
-  isCoLiving: false, // Added missing property
+  roomTypes: [getDefaultRoomType()], // Start with one valid room with capacity=1
+  genderPreference: 'unisex',
+  isCoLiving: false,
   additionalDetails: [],
   additionalDetailsInput: '',
   location: { ...DEFAULT_LOCATION },
@@ -61,7 +136,6 @@ export const getDefaultFormData = (): PGFormData => ({
 
 /**
  * Safely normalize location data from API/Database
- * Ensures all required fields exist even if DB schema is outdated
  */
 export function normalizeLocationData(location: any): PGFormData['location'] {
   if (!location || typeof location !== 'object') {
@@ -78,8 +152,8 @@ export function normalizeLocationData(location: any): PGFormData['location'] {
       : DEFAULT_LOCATION.nearbyPlaces,
     nearbyPlacesInput: location.nearbyPlacesInput ?? DEFAULT_LOCATION.nearbyPlacesInput,
     coordinates: {
-      lat: typeof location.coordinates?.lat === 'number' 
-        ? location.coordinates.lat 
+      lat: typeof location.coordinates?.lat === 'number'
+        ? location.coordinates.lat
         : DEFAULT_LOCATION.coordinates.lat,
       lng: typeof location.coordinates?.lng === 'number'
         ? location.coordinates.lng
@@ -93,7 +167,7 @@ export function normalizeLocationData(location: any): PGFormData['location'] {
  */
 export function normalizeFormData(data: any): PGFormData {
   const defaults = getDefaultFormData();
-  
+
   if (!data || typeof data !== 'object') {
     return defaults;
   }
@@ -104,11 +178,11 @@ export function normalizeFormData(data: any): PGFormData {
     primaryLine: data.primaryLine ?? defaults.primaryLine,
     type: data.type ?? defaults.type,
     subType: data.subType ?? defaults.subType,
-    roomTypes: Array.isArray(data.roomTypes) ? data.roomTypes : defaults.roomTypes,
+    roomTypes: normalizeRoomTypes(data.roomTypes), // Use normalization function
     genderPreference: data.genderPreference ?? defaults.genderPreference,
-    isCoLiving: data.isCoLiving ?? defaults.isCoLiving, // Added missing property
-    additionalDetails: Array.isArray(data.additionalDetails) 
-      ? data.additionalDetails 
+    isCoLiving: data.isCoLiving ?? defaults.isCoLiving,
+    additionalDetails: Array.isArray(data.additionalDetails)
+      ? data.additionalDetails
       : defaults.additionalDetails,
     additionalDetailsInput: data.additionalDetailsInput ?? defaults.additionalDetailsInput,
     location: normalizeLocationData(data.location),
@@ -120,7 +194,7 @@ export function normalizeFormData(data: any): PGFormData {
       lockInPeriod: data.detailedRules?.lockInPeriod ?? defaults.detailedRules.lockInPeriod,
       noticePeriod: data.detailedRules?.noticePeriod ?? defaults.detailedRules.noticePeriod,
       maintenanceCharges: data.detailedRules?.maintenanceCharges ?? defaults.detailedRules.maintenanceCharges,
-      registrationFees: data.detailedRules?.registrationFees ?? defaults.detailedRules.registrationFees, // Added missing property
+      registrationFees: data.detailedRules?.registrationFees ?? defaults.detailedRules.registrationFees,
       entryTiming: data.detailedRules?.entryTiming ?? defaults.detailedRules.entryTiming,
       exitTiming: data.detailedRules?.exitTiming ?? defaults.detailedRules.exitTiming,
       guestStayPolicy: data.detailedRules?.guestStayPolicy ?? defaults.detailedRules.guestStayPolicy,
@@ -161,6 +235,9 @@ export function normalizeFormData(data: any): PGFormData {
         to: data.mealTimings?.night?.to ?? defaults.mealTimings.night.to,
       },
     },
+    // Optional fields
+    flatsDetails: data.flatsDetails,
+    commercialDetails: data.commercialDetails,
     planType: data.planType,
     paymentStatus: data.paymentStatus,
     paymentId: data.paymentId,

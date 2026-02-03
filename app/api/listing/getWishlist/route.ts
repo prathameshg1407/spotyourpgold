@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         pgName: listing.pgName,
         primaryLine: listing.primaryLine || "",
         type: listing.type || "",
-        genderPreference: listing.genderPreference || "both",
+        genderPreference: listing.genderPreference || "unisex",
         city: listing.location?.city || "Unknown",
         location: {
           area: listing.location?.area || "Unknown",

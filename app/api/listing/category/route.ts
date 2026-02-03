@@ -144,13 +144,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (genderPreference) {
-      if (genderPreference === "both" || genderPreference === "unisex") {
-        baseQuery.$and.push({ genderPreference: "both" });
+      if (genderPreference === "unisex") {
+        baseQuery.$and.push({ genderPreference: "unisex" });
       } else {
         baseQuery.$and.push({
           $or: [
             { genderPreference: genderPreference },
-            { genderPreference: "both" },
+            { genderPreference: "unisex" },
           ],
         });
       }

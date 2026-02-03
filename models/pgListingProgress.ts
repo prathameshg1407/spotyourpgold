@@ -11,13 +11,15 @@ export interface IPGListingProgress extends Document {
     subType?: string;
     roomTypes?: Array<{
       type: string;
+      isAC: boolean;
       numberOfRooms: number;
       availableRooms: number;
       capacityPerRoom: number;
       monthlyRent: number;
       securityDeposit: number;
     }>;
-    genderPreference?: "male" | "female" | "both";
+    genderPreference?: "male" | "female" | "unisex";
+    isCoLiving?: boolean;  // ✅ ADDED
     additionalDetails?: string[];
 
     // Location
@@ -28,7 +30,7 @@ export interface IPGListingProgress extends Document {
       pincode: string;
       coordinates: {
         type: "Point";
-        coordinates: [number, number]; // [longitude, latitude]
+        coordinates: [number, number];
       };
       nearbyPlaces?: string[];
     };
@@ -64,10 +66,10 @@ export interface IPGListingProgress extends Document {
     };
 
     // Images and Videos
-    images?: string[]; // Array of image URLs
-    videos?: string[]; // Array of video URLs
-    existingImageUrls?: string[]; // For edit mode
-    existingVideoUrls?: string[]; // For edit mode
+    images?: string[];
+    videos?: string[];
+    existingImageUrls?: string[];
+    existingVideoUrls?: string[];
 
     // Additional fields
     monthlyRent?: number;
@@ -101,6 +103,7 @@ const PGListingProgressSchema = new Schema<IPGListingProgress>(
       roomTypes: [
         {
           type: { type: String, default: "" },
+          isAC: { type: Boolean, default: false },  // ✅ ADDED
           numberOfRooms: { type: Number, default: 0 },
           availableRooms: { type: Number, default: 0 },
           capacityPerRoom: { type: Number, default: 0 },
@@ -110,9 +113,10 @@ const PGListingProgressSchema = new Schema<IPGListingProgress>(
       ],
       genderPreference: {
         type: String,
-        enum: ["male", "female", "both"],
-        default: "both",
+        enum: ["male", "female", "unisex"],
+        default: "unisex",
       },
+      isCoLiving: { type: Boolean, default: false },  // ✅ ADDED
       additionalDetails: [String],
 
       // Location

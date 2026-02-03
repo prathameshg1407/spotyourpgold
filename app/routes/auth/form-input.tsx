@@ -13,8 +13,11 @@ interface FormInputProps {
   type: string;
   value: string;
   onChange: (value: string) => void;
+   onBlur?: () => void; 
   placeholder: string;
   icon?: LucideIcon;
+   min?: number;         // ADD THIS LINE if not present
+  max?: number;    
   hasError: boolean;
   required?: boolean;
   rightElement?: React.ReactNode;
@@ -38,6 +41,9 @@ export const FormInput = ({
   value,
   onChange,
   placeholder,
+  onBlur,
+  min,
+  max,
   icon: Icon,
   hasError,
   required = false,
@@ -67,6 +73,9 @@ export const FormInput = ({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          min={min}
+          max={max}
           onKeyPress={onKeyPress}
           maxLength={maxLength}
           className={`h-11 pl-10 bg-white rounded-md text-[15px]

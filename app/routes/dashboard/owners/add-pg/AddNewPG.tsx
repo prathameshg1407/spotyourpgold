@@ -130,7 +130,7 @@
 //   numberOfRooms: number;
 //   capacityPerRoom: number;
 //   //   roomTypes: string[];
-//   genderPreference: "male" | "female" | "both";
+//   genderPreference: "male" | "female" | "unisex";
 //   additionalDetails: string[];
 //   additionalDetailsInput: string;
 //   location: {
@@ -2389,7 +2389,7 @@ export default function AddNewPG() {
             type: listing?.type || "",
             subType: listing?.subType || "",
             roomTypes: Array.isArray(listing?.roomTypes) ? listing.roomTypes : [],
-             genderPreference: listing?.genderPreference || 'both',
+             genderPreference: listing?.genderPreference || 'unisex',
   isCoLiving: listing?.isCoLiving || false, 
             additionalDetails: Array.isArray(listing?.additionalDetails) 
               ? listing.additionalDetails 

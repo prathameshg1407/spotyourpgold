@@ -218,7 +218,7 @@ export const Card = ({
               <div className="flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4 text-HG-600" />
                 <span className="text-gray-600 capitalize font-medium">
-                  {card?.genderPreference === "both"
+                  {card?.genderPreference === "unisex"
                     ? "Male & Female"
                     : card?.genderPreference}
                 </span>
