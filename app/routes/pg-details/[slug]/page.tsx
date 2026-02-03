@@ -13,7 +13,7 @@ interface ListingDetails {
   primaryLine?: string;
   type?: string;
   subType?: string;
-  genderPreference: "male" | "female" | "both";
+  genderPreference: "male" | "female" | "unisex";
 
   // Room Types
   roomTypes: Array<{
@@ -360,7 +360,7 @@ type Listing = {
   securityDeposit: number;
   numberOfRooms: number;
   capacityPerRoom: number;
-  genderPreference: "male" | "female" | "both";
+  genderPreference: "male" | "female" | "unisex";
 
   // Amenities
   amenities: string[];
@@ -717,7 +717,7 @@ export default function ProductPage() {
     securityDeposit: 0,
     numberOfRooms: 0,
     capacityPerRoom: 0,
-    genderPreference: "both",
+    genderPreference: "unisex",
 
     // Amenities
     amenities: [],
@@ -1882,7 +1882,7 @@ const handleDirectionClick = () => {
                         <Users className="w-5 h-5 text-HG-600" />
                       </div>
                       <span className="text-sm font-medium text-gray-700 capitalize">
-                        {listing?.genderPreference === "both"
+                        {listing?.genderPreference === "unisex"
                           ? "Male & Female"
                           : listing?.genderPreference}
                       </span>

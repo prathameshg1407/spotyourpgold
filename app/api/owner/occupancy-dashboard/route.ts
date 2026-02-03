@@ -5,16 +5,25 @@ import TenantAllocation from "@/models/tenantAllocation";
 import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
 
+// Response helpers
+function jsonResponse(data: object, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+function errorResponse(message: string, status: number = 400) {
+  return jsonResponse({ success: false, message }, status);
+}
+
+/**
+ * GET - Get occupancy dashboard data for owner
+ */
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
     const user = await authUser();
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
     // Get all owner's listings
@@ -24,51 +33,140 @@ export async function GET(req: NextRequest) {
 
     const listingIds = listings.map((l) => l._id);
 
-    // Get all rooms for these listings
-    const rooms = await Room.find({ listingId: { $in: listingIds } })
-      .populate("beds.currentTenantId", "fullName email phone")
-      .lean();
+    // Get all rooms for these listings using aggregation for better performance
+    const roomsAggregation = await Room.aggregate([
+      {
+        $match: {
+          listingId: { $in: listingIds },
+          isActive: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "beds.currentTenantId",
+          foreignField: "_id",
+          as: "tenantDetails",
+          pipeline: [
+            { $project: { fullName: 1, email: 1, phone: 1 } },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          beds: {
+            $map: {
+              input: "$beds",
+              as: "bed",
+              in: {
+                $mergeObjects: [
+                  "$$bed",
+                  {
+                    tenant: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$tenantDetails",
+                            as: "t",
+                            cond: { $eq: ["$$t._id", "$$bed.currentTenantId"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          tenantDetails: 0,
+        },
+      },
+      {
+        $sort: { floor: 1, roomNumber: 1 },
+      },
+    ]);
 
-    // Get active allocations
-    const allocations = await TenantAllocation.find({
-      listingId: { $in: listingIds },
-      status: { $in: ["active", "notice_period"] },
-    })
-      .populate("tenantId", "fullName email phone")
-      .lean();
+    // Get allocations summary
+    const allocationStats = await TenantAllocation.aggregate([
+      {
+        $match: {
+          listingId: { $in: listingIds },
+          status: { $in: ["active", "notice_period"] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            listingId: "$listingId",
+            status: "$status",
+          },
+          count: { $sum: 1 },
+          totalRent: { $sum: "$monthlyRent" },
+        },
+      },
+    ]);
 
     // Calculate stats per listing
     const listingStats = listings.map((listing: any) => {
-      const listingRooms = rooms.filter(
+      const listingRooms = roomsAggregation.filter(
         (r: any) => r.listingId.toString() === listing._id.toString()
       );
 
-      const totalBeds = listingRooms.reduce((acc, r: any) => acc + r.beds.length, 0);
-      const occupiedBeds = listingRooms.reduce((acc, r: any) => acc + r.occupiedBeds, 0);
-      const availableBeds = listingRooms.reduce((acc, r: any) => acc + r.availableBeds, 0);
+      const stats = {
+        totalRooms: listingRooms.length,
+        totalBeds: 0,
+        occupiedBeds: 0,
+        availableBeds: 0,
+        reservedBeds: 0,
+        maintenanceBeds: 0,
+        upcomingVacancies: 0,
+      };
 
-      // Upcoming vacancies (next 30 days)
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-      let upcomingVacancies = 0;
       listingRooms.forEach((room: any) => {
+        stats.totalBeds += room.beds.length;
         room.beds.forEach((bed: any) => {
-          if (
-            bed.expectedVacateDate &&
-            new Date(bed.expectedVacateDate) <= thirtyDaysFromNow &&
-            (bed.status === "occupied" || bed.noticeGiven)
-          ) {
-            upcomingVacancies++;
+          switch (bed.status) {
+            case "occupied":
+              stats.occupiedBeds++;
+              if (
+                bed.expectedVacateDate &&
+                new Date(bed.expectedVacateDate) <= thirtyDaysFromNow
+              ) {
+                stats.upcomingVacancies++;
+              }
+              break;
+            case "available":
+              stats.availableBeds++;
+              break;
+            case "reserved":
+              stats.reservedBeds++;
+              break;
+            case "maintenance":
+              stats.maintenanceBeds++;
+              break;
           }
         });
       });
 
       // Room type breakdown
-      const roomTypeBreakdown = listing.roomTypes.map((rt: any) => {
+      const roomTypeBreakdown = (listing.roomTypes || []).map((rt: any) => {
         const typeRooms = listingRooms.filter((r: any) => r.roomType === rt.type);
-        const typeTotalBeds = typeRooms.reduce((acc, r: any) => acc + r.beds.length, 0);
-        const typeOccupiedBeds = typeRooms.reduce((acc, r: any) => acc + r.occupiedBeds, 0);
+        const typeTotalBeds = typeRooms.reduce(
+          (acc: number, r: any) => acc + r.beds.length,
+          0
+        );
+        const typeOccupiedBeds = typeRooms.reduce(
+          (acc: number, r: any) => acc + r.occupiedBeds,
+          0
+        );
 
         return {
           type: rt.type,
@@ -76,20 +174,41 @@ export async function GET(req: NextRequest) {
           totalBeds: typeTotalBeds,
           occupiedBeds: typeOccupiedBeds,
           availableBeds: typeTotalBeds - typeOccupiedBeds,
-          occupancyRate: typeTotalBeds > 0 ? Math.round((typeOccupiedBeds / typeTotalBeds) * 100) : 0,
+          monthlyRent: rt.monthlyRent,
+          occupancyRate:
+            typeTotalBeds > 0
+              ? Math.round((typeOccupiedBeds / typeTotalBeds) * 100)
+              : 0,
         };
       });
+
+      // Get allocation stats for this listing
+      const listingAllocationStats = allocationStats.filter(
+        (a: any) => a._id.listingId.toString() === listing._id.toString()
+      );
+
+      const activeCount =
+        listingAllocationStats.find((a: any) => a._id.status === "active")
+          ?.count || 0;
+      const noticePeriodCount =
+        listingAllocationStats.find(
+          (a: any) => a._id.status === "notice_period"
+        )?.count || 0;
+
+      const occupiableBeds = stats.totalBeds - stats.maintenanceBeds;
 
       return {
         _id: listing._id,
         pgName: listing.pgName,
         location: listing.location,
-        totalRooms: listingRooms.length,
-        totalBeds,
-        occupiedBeds,
-        availableBeds,
-        upcomingVacancies,
-        occupancyRate: totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0,
+        roomTypes: listing.roomTypes || [],
+        ...stats,
+        activeTenants: activeCount,
+        tenantsInNoticePeriod: noticePeriodCount,
+        occupancyRate:
+          occupiableBeds > 0
+            ? Math.round((stats.occupiedBeds / occupiableBeds) * 100)
+            : 0,
         roomTypeBreakdown,
         rooms: listingRooms.map((room: any) => ({
           _id: room._id,
@@ -100,10 +219,20 @@ export async function GET(req: NextRequest) {
           capacity: room.capacity,
           occupiedBeds: room.occupiedBeds,
           availableBeds: room.availableBeds,
+          monthlyRent: room.monthlyRent,
           beds: room.beds.map((bed: any) => ({
+            _id: bed._id,
             bedNumber: bed.bedNumber,
+            bedLabel: bed.bedLabel,
             status: bed.status,
-            tenant: bed.currentTenantId,
+            tenant: bed.tenant
+              ? {
+                  _id: bed.tenant._id,
+                  name: bed.tenant.fullName,
+                  email: bed.tenant.email,
+                  phone: bed.tenant.phone,
+                }
+              : null,
             occupiedFrom: bed.occupiedFrom,
             expectedVacateDate: bed.expectedVacateDate,
             noticeGiven: bed.noticeGiven,
@@ -113,50 +242,52 @@ export async function GET(req: NextRequest) {
     });
 
     // Overall stats
-    const totalBeds = rooms.reduce((acc, r: any) => acc + r.beds.length, 0);
-    const totalOccupied = rooms.reduce((acc, r: any) => acc + r.occupiedBeds, 0);
-    const totalAvailable = rooms.reduce((acc, r: any) => acc + r.availableBeds, 0);
+    const overall = {
+      totalListings: listings.length,
+      totalRooms: roomsAggregation.length,
+      totalBeds: 0,
+      occupiedBeds: 0,
+      availableBeds: 0,
+      reservedBeds: 0,
+      maintenanceBeds: 0,
+      occupancyRate: 0,
+      tenantsInNoticePeriod: 0,
+      upcomingVacancies: 0,
+      monthlyRevenue: 0,
+    };
 
-    // Tenants in notice period
-    const tenantsInNoticePeriod = allocations.filter(
-      (a: any) => a.status === "notice_period"
-    ).length;
+    listingStats.forEach((ls: any) => {
+      overall.totalBeds += ls.totalBeds;
+      overall.occupiedBeds += ls.occupiedBeds;
+      overall.availableBeds += ls.availableBeds;
+      overall.reservedBeds += ls.reservedBeds;
+      overall.maintenanceBeds += ls.maintenanceBeds;
+      overall.tenantsInNoticePeriod += ls.tenantsInNoticePeriod;
+      overall.upcomingVacancies += ls.upcomingVacancies;
+    });
 
-    // Upcoming vacancies across all properties
-    const thirtyDays = new Date();
-    thirtyDays.setDate(thirtyDays.getDate() + 30);
+    // Calculate overall occupancy rate
+    const totalOccupiable = overall.totalBeds - overall.maintenanceBeds;
+    overall.occupancyRate =
+      totalOccupiable > 0
+        ? Math.round((overall.occupiedBeds / totalOccupiable) * 100)
+        : 0;
 
-    const allUpcomingVacancies = rooms.reduce((acc, room: any) => {
-      const vacatingBeds = room.beds.filter(
-        (bed: any) =>
-          bed.expectedVacateDate &&
-          new Date(bed.expectedVacateDate) <= thirtyDays &&
-          bed.status === "occupied"
-      );
-      return acc + vacatingBeds.length;
+    // Calculate monthly revenue from active allocations
+    const revenueData = allocationStats.reduce((acc: number, a: any) => {
+      return acc + (a.totalRent || 0);
     }, 0);
+    overall.monthlyRevenue = revenueData;
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: {
-        overall: {
-          totalListings: listings.length,
-          totalRooms: rooms.length,
-          totalBeds,
-          occupiedBeds: totalOccupied,
-          availableBeds: totalAvailable,
-          occupancyRate: totalBeds > 0 ? Math.round((totalOccupied / totalBeds) * 100) : 0,
-          tenantsInNoticePeriod,
-          upcomingVacancies: allUpcomingVacancies,
-        },
+        overall,
         listings: listingStats,
       },
     });
   } catch (error) {
     console.error("Get occupancy dashboard error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }

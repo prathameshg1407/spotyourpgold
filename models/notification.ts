@@ -23,6 +23,8 @@ const notificationSchema = new mongoose.Schema(
     "ticket_response",     
     "ticket_resolved",     
         "general",
+        "move_out_completed",
+        "room_allocated", // <--- Added this to fix the error
       ],
       required: true,
     },
@@ -81,6 +83,7 @@ const notificationSchema = new mongoose.Schema(
 // Indexes for efficient queries
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ type: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, type: 1 });
 
 const Notification =
   mongoose.models.Notification ||

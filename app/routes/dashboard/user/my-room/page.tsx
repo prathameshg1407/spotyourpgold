@@ -1,3 +1,4 @@
+// app/routes/dashboard/user/my-room/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,93 +7,41 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import {
   Home,
   Bed,
-  Users,
+  User,
   Calendar,
+  Clock,
   MapPin,
   Phone,
   Mail,
   IndianRupee,
-  Clock,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
-  Building,
+  AlertTriangle,
+  LogOut,
+  Users,
   Wifi,
   Car,
   Utensils,
   Shield,
-  LogOut,
-  CreditCard,
-  Receipt,
-  User,
-  ChevronRight,
+  FileText,
+  X,
 } from "lucide-react";
-import { useUserStore } from "@/store/userStore";
-import { BlurImage } from "@/components/BlurImage";
 
-interface Allocation {
-  _id: string;
-  pgName: string;
-  roomNumber: string;
-  bedNumber: string;
-  roomType: string;
-  status: string;
-  moveInDate: string;
-  expectedMoveOutDate: string;
-  expectedVacateDate?: string;
-  noticeGivenDate?: string;
-  noticePeriodDays: number;
-  monthlyRent: number;
-  securityDeposit: number;
-  securityDepositPaid: boolean;
-  listingId: {
-    _id: string;
-    pgName: string;
-    location: {
-      area: string;
-      city: string;
-      state: string;
-    };
-    amenities: string[];
-    primaryImage: string;
-    detailedRules: any;
-    mealTimings: any;
-    rentInclusions: any;
-  };
-  room: {
-    roomNumber: string;
-    roomType: string;
-    floor: number;
-    isAC: boolean;
-    hasAttachedBathroom: boolean;
-    amenities: string[];
-  };
-  rentHistory: Array<{
-    month: string;
-    amount: number;
-    status: string;
-    paidAmount: number;
-    paidAt: string;
-    dueDate: string;
-    lateFee: number;
-  }>;
-}
-
-interface Roommate {
+// Types
+interface RoommateData {
   name: string;
   bedNumber: string;
   moveInDate: string;
@@ -105,19 +54,57 @@ interface NextRentDue {
   lateFee: number;
 }
 
-export default function MyRoomPage() {
-  const { user } = useUserStore();
-  const [loading, setLoading] = useState(true);
-  const [allocation, setAllocation] = useState<Allocation | null>(null);
-  const [roommates, setRoommates] = useState<Roommate[]>([]);
-  const [nextRentDue, setNextRentDue] = useState<NextRentDue | null>(null);
-  const [showNoticeDialog, setShowNoticeDialog] = useState(false);
-  const [noticeForm, setNoticeForm] = useState({
-    expectedVacateDate: "",
-    reason: "",
-  });
-  const [submittingNotice, setSubmittingNotice] = useState(false);
+interface AllocationData {
+  _id: string;
+  roomNumber: string;
+  bedNumber: string;
+  roomType: string;
+  pgName: string;
+  moveInDate: string;
+  expectedMoveOutDate: string;
+  status: string;
+  noticePeriodDays: number;
+  noticeGivenDate: string | null;
+  expectedVacateDate: string | null;
+  monthlyRent: number;
+  securityDeposit: number;
+  securityDepositPaid: boolean;
+  room: {
+    roomNumber: string;
+    roomType: string;
+    floor: number;
+    isAC: boolean;
+    hasAttachedBathroom: boolean;
+    amenities: string[];
+  };
+  listing: {
+    pgName: string;
+    location: { area: string; city: string; state: string };
+    amenities: string[];
+    detailedRules: any;
+    mealTimings: any;
+    rentInclusions: any;
+    primaryImage: string;
+  };
+}
 
+export default function MyRoomPage() {
+  // State
+  const [allocation, setAllocation] = useState<AllocationData | null>(null);
+  const [roommates, setRoommates] = useState<RoommateData[]>([]);
+  const [nextRentDue, setNextRentDue] = useState<NextRentDue | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Dialog states
+  const [showNoticeDialog, setShowNoticeDialog] = useState(false);
+  const [showCancelNoticeDialog, setShowCancelNoticeDialog] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Notice form state
+  const [vacateDate, setVacateDate] = useState("");
+  const [vacateReason, setVacateReason] = useState("");
+
+  // Fetch allocation data
   useEffect(() => {
     fetchAllocation();
   }, []);
@@ -125,147 +112,127 @@ export default function MyRoomPage() {
   const fetchAllocation = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/user/allocation");
-      if (res.data.success) {
-        setAllocation(res.data.data?.allocation || null);
-        setRoommates(res.data.data?.roommates || []);
-        setNextRentDue(res.data.data?.nextRentDue || null);
+      const response = await axios.get("/api/user/allocation");
+      
+      if (response.data.success && response.data.data) {
+        setAllocation(response.data.data.allocation);
+        setRoommates(response.data.data.roommates || []);
+        setNextRentDue(response.data.data.nextRentDue);
       }
-    } catch (error) {
-      console.error("Failed to fetch allocation");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to fetch room data");
     } finally {
       setLoading(false);
     }
   };
 
   const handleGiveNotice = async () => {
-    if (!noticeForm.expectedVacateDate) {
-      toast.error("Please select an expected vacate date");
+    if (!vacateDate) {
+      toast.error("Please select a vacate date");
       return;
     }
 
-    setSubmittingNotice(true);
+    setActionLoading(true);
     try {
-      const res = await axios.post("/api/user/allocation", {
-        expectedVacateDate: noticeForm.expectedVacateDate,
-        reason: noticeForm.reason,
+      const response = await axios.post("/api/user/allocation", {
+        expectedVacateDate: vacateDate,
+        reason: vacateReason,
       });
 
-      if (res.data.success) {
-        toast.success("Notice period recorded successfully");
+      if (response.data.success) {
+        toast.success("Notice submitted successfully!");
         setShowNoticeDialog(false);
+        setVacateDate("");
+        setVacateReason("");
         fetchAllocation();
       } else {
-        toast.error(res.data.message || "Failed to record notice");
+        toast.error(response.data.message || "Failed to submit notice");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to record notice");
+      toast.error(error.response?.data?.message || "Failed to submit notice");
     } finally {
-      setSubmittingNotice(false);
+      setActionLoading(false);
     }
   };
 
+  const handleCancelNotice = async () => {
+    setActionLoading(true);
+    try {
+      const response = await axios.put("/api/user/allocation");
+
+      if (response.data.success) {
+        toast.success("Notice cancelled successfully!");
+        setShowCancelNoticeDialog(false);
+        fetchAllocation();
+      } else {
+        toast.error(response.data.message || "Failed to cancel notice");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to cancel notice");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Calculate minimum vacate date based on notice period
   const getMinVacateDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + (allocation?.noticePeriodDays || 30));
-    return date.toISOString().split("T")[0];
+    if (!allocation) return "";
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + allocation.noticePeriodDays);
+    return minDate.toISOString().split("T")[0];
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Active
-          </Badge>
-        );
-      case "notice_period":
-        return (
-          <Badge className="bg-orange-100 text-orange-800">
-            <Clock className="w-3 h-3 mr-1" />
-            Notice Period
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+  // Helpers
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
-  const getRentStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Paid
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case "overdue":
-        return (
-          <Badge className="bg-red-100 text-red-800">
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            Overdue
-          </Badge>
-        );
-      case "partial":
-        return (
-          <Badge className="bg-blue-100 text-blue-800">
-            <CreditCard className="w-3 h-3 mr-1" />
-            Partial
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+  const formatCurrency = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+
+  const getDaysRemaining = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const diff = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return diff;
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-HG-500"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-HG-500 mx-auto mb-4" />
+          <p className="text-gray-600">Loading your room details...</p>
+        </div>
       </div>
     );
   }
 
+  // No allocation state
   if (!allocation) {
     return (
-      <div className="space-y-6 pb-14">
+      <div className="space-y-6 pb-10">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
             My <span className="text-HG-500">Room</span>
           </h1>
-          <p className="text-muted-foreground mt-1">
-            View your room details and manage your stay
-          </p>
+          <p className="text-gray-600 mt-1">View your room details and manage your stay</p>
         </div>
 
         <Card className="py-16">
           <CardContent className="text-center">
-            <Home className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">
-              No Room Allocated
-            </h3>
-            <p className="text-gray-500 max-w-md mx-auto">
-              You don't have an active room allocation. Once your booking is
-              confirmed and you're allocated a room, you'll see the details here.
+            <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No Room Allocated</h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              You do not have a room allocated yet. Once your booking is confirmed and you are
+              allocated a room, your details will appear here.
             </p>
-            <Button className="mt-6 bg-HG-500 hover:bg-HG-600">
-              Browse PGs
+            <Button asChild className="bg-HG-500 hover:bg-HG-600">
+              <a href="/routes/all-listings">Browse PGs</a>
             </Button>
           </CardContent>
         </Card>
@@ -273,445 +240,563 @@ export default function MyRoomPage() {
     );
   }
 
-  const listing = allocation.listingId;
-  const room = allocation.room;
-  const daysRemaining = Math.ceil(
-    (new Date(allocation.expectedMoveOutDate).getTime() - new Date().getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  const isInNoticePeriod = allocation.status === "notice_period";
 
   return (
-    <div className="space-y-6 pb-14">
+    <div className="space-y-6 pb-10">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
             My <span className="text-HG-500">Room</span>
           </h1>
-          <p className="text-muted-foreground mt-1">
-            View your room details and manage your stay
-          </p>
+          <p className="text-gray-600 mt-1">View your room details and manage your stay</p>
         </div>
-        {getStatusBadge(allocation.status)}
+
+        {/* Status Badge */}
+        <div className="flex items-center gap-2">
+          {isInNoticePeriod ? (
+            <Badge className="bg-orange-100 text-orange-800 border-orange-300 px-4 py-2">
+              <Clock className="w-4 h-4 mr-2" />
+              Notice Period - {getDaysRemaining(allocation.expectedVacateDate!)} days left
+            </Badge>
+          ) : (
+            <Badge className="bg-green-100 text-green-800 border-green-300 px-4 py-2">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Active Tenant
+            </Badge>
+          )}
+        </div>
       </div>
 
-      {/* Alert for Notice Period */}
-      {allocation.status === "notice_period" && allocation.expectedVacateDate && (
+      {/* Notice Period Alert */}
+      {isInNoticePeriod && (
         <Card className="border-2 border-orange-300 bg-orange-50">
           <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-1" />
-              <div>
-                <p className="font-medium text-orange-800">Notice Period Active</p>
-                <p className="text-sm text-orange-700">
-                  You have given notice to vacate. Expected move-out date:{" "}
-                  <strong>
-                    {new Date(allocation.expectedVacateDate).toLocaleDateString()}
-                  </strong>
-                </p>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-orange-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-orange-800">
+                    You are in your notice period
+                  </p>
+                  <p className="text-sm text-orange-700 mt-1">
+                    Expected move-out date: {formatDate(allocation.expectedVacateDate!)}
+                  </p>
+                  <p className="text-xs text-orange-600 mt-2">
+                    Notice given on: {formatDate(allocation.noticeGivenDate!)}
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelNoticeDialog(true)}
+                className="border-orange-400 text-orange-700 hover:bg-orange-100"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancel Notice
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* PG & Room Card */}
-      <Card className="overflow-hidden">
-        <div className="md:flex">
-          {/* Image */}
-          <div className="md:w-1/3 h-48 md:h-auto relative">
-            <BlurImage
-              src={listing.primaryImage || "/placeholder.svg"}
-              alt={listing.pgName}
-              fill
-              className="object-cover"
-            />
-          </div>
-
-          {/* Details */}
-          <div className="flex-1 p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{listing.pgName}</h2>
-                <p className="text-gray-600 flex items-center gap-1 mt-1">
-                  <MapPin className="w-4 h-4" />
-                  {listing.location.area}, {listing.location.city}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold text-HG-500">
-                  ₹{allocation.monthlyRent.toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-500">/month</p>
-              </div>
-            </div>
-
-            {/* Room Details Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-gray-600 mb-1">
-                  <Home className="w-4 h-4" />
-                  <span className="text-xs">Room</span>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Room Details */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Property & Room Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="w-5 h-5 text-HG-500" />
+                Room Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Property Info */}
+              <div className="flex items-start gap-4">
+                {allocation.listing?.primaryImage && (
+                  <img
+                    src={allocation.listing.primaryImage}
+                    alt={allocation.pgName}
+                    className="w-24 h-24 rounded-lg object-cover"
+                  />
+                )}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{allocation.pgName}</h3>
+                  <p className="text-gray-600 flex items-center gap-1 mt-1">
+                    <MapPin className="w-4 h-4" />
+                    {allocation.listing?.location?.area}, {allocation.listing?.location?.city}
+                  </p>
                 </div>
-                <p className="font-bold text-lg">{room.roomNumber}</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-gray-600 mb-1">
-                  <Bed className="w-4 h-4" />
-                  <span className="text-xs">Bed</span>
+
+              {/* Room Info Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Room Number</p>
+                  <p className="text-lg font-bold text-gray-900">{allocation.roomNumber}</p>
                 </div>
-                <p className="font-bold text-lg">{allocation.bedNumber}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-gray-600 mb-1">
-                  <Building className="w-4 h-4" />
-                  <span className="text-xs">Floor</span>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Bed</p>
+                  <p className="text-lg font-bold text-gray-900">{allocation.bedNumber}</p>
                 </div>
-                <p className="font-bold text-lg">{room.floor}</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-gray-600 mb-1">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-xs">Days Left</span>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Type</p>
+                  <p className="text-lg font-bold text-gray-900 capitalize">{allocation.roomType}</p>
                 </div>
-                <p className="font-bold text-lg">{daysRemaining > 0 ? daysRemaining : 0}</p>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Floor</p>
+                  <p className="text-lg font-bold text-gray-900">{allocation.room?.floor || 0}</p>
+                </div>
               </div>
-            </div>
 
-            {/* Room Features */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {room.isAC && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                  AC Room
-                </Badge>
-              )}
-              {room.hasAttachedBathroom && (
-                <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                  Attached Bathroom
-                </Badge>
-              )}
-              <Badge variant="outline" className="bg-gray-50 capitalize">
-                {room.roomType}
-              </Badge>
-            </div>
-
-            {/* Dates */}
-            <div className="flex flex-wrap gap-6 mt-6 text-sm">
-              <div>
-                <span className="text-gray-500">Move-in:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(allocation.moveInDate).toLocaleDateString()}
-                </span>
+              {/* Room Features */}
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
+                {allocation.room?.isAC && (
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                    ❄️ Air Conditioned
+                  </Badge>
+                )}
+                {allocation.room?.hasAttachedBathroom && (
+                  <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                    🚿 Attached Bathroom
+                  </Badge>
+                )}
+                {allocation.room?.amenities?.map((amenity, index) => (
+                  <Badge key={index} variant="outline">
+                    {amenity}
+                  </Badge>
+                ))}
               </div>
-              <div>
-                <span className="text-gray-500">Expected Move-out:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(allocation.expectedMoveOutDate).toLocaleDateString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-500">Security Deposit:</span>
-                <span className="ml-2 font-medium">
-                  ₹{allocation.securityDeposit.toLocaleString()}
-                  {allocation.securityDepositPaid ? (
-                    <Badge className="ml-2 bg-green-100 text-green-700 text-xs">Paid</Badge>
-                  ) : (
-                    <Badge className="ml-2 bg-yellow-100 text-yellow-700 text-xs">Pending</Badge>
-                  )}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="rent" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 bg-HG-50">
-          <TabsTrigger
-            value="rent"
-            className="data-[state=active]:bg-HG-500 data-[state=active]:text-white"
-          >
-            <Receipt className="w-4 h-4 mr-2" />
-            Rent History
-          </TabsTrigger>
-          <TabsTrigger
-            value="roommates"
-            className="data-[state=active]:bg-HG-500 data-[state=active]:text-white"
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Roommates
-          </TabsTrigger>
-          <TabsTrigger
-            value="amenities"
-            className="data-[state=active]:bg-HG-500 data-[state=active]:text-white"
-          >
-            <Wifi className="w-4 h-4 mr-2" />
-            Amenities
-          </TabsTrigger>
-        </TabsList>
+          {/* Stay Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-HG-500" />
+                Stay Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-600 font-medium">Move-in Date</p>
+                  <p className="text-lg font-bold text-green-800">
+                    {formatDate(allocation.moveInDate)}
+                  </p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-600 font-medium">Expected Move-out</p>
+                  <p className="text-lg font-bold text-blue-800">
+                    {formatDate(allocation.expectedMoveOutDate)}
+                  </p>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg">
+                  <p className="text-lg font-bold text-purple-800">
+                    {allocation.noticePeriodDays} days
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Rent History */}
-        <TabsContent value="rent" className="space-y-4">
-          {/* Next Due Card */}
-          {nextRentDue && (
-            <Card
-              className={`border-2 ${
-                nextRentDue.status === "overdue"
-                  ? "border-red-300 bg-red-50"
-                  : "border-yellow-300 bg-yellow-50"
-              }`}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">
-                      {nextRentDue.status === "overdue" ? "Overdue Rent" : "Next Rent Due"}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Due: {new Date(nextRentDue.dueDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">
-                      ₹{nextRentDue.amount.toLocaleString()}
-                    </p>
-                    {nextRentDue.lateFee > 0 && (
-                      <p className="text-sm text-red-600">
-                        + ₹{nextRentDue.lateFee.toLocaleString()} late fee
-                      </p>
-                    )}
-                  </div>
+          {/* Roommates */}
+          {roommates.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-HG-500" />
+                  Your Roommates
+                </CardTitle>
+                <CardDescription>
+                  Other tenants sharing the same room
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {roommates.map((roommate, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-HG-100 flex items-center justify-center">
+                        <User className="h-5 w-5 text-HG-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{roommate.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Bed {roommate.bedNumber} • Since{" "}
+                          {new Date(roommate.moveInDate).toLocaleDateString("en-IN", {
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Rent History List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {allocation.rentHistory?.map((rent, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {new Date(rent.month).toLocaleDateString("en-IN", {
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Due: {new Date(rent.dueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">₹{rent.amount.toLocaleString()}</p>
-                      {rent.paidAt && (
-                        <p className="text-xs text-gray-500">
-                          Paid: {new Date(rent.paidAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <div>{getRentStatusBadge(rent.status)}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Roommates */}
-        <TabsContent value="roommates">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Roommates</CardTitle>
-              <CardDescription>
-                People sharing the room with you
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {roommates.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No roommates yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {roommates.map((roommate, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-HG-100 flex items-center justify-center">
-                        <User className="w-6 h-6 text-HG-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{roommate.name}</p>
-                        <p className="text-sm text-gray-500">
-                          Bed {roommate.bedNumber}
-                        </p>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Since{" "}
-                        {new Date(roommate.moveInDate).toLocaleDateString("en-IN", {
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
+          {/* Property Amenities */}
+          {allocation.listing?.amenities && allocation.listing.amenities.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-HG-500" />
+                  Property Amenities
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {allocation.listing.amenities.map((amenity, index) => (
+                    <Badge key={index} variant="secondary" className="px-3 py-1">
+                      {amenity}
+                    </Badge>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Amenities */}
-        <TabsContent value="amenities">
+          {/* Rules & Policies */}
+          {allocation.listing?.detailedRules && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-HG-500" />
+                  Rules & Policies
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {allocation.listing.detailedRules.entryTiming && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Entry Timing</p>
+                        <p className="text-gray-600">{allocation.listing.detailedRules.entryTiming}</p>
+                      </div>
+                    </div>
+                  )}
+                  {allocation.listing.detailedRules.exitTiming && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Exit Timing</p>
+                        <p className="text-gray-600">{allocation.listing.detailedRules.exitTiming}</p>
+                      </div>
+                    </div>
+                  )}
+                  {allocation.listing.detailedRules.guestStayPolicy && (
+                    <div className="flex items-start gap-2">
+                      <Users className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Guest Policy</p>
+                        <p className="text-gray-600 capitalize">
+                          {allocation.listing.detailedRules.guestStayPolicy.replace("-", " ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {allocation.listing.detailedRules.smokingAlcoholPolicy && (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Smoking/Alcohol</p>
+                        <p className="text-gray-600 capitalize">
+                          {allocation.listing.detailedRules.smokingAlcoholPolicy.replace("-", " ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Financial & Actions */}
+        <div className="space-y-6">
+          {/* Financial Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>PG Amenities</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <IndianRupee className="w-5 h-5 text-HG-500" />
+                Financial Details
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {listing.amenities?.map((amenity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"
-                  >
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-sm capitalize">{amenity}</span>
-                  </div>
-                ))}
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-HG-50 rounded-lg">
+                <p className="text-xs text-HG-600 font-medium">Monthly Rent</p>
+                <p className="text-2xl font-bold text-HG-800">
+                  {formatCurrency(allocation.monthlyRent)}
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-600 font-medium">Security Deposit</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-gray-800">
+                    {formatCurrency(allocation.securityDeposit)}
+                  </p>
+                  {allocation.securityDepositPaid ? (
+                    <Badge className="bg-green-100 text-green-800">Paid</Badge>
+                  ) : (
+                    <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                  )}
+                </div>
               </div>
 
               {/* Rent Inclusions */}
-              {listing.rentInclusions && (
-                <div className="mt-6">
-                  <h4 className="font-medium mb-3">Included in Rent</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {listing.rentInclusions.foodIncluded && (
-                      <Badge className="bg-green-100 text-green-800">
-                        <Utensils className="w-3 h-3 mr-1" />
-                        Food
-                      </Badge>
+              {allocation.listing?.rentInclusions && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Rent Includes:</p>
+                  <div className="space-y-2">
+                    {allocation.listing.rentInclusions.foodIncluded && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <Utensils className="w-4 h-4" />
+                        <span>Food/Meals</span>
+                      </div>
                     )}
-                    {listing.rentInclusions.electricityIncluded && (
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        ⚡ Electricity
-                      </Badge>
+                    {allocation.listing.rentInclusions.electricityIncluded && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <Wifi className="w-4 h-4" />
+                        <span>Electricity</span>
+                      </div>
                     )}
-                    {listing.rentInclusions.maintenanceIncluded && (
-                      <Badge className="bg-blue-100 text-blue-800">
-                        🔧 Maintenance
-                      </Badge>
+                    {allocation.listing.rentInclusions.maintenanceIncluded && (
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <Shield className="w-4 h-4" />
+                        <span>Maintenance</span>
+                      </div>
                     )}
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
 
-      {/* Actions */}
-      {allocation.status === "active" && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <Button
-                variant="outline"
-                className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50"
-                onClick={() => setShowNoticeDialog(true)}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Give Notice to Vacate
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  window.location.href = "/routes/dashboard/user/support";
-                }}
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Raise Support Ticket
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {/* Next Rent Due */}
+          {nextRentDue && (
+            <Card
+              className={`border-2 ${
+                nextRentDue.status === "overdue"
+                  ? "border-red-300 bg-red-50"
+                  : nextRentDue.status === "pending"
+                  ? "border-yellow-300 bg-yellow-50"
+                  : "border-green-300 bg-green-50"
+              }`}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  {nextRentDue.status === "overdue" ? (
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  ) : nextRentDue.status === "pending" ? (
+                    <Clock className="w-5 h-5 text-yellow-600" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  )}
+                  {nextRentDue.status === "paid" ? "Current Month Paid" : "Rent Due"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {nextRentDue.status !== "paid" ? (
+                  <>
+                    <p
+                      className={`text-2xl font-bold ${
+                        nextRentDue.status === "overdue" ? "text-red-800" : "text-yellow-800"
+                      }`}
+                    >
+                      {formatCurrency(nextRentDue.amount)}
+                    </p>
+                    <p
+                      className={`text-sm ${
+                        nextRentDue.status === "overdue" ? "text-red-600" : "text-yellow-600"
+                      }`}
+                    >
+                      Due: {formatDate(nextRentDue.dueDate)}
+                    </p>
+                    {nextRentDue.lateFee > 0 && (
+                      <p className="text-sm text-red-600 mt-1">
+                        Late fee: {formatCurrency(nextRentDue.lateFee)}
+                      </p>
+                    )}
+                    <Button className="w-full mt-4 bg-HG-500 hover:bg-HG-600" asChild>
+                      <a href="/routes/dashboard/user/payments">Pay Now</a>
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-green-700">Your rent for this month is paid. Thank you!</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Notice Dialog */}
+          {/* Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <a href="/routes/dashboard/user/payments">
+                  <IndianRupee className="w-4 h-4 mr-2" />
+                  View Payment History
+                </a>
+              </Button>
+
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <a href="/routes/dashboard/user/support">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Raise Support Ticket
+                </a>
+              </Button>
+
+              {!isInNoticePeriod && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start border-orange-300 text-orange-600 hover:bg-orange-50"
+                  onClick={() => setShowNoticeDialog(true)}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Give Notice to Vacate
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Contact Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Phone className="w-4 h-4 text-HG-500" />
+                Need Help?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <p className="text-gray-600">
+                Contact property owner or support for any issues.
+              </p>
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <a href="/routes/dashboard/user/support">Contact Support</a>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Give Notice Dialog */}
       <Dialog open={showNoticeDialog} onOpenChange={setShowNoticeDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Give Notice to Vacate</DialogTitle>
+            <DialogDescription>
+              Submit your notice to vacate the room. Minimum notice period is{" "}
+              {allocation.noticePeriodDays} days.
+            </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-sm text-yellow-800">
-                <strong>Notice Period:</strong> Minimum {allocation.noticePeriodDays} days
-                required before vacating.
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-800">
+                <strong>Important:</strong> Once you submit notice, you will be expected to vacate by
+                the selected date. Notice can only be cancelled within 48 hours of submission.
               </p>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Expected Vacate Date *</label>
+              <Label>Expected Vacate Date *</Label>
               <Input
                 type="date"
+                value={vacateDate}
+                onChange={(e) => setVacateDate(e.target.value)}
                 min={getMinVacateDate()}
-                value={noticeForm.expectedVacateDate}
-                onChange={(e) =>
-                  setNoticeForm({ ...noticeForm, expectedVacateDate: e.target.value })
-                }
                 className="mt-1"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum date: {formatDate(getMinVacateDate())} ({allocation.noticePeriodDays} days
+                from today)
+              </p>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Reason (Optional)</label>
+              <Label>Reason for Leaving (Optional)</Label>
               <Textarea
-                value={noticeForm.reason}
-                onChange={(e) =>
-                  setNoticeForm({ ...noticeForm, reason: e.target.value })
-                }
-                placeholder="Why are you leaving? (e.g., job relocation, end of studies)"
+                value={vacateReason}
+                onChange={(e) => setVacateReason(e.target.value)}
+                placeholder="Let us know why you're leaving..."
                 className="mt-1"
                 rows={3}
               />
             </div>
-
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <p className="font-medium mb-2">What happens next?</p>
-              <ul className="space-y-1 text-gray-600">
-                <li>• Your notice will be recorded</li>
-                <li>• Owner will be notified</li>
-                <li>• Security deposit will be processed after move-out</li>
-                <li>• Room inspection will be scheduled</li>
-              </ul>
-            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNoticeDialog(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleGiveNotice}
-              disabled={!noticeForm.expectedVacateDate || submittingNotice}
+              disabled={actionLoading || !vacateDate}
               className="bg-orange-500 hover:bg-orange-600"
             >
-              {submittingNotice ? "Submitting..." : "Confirm Notice"}
+              {actionLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <LogOut className="w-4 h-4 mr-2" />
+              )}
+              Submit Notice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Notice Dialog */}
+      <Dialog open={showCancelNoticeDialog} onOpenChange={setShowCancelNoticeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Notice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel your notice to vacate?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Notice can only be cancelled within 48 hours of submission.
+                If approved, you will continue as an active tenant with your original expected
+                move-out date.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelNoticeDialog(false)}>
+              Keep Notice
+            </Button>
+            <Button
+              onClick={handleCancelNotice}
+              disabled={actionLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {actionLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Cancel Notice & Stay
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
-}
+}                  

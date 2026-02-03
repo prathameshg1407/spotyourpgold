@@ -12,16 +12,24 @@ export const useFormValidation = (formData: PGFormData) => {
 
     switch (step) {
       case 1:
+        // Validate PG Name
         if (!formData.pgName.trim()) {
           newErrors.pgName = true;
           newErrors.general ||= "Please enter a name for the property";
         }
 
+        // Validate Primary Line length
         if (formData.primaryLine && formData.primaryLine.length > 35) {
           newErrors.primaryLine = true;
           newErrors.general ||= "Primary line must be 35 characters or less";
         }
 
+        // Validate property type is selected
+        if (!formData.type) {
+          newErrors.general ||= "Please select a property type";
+        }
+
+        // Validate room types
         if (
           !Array.isArray(formData.roomTypes) ||
           formData.roomTypes.length === 0
@@ -29,34 +37,50 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.general ||= "Add at least one room type";
         } else {
           formData.roomTypes.forEach((room, index) => {
-            if (!room.type.trim()) {
+            // Validate room type selection (skip for commercial)
+            if (formData.type !== "commercial" && !room.type.trim()) {
               newErrors.general ||= `Room type is missing in room ${index + 1}`;
             }
-            if (room.numberOfRooms <= 0) {
-              newErrors.general ||= `Number of rooms must be > 0 in room ${
-                index + 1
-              }`;
+
+            // Validate numberOfRooms (skip for commercial)
+            if (formData.type !== "commercial") {
+              const numberOfRooms = Number(room.numberOfRooms);
+              if (isNaN(numberOfRooms) || numberOfRooms <= 0) {
+                newErrors.numberOfRooms = true;
+                newErrors.general ||= `Number of rooms must be > 0 in room ${index + 1}`;
+              }
             }
-            if (room.capacityPerRoom <= 0) {
-              newErrors.general ||= `Capacity must be > 0 in room ${index + 1}`;
+
+            // Validate capacityPerRoom ONLY for PGs and Hostels
+            if (formData.type === "pgs" || formData.type === "hostels") {
+              const capacity = Number(room.capacityPerRoom);
+              if (isNaN(capacity) || capacity <= 0) {
+                newErrors.capacityPerRoom = true;
+                newErrors.general ||= `Capacity must be > 0 in room ${index + 1}`;
+              }
             }
-            if (room.monthlyRent < 0) {
-              newErrors.general ||= `Monthly rent cannot be negative in room ${
-                index + 1
-              }`;
+
+            // Validate rent is not negative
+            const monthlyRent = Number(room.monthlyRent);
+            if (!isNaN(monthlyRent) && monthlyRent < 0) {
+              newErrors.monthlyRent = true;
+              newErrors.general ||= `Monthly rent cannot be negative in room ${index + 1}`;
             }
-            if (room.securityDeposit < 0) {
-              newErrors.general ||= `Security deposit cannot be negative in room ${
-                index + 1
-              }`;
+
+            // Validate deposit is not negative
+            const securityDeposit = Number(room.securityDeposit);
+            if (!isNaN(securityDeposit) && securityDeposit < 0) {
+              newErrors.securityDeposit = true;
+              newErrors.general ||= `Security deposit cannot be negative in room ${index + 1}`;
             }
           });
         }
 
-        // Gender preference is not required for commercial properties
+        // Gender preference validation - only for non-commercial properties
         if (
+          formData.type &&
           formData.type !== "commercial" &&
-          !["male", "female", "both"].includes(formData.genderPreference)
+          !["male", "female", "unisex"].includes(formData.genderPreference)
         ) {
           newErrors.genderPreference = true;
           newErrors.general ||= "Please select a valid gender preference";
@@ -96,7 +120,7 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.general ||= "Please enter a valid pincode";
         }
 
-        // Ensure we have either valid coordinates or the form can geocode from address
+        // Ensure we have valid coordinates
         const hasValidCoordinates =
           lat &&
           lng &&
@@ -111,6 +135,14 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.coordinates = true;
           newErrors.general ||= "Please select a location on map";
         }
+        break;
+
+      case 3:
+        // Amenities step - no required validation
+        break;
+
+      case 4:
+        // Rules step - no required validation
         break;
 
       case 5:
@@ -135,6 +167,10 @@ export const useFormValidation = (formData: PGFormData) => {
           newErrors.videos = true;
           newErrors.general = "Maximum 3 videos allowed";
         }
+        break;
+
+      case 6:
+        // Final review step - no additional validation
         break;
 
       default:

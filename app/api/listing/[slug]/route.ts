@@ -18,7 +18,7 @@ type ListingType = {
   };
   pgName: string;
   roomTypes: any[];
-  genderPreference: "male" | "female" | "both";
+  genderPreference: "male" | "female" | "unisex";
   amenities: string[];
   additionalDetails: string[];
   rentInclusions: {

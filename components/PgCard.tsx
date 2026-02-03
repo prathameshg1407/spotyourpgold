@@ -314,7 +314,7 @@ const PgCard = ({
           ? "hover:border-pink-300 hover:border-opacity-100"
           : genderPreference === "male"
           ? "hover:border-blue-300 hover:border-opacity-100"
-          : genderPreference === "both"
+          : genderPreference === "unisex"
           ? "hover:border-orange-300 hover:border-opacity-100"
           : ""
       }`}
@@ -389,7 +389,7 @@ const PgCard = ({
           <div
             className={`absolute top-3 right-3 bg-white text-HG-400 border border-HG-400 text-xs font-bold px-2 py-1 rounded-lg shadow-lg z-20`}
           >
-            {genderPreference === "both"
+            {genderPreference === "unisex"
               ? "UNISEX"
               : genderPreference.toUpperCase()}
           </div>

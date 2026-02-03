@@ -156,6 +156,26 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "Bed",
         },
         {
+          name: "Tenants",
+          href: "/routes/dashboard/owners/tenants",
+          icon: "Users",
+        },
+        {
+          name: "Rent Collection",
+          href: "/routes/dashboard/owners/rent-collection",
+          icon: "Wallet",
+        },
+        {
+          name: "Settlement",
+          href: "/routes/dashboard/owners/settlement",
+          icon: "TrendingUp",
+        },
+        {
+          name: "Statements",  // ✅ NEW
+          href: "/routes/dashboard/owners/statements",
+          icon: "FileText",
+        },
+        {
           name: "Visit Requests",
           href: "/routes/dashboard/owners/visit-requests",
           icon: "Calendar",
@@ -185,10 +205,30 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
     case "admin":
       return [
         ...baseItems,
+         {
+      name: "Students",  // ✅ NEW - Add this at the top of admin items
+      href: "/routes/dashboard/admin/students",
+      icon: "Users",
+    },
         {
           name: "Owner Requests",
           href: "/routes/dashboard/admin/owner-management",
           icon: "UserCheck",
+        },
+        {
+          name: "KYC Verification",
+          href: "/routes/dashboard/admin/kyc",
+          icon: "Shield",
+        },
+        {
+          name: "Property Verification",  // ✅ NEW
+          href: "/routes/dashboard/admin/property-verification",
+          icon: "Building2",
+        },
+        {
+          name: "Top Properties",  // ✅ NEW
+          href: "/routes/dashboard/admin/top-properties",
+          icon: "Award",
         },
         {
           name: "All Listings",
@@ -211,6 +251,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           icon: "TrendingUp",
         },
         {
+          name: "Settlement Dashboard",
+          href: "/routes/dashboard/admin/settlement",
+          icon: "Wallet",
+        },
+        {
           name: "Coupon Management",
           href: "/routes/dashboard/admin/coupons",
           icon: "Megaphone",
@@ -224,6 +269,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "Support Tickets",
           href: "/routes/dashboard/admin/tickets",
           icon: "Headphones",
+        },
+        {
+          name: "Tenants Management",
+          href: "/routes/dashboard/admin/tenants",
+          icon: "Users",
         },
         {
           name: "My Listings",
@@ -244,6 +294,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
           name: "Room Allocation",
           href: "/routes/dashboard/owners/room-allocation",
           icon: "Bed",
+        },
+        {
+          name: "Rent Collection",
+          href: "/routes/dashboard/owners/rent-collection",
+          icon: "Wallet",
         },
         {
           name: "Favorites",
@@ -276,6 +331,10 @@ export const getOwnerStats = () => ({
   pendingVisitRequests: 0,
   totalWishlist: 0,
   openTickets: 0,
+  pendingSettlements: 0,
+  totalCommissionDue: 0,
+  totalTenants: 0,
+  activeTenants: 0,
 });
 
 export const getAdminStats = () => ({
@@ -287,4 +346,11 @@ export const getAdminStats = () => ({
   featuredListings: 0,
   openTickets: 0,
   escalatedTickets: 0,
+  pendingCommissions: 0,
+  totalCommissionAmount: 0,
+  settledThisMonth: 0,
+  pendingKYC: 0,
+  approvedKYC: 0,
+  rejectedKYC: 0,
+  totalTenants: 0,
 });

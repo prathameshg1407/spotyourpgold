@@ -1,187 +1,226 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectToDB } from "@/services/connectdb";
 import Room from "@/models/room";
 import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
+import RoomService from "@/services/roomService";
 
-// GET - Get single room details
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// Response helpers
+function jsonResponse(data: object, status: number = 200) {
+  return NextResponse.json(data, { status });
+}
+
+function errorResponse(message: string, status: number = 400) {
+  return jsonResponse({ success: false, message }, status);
+}
+
+type RouteParams = { params: Promise<{ id: string }> };
+
+/**
+ * GET - Get single room details
+ */
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     await connectToDB();
     const user = await authUser();
     const { id } = await params;
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const room = await Room.findById(id)
-      .populate("listingId", "pgName location ownerId")
-      .populate("beds.currentTenantId", "fullName email phone");
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid room ID");
+    }
+
+    const room = await RoomService.getRoomWithOccupancy(id);
 
     if (!room) {
-      return NextResponse.json(
-        { success: false, message: "Room not found" },
-        { status: 404 }
-      );
+      return errorResponse("Room not found", 404);
     }
 
     // Verify ownership
-    const listing = await Listing.findById(room.listingId);
-    if (!listing || (listing.ownerId.toString() !== user.id && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+    const listing = room.listingId as any;
+    if (
+      listing.ownerId.toString() !== user.id &&
+      user.role !== "admin"
+    ) {
+      return errorResponse("Unauthorized", 403);
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       data: room,
     });
   } catch (error) {
     console.error("Get room error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
   }
 }
 
-// PUT - Update room details
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * PUT - Update room details
+ */
+export async function PUT(req: NextRequest, { params }: RouteParams) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
     const user = await authUser();
     const { id } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const room = await Room.findById(id);
-    if (!room) {
-      return NextResponse.json(
-        { success: false, message: "Room not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify ownership
-    const listing = await Listing.findById(room.listingId);
-    if (!listing || listing.ownerId.toString() !== user.id) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid room ID");
     }
 
     const updates = await req.json();
 
-    // Update allowed fields
-    const allowedUpdates = [
-      "roomNumber",
-      "floor",
-      "isAC",
-      "hasAttachedBathroom",
-      "amenities",
-      "notes",
-      "monthlyRent",
-      "securityDeposit",
-      "status",
-    ];
+    session.startTransaction();
 
-    allowedUpdates.forEach((field) => {
-      if (updates[field] !== undefined) {
-        (room as any)[field] = updates[field];
-      }
-    });
+    const result = await RoomService.updateRoom(id, updates, user.id, session);
 
-    await room.save();
+    if (!result.success) {
+      await session.abortTransaction();
+      return errorResponse(result.error || "Failed to update room");
+    }
 
-    return NextResponse.json({
+    await session.commitTransaction();
+
+    return jsonResponse({
       success: true,
       message: "Room updated successfully",
-      data: room,
+      data: result.room,
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Update room error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
+  } finally {
+    session.endSession();
   }
 }
 
-// DELETE - Delete a room
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * DELETE - Delete a room
+ */
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
     const user = await authUser();
     const { id } = await params;
 
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401);
     }
 
-    const room = await Room.findById(id);
-    if (!room) {
-      return NextResponse.json(
-        { success: false, message: "Room not found" },
-        { status: 404 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid room ID");
     }
 
-    // Verify ownership
-    const listing = await Listing.findById(room.listingId);
-    if (!listing || listing.ownerId.toString() !== user.id) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 403 }
-      );
+    session.startTransaction();
+
+    const result = await RoomService.deleteRoom(id, user.id, session);
+
+    if (!result.success) {
+      await session.abortTransaction();
+      return errorResponse(result.error || "Failed to delete room");
     }
 
-    // Check if room has occupied beds
-    const hasOccupiedBeds = room.beds.some(
-      (bed: any) => bed.status === "occupied" || bed.status === "reserved"
-    );
+    await session.commitTransaction();
 
-    if (hasOccupiedBeds) {
-      return NextResponse.json(
-        { success: false, message: "Cannot delete room with occupied beds" },
-        { status: 400 }
-      );
-    }
-
-    await Room.findByIdAndDelete(id);
-
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: "Room deleted successfully",
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Delete room error:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse("Internal server error", 500);
+  } finally {
+    session.endSession();
+  }
+}
+
+/**
+ * PATCH - Partial updates (maintenance, etc.)
+ */
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
+  const session = await mongoose.startSession();
+
+  try {
+    await connectToDB();
+    const user = await authUser();
+    const { id } = await params;
+
+    if (!user || (user.role !== "owner" && user.role !== "admin")) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse("Invalid room ID");
+    }
+
+    const { action, bedNumber, ...data } = await req.json();
+
+    session.startTransaction();
+
+    let result: { success: boolean; room?: any; error?: string };
+
+    switch (action) {
+      case "set_maintenance":
+        if (!bedNumber) {
+          return errorResponse("Bed number is required");
+        }
+        result = await RoomService.setBedMaintenance(
+          id,
+          bedNumber,
+          true,
+          user.id,
+          session
+        );
+        break;
+
+      case "remove_maintenance":
+        if (!bedNumber) {
+          return errorResponse("Bed number is required");
+        }
+        result = await RoomService.setBedMaintenance(
+          id,
+          bedNumber,
+          false,
+          user.id,
+          session
+        );
+        break;
+
+      default:
+        return errorResponse(`Invalid action: ${action}`);
+    }
+
+    if (!result.success) {
+      await session.abortTransaction();
+      return errorResponse(result.error || "Action failed");
+    }
+
+    await session.commitTransaction();
+
+    return jsonResponse({
+      success: true,
+      message: `Action '${action}' completed successfully`,
+      data: result.room,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Patch room error:", error);
+    return errorResponse("Internal server error", 500);
+  } finally {
+    session.endSession();
   }
 }
