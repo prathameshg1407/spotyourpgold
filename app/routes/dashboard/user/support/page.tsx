@@ -560,7 +560,7 @@ export default function SupportPage() {
                   <Building className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">No PG Bookings</h3>
                   <p className="text-gray-500">
-                    You don't have any active PG bookings to show contacts for.
+                    You dont have any active PG bookings to show contacts for.
                   </p>
                 </div>
               ) : (
@@ -714,7 +714,7 @@ export default function SupportPage() {
           <DialogHeader>
             <DialogTitle className="text-HG-500">Raise a Support Ticket</DialogTitle>
             <DialogDescription>
-              Describe your issue and we'll get back to you as soon as possible
+              Describe your issue and we will get back to you as soon as possible
             </DialogDescription>
           </DialogHeader>
 
@@ -986,7 +986,7 @@ export default function SupportPage() {
                   
                   {selectedTicket.comments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      No responses yet. We'll get back to you soon!
+                      No responses yet. We will get back to you soon!
                     </p>
                   ) : (
                     <div className="space-y-4">

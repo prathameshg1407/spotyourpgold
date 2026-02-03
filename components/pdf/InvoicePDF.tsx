@@ -548,7 +548,7 @@ const InvoicePDF: React.FC<InvoicePDFProps> = ({ booking }) => {
                 Monthly Rent - {booking.roomType}
               </Text>
               <Text style={styles.tableCellSubtitle}>
-                First month's rent for {listing?.pgName}
+                First month rent for {listing?.pgName}
               </Text>
             </View>
             <Text style={[styles.tableCell, styles.tableCellDuration]}>1 Month</Text>

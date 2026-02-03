@@ -757,7 +757,7 @@ export default function PaymentHistoryPage() {
             <div className="flex items-center gap-2 text-orange-700">
               <WifiOff className="h-4 w-4" />
               <span className="text-sm font-medium">
-                You're offline. Some features may not work.
+                You are offline. Some features may not work.
               </span>
             </div>
           </CardContent>

@@ -1,372 +1,308 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, MapPin, Building, Loader2, Navigation } from "lucide-react";
+import { Search, X, MapPin, Building, Loader2 } from "lucide-react";
 import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { BlurImage } from "./BlurImage";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
+import Script from "next/script";
+import { BlurImage } from "./BlurImage";
 
+// ==========================================
+// ⚡ GOOGLE MAPS TYPES
+// ==========================================
 interface Property {
   _id: string;
   slug: string;
   pgName: string;
   type?: string;
-  subType?: string;
-  genderPreference?: string;
   location: {
     area: string;
     city: string;
   };
   primaryImage: string;
   minRent: number;
-  amenities?: string[];
-  roomTypes?: any[];
-  ownerName?: string;
-  relevanceScore?: number;
-  isFeatured?: boolean;
   propertyType: "property";
 }
 
-interface Location {
-  name: string;
-  displayText: string;
-  type: "city" | "area";
-  city: string;
-  area?: string;
-  state: string;
-  count?: number;
-  lat?: number | null;
-  lng?: number | null;
+interface GooglePrediction {
+  description: string;
+  place_id: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+  isGoogle: true;
 }
 
 interface EnhancedSearchDropdownProps {
   value: string;
   onChange: (value: string) => void;
   onClear: () => void;
-  onSelectProperty?: (property: Property) => void;
-  onSelectLocation?: (location: Location) => void;
   placeholder?: string;
   className?: string;
   showDropdown?: boolean;
-  onDropdownChange?: (show: boolean) => void;
-  showNearbyOption?: boolean;
 }
 
 export default function EnhancedSearchDropdown({
   value,
   onChange,
   onClear,
-  onSelectProperty,
-  onSelectLocation,
-  placeholder = "Search by location, PG name, or owner name...",
+  placeholder = "Search for an area, landmark, or PG...",
   className,
   showDropdown = true,
-  onDropdownChange,
-  showNearbyOption = false,
 }: EnhancedSearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<{
-    properties: Property[];
-    locations: Location[];
-  }>({ properties: [], locations: [] });
+  
+  // Separate states for hybrid results
+  const [dbProperties, setDbProperties] = useState<Property[]>([]);
+  const [googleLocations, setGoogleLocations] = useState<GooglePrediction[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Google Services Refs
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const debouncedSearch = useDebouncedValue(value, 300);
+  
+  // Use the key directly or from env
+  const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAgK5KyNloiZAufRw_zeyzoZ_DLRjTCCtI";
 
-  // Fetch suggestions from API
+  // ==========================================
+  // 1. INITIALIZE GOOGLE MAPS SERVICE
+  // ==========================================
+  const initGoogleServices = () => {
+    if (window.google && window.google.maps && window.google.maps.places) {
+      try {
+        if (!autocompleteService.current) {
+          autocompleteService.current = new window.google.maps.places.AutocompleteService();
+          sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
+        }
+        // Create dummy div for PlacesService (Required by Google API)
+        if (!placesService.current) {
+          const dummyDiv = document.createElement("div");
+          placesService.current = new window.google.maps.places.PlacesService(dummyDiv);
+        }
+        setScriptLoaded(true);
+      } catch (err) {
+        console.error("Google Maps Init Error:", err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (window.google?.maps?.places) {
+      initGoogleServices();
+    }
+  }, []);
+
+  // ==========================================
+  // 2. FETCH DATA (HYBRID: GOOGLE + DB)
+  // ==========================================
   const fetchSuggestions = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
-      setSuggestions({ properties: [], locations: [] });
+      setDbProperties([]);
+      setGoogleLocations([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
+
     try {
-      const response = await axios.get(
-        `/api/listing/suggestions?q=${encodeURIComponent(query)}&limit=8`
+      // --- A. Fetch DB Properties (Internal) ---
+      const dbPromise = axios.get(
+        `/api/listing/suggestions?q=${encodeURIComponent(query)}&limit=3`
       );
 
-      if (response.data?.success) {
-        setSuggestions(response.data.data);
-        setIsOpen(true);
+      // --- B. Fetch Google Locations (External) ---
+      const googlePromise = new Promise<GooglePrediction[]>((resolve) => {
+        if (!autocompleteService.current) {
+          console.warn("Google Autocomplete Service not ready");
+          resolve([]);
+          return;
+        }
+
+        autocompleteService.current.getPlacePredictions(
+          {
+            input: query,
+            componentRestrictions: { country: "in" }, // Restrict to India
+            // Remove 'types' to show everything (Business, Geocode, etc.)
+            sessionToken: sessionToken.current || undefined,
+          },
+          (predictions, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+              const formatted = predictions.map((p) => ({
+                description: p.description,
+                place_id: p.place_id,
+                structured_formatting: p.structured_formatting,
+                isGoogle: true as const,
+              }));
+              resolve(formatted.slice(0, 5)); // Limit to 5 locations
+            } else {
+              console.log("Google API Status:", status); // Debug log
+              resolve([]);
+            }
+          }
+        );
+      });
+
+      // Wait for both results
+      const [dbRes, googleRes] = await Promise.all([dbPromise, googlePromise]);
+
+      if (dbRes.data?.success) {
+        setDbProperties(dbRes.data.data.properties || []);
       }
+      setGoogleLocations(googleRes);
+      setIsOpen(true);
+
     } catch (error) {
       console.error("Search error:", error);
-      setSuggestions({ properties: [], locations: [] });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scriptLoaded]);
 
-// Geocode location if coordinates are missing
-const geocodeLocation = useCallback(async (location: Location): Promise<Location> => {
-  console.log("🔄 Starting geocode for:", location);
-  
-  // If we already have coordinates, return as is
-  if (location.lat && location.lng && location.lat !== null && location.lng !== null) {
-    console.log("✅ Using existing coordinates:", { lat: location.lat, lng: location.lng });
-    return location;
-  }
-
-  console.log("⚠️ No coordinates found, geocoding...");
-
-  // Build search query
-  const searchQuery = [location.area, location.city, location.state]
-    .filter(Boolean)
-    .join(", ");
-
-  console.log("🔍 Geocoding query:", searchQuery);
-
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        searchQuery + ", India" // Add India for better results
-      )}&limit=1&addressdetails=1`,
-      {
-        headers: {
-          'User-Agent': 'SYPG-App/1.0' // Required by Nominatim
-        }
-      }
-    );
-    
-    if (!response.ok) {
-      console.error("❌ Nominatim API error:", response.status);
-      return location;
-    }
-    
-    const data = await response.json();
-    console.log("📡 Nominatim response:", data);
-
-    if (data && data[0]) {
-      const geocoded = {
-        ...location,
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-      };
-      console.log("✅ Geocoded successfully:", geocoded);
-      return geocoded;
-    } else {
-      console.warn("⚠️ No geocoding results found");
-    }
-  } catch (error) {
-    console.error("❌ Geocoding error:", error);
-  }
-
-  // Return original location if geocoding fails
-  console.log("⚠️ Returning original location without coordinates");
-  return location;
-}, []);
-
-  // Fetch suggestions when debounced search changes
+  // Trigger search on debounce
   useEffect(() => {
     if (debouncedSearch) {
       fetchSuggestions(debouncedSearch);
     } else {
-      setSuggestions({ properties: [], locations: [] });
-      setLoading(false);
+      setDbProperties([]);
+      setGoogleLocations([]);
       setIsOpen(false);
     }
   }, [debouncedSearch, fetchSuggestions]);
 
-  // Handle click outside
+  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setFocusedIndex(-1);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    onDropdownChange?.(isOpen);
-  }, [isOpen, onDropdownChange]);
+  // ==========================================
+  // 3. SELECTION LOGIC
+  // ==========================================
+  
+  const handleGoogleSelect = (place: GooglePrediction) => {
+    if (!placesService.current) return;
 
-  const totalItems = suggestions.properties.length + suggestions.locations.length;
+    setLoading(true);
+    
+    // Fetch Exact Lat/Lng using Place ID
+    placesService.current.getDetails(
+      {
+        placeId: place.place_id,
+        fields: ["geometry", "address_components", "formatted_address"], // Added formatted_address
+        sessionToken: sessionToken.current || undefined,
+      },
+      (placeDetails, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails?.geometry?.location) {
+          const lat = placeDetails.geometry.location.lat();
+          const lng = placeDetails.geometry.location.lng();
+          
+          // Generate new Session Token
+          sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case "ArrowDown":
-        if (!isOpen && value.trim()) {
-          setIsOpen(true);
-          return;
+          // Redirect to All Listings
+          const params = new URLSearchParams();
+          params.set("lat", lat.toString());
+          params.set("lng", lng.toString());
+          params.set("radius", "10"); // Default 10km
+          params.set("q", place.structured_formatting.main_text); // Search label
+          
+          // Add context (city/state) if available
+          const city = placeDetails.address_components?.find(c => c.types.includes('locality'))?.long_name;
+          if (city) params.set("city", city);
+
+          router.push(`/routes/all-listings?${params.toString()}`);
+          setIsOpen(false);
+          onChange(place.description);
+        } else {
+          console.error("Google Place Details Failed:", status);
         }
-        e.preventDefault();
-        setFocusedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
-        break;
-      case "ArrowUp":
-        if (!isOpen && value.trim()) {
-          setIsOpen(true);
-          return;
-        }
-        e.preventDefault();
-        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (isOpen && focusedIndex >= 0) {
-          handleItemSelect(focusedIndex);
-        } else if (value.trim()) {
-          handleSearch();
-        }
-        break;
-      case "Escape":
-        if (!isOpen) return;
-        setIsOpen(false);
-        setFocusedIndex(-1);
-        inputRef.current?.blur();
-        break;
-    }
+        setLoading(false);
+      }
+    );
+  };
+
+  const handlePropertySelect = (property: Property) => {
+    router.push(`/routes/pg-details/${property.slug || property._id}`);
+    setIsOpen(false);
   };
 
   const handleItemSelect = (index: number) => {
-    if (index < suggestions.locations.length) {
-      // Selected a location
-      const location = suggestions.locations[index];
-      handleLocationSelect(location);
-      return;
-    }
-
-    // Selected a property
-    const propertyIndex = index - suggestions.locations.length;
-    const property = suggestions.properties[propertyIndex];
-    if (onSelectProperty) {
-      onSelectProperty(property);
+    if (index < googleLocations.length) {
+      handleGoogleSelect(googleLocations[index]);
     } else {
-      router.push(`/routes/pg-details/${property.slug || property._id}`);
-    }
-    setIsOpen(false);
-    setFocusedIndex(-1);
-  };
-
-const handleLocationSelect = async (location: Location) => {
-  console.log("🔍 Location selected:", location);
-  
-  // Geocode location if coordinates are missing
-  const locationWithCoords = await geocodeLocation(location);
-  console.log("📍 After geocoding:", locationWithCoords);
-
-  // Build query params for all-listings page with radius search
-  const params = new URLSearchParams();
-  
-  if (locationWithCoords.lat && locationWithCoords.lng) {
-    console.log("✅ Using geospatial search with coords:", {
-      lat: locationWithCoords.lat,
-      lng: locationWithCoords.lng,
-      radius: 10
-    });
-    // Use geospatial search with 10km radius
-    params.set("lat", locationWithCoords.lat.toString());
-    params.set("lng", locationWithCoords.lng.toString());
-    params.set("radius", "10"); // 10km radius
-  } else {
-    console.log("⚠️ No coordinates available, using text search");
-  }
-  
-  // Also include location details for display
-  if (location.city) params.set("city", location.city);
-  if (location.area) params.set("area", location.area);
-  if (location.state) params.set("state", location.state);
-  params.set("q", value);
-
-  const finalUrl = `/routes/all-listings?${params.toString()}`;
-  console.log("🌐 Navigating to:", finalUrl);
-
-  if (onSelectLocation) {
-    onSelectLocation(locationWithCoords);
-  } else {
-    router.push(finalUrl);
-  }
-
-  setIsOpen(false);
-  setFocusedIndex(-1);
-};
-
-  const handleSearch = async () => {
-    if (value.trim()) {
-      // PRIORITY 1: If there's a location suggestion, use it with radius search
-      if (suggestions.locations.length > 0) {
-        await handleLocationSelect(suggestions.locations[0]);
-      } 
-      // PRIORITY 2: If properties exist, show listings page
-      else if (suggestions.properties.length > 0) {
-        const params = new URLSearchParams();
-        params.set("q", value.trim());
-        router.push(`/routes/all-listings?${params.toString()}`);
-        setIsOpen(false);
-        setFocusedIndex(-1);
-      }
-      // PRIORITY 3: Fallback to text search
-      else {
-        const params = new URLSearchParams();
-        params.set("q", value.trim());
-        router.push(`/routes/all-listings?${params.toString()}`);
-        setIsOpen(false);
-        setFocusedIndex(-1);
-      }
+      handlePropertySelect(dbProperties[index - googleLocations.length]);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-    setFocusedIndex(-1);
-
-    if (newValue.trim()) {
-      setIsOpen(true);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const totalItems = googleLocations.length + dbProperties.length;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === "Enter" && focusedIndex >= 0) {
+      e.preventDefault();
+      handleItemSelect(focusedIndex);
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
     }
   };
 
-  const handleInputFocus = () => {
-    if (value.trim() && (suggestions.properties.length > 0 || suggestions.locations.length > 0)) {
-      setIsOpen(true);
-    }
-  };
-
-  const handleClearClick = () => {
-    onClear();
-    setIsOpen(false);
-    setSuggestions({ properties: [], locations: [] });
-    setFocusedIndex(-1);
-    inputRef.current?.focus();
-  };
-
-  const hasResults = suggestions.properties.length > 0 || suggestions.locations.length > 0;
+  const hasResults = googleLocations.length > 0 || dbProperties.length > 0;
 
   return (
     <div className={cn("relative w-full", className)} ref={dropdownRef}>
+      
+      {/* 🟢 LOAD GOOGLE MAPS SCRIPT (Essential) */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places`}
+        onLoad={() => initGoogleServices()}
+        strategy="lazyOnload"
+      />
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
         <Input
           ref={inputRef}
           type="text"
           value={value}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setIsOpen(true);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="pl-10 pr-10 py-2 w-full border-gray-300 focus:border-HG-500 focus:ring-HG-500"
         />
         {value && (
           <button
-            onClick={handleClearClick}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => {
+              onClear();
+              setIsOpen(false);
+            }}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <X className="w-4 h-4" />
           </button>
@@ -375,7 +311,7 @@ const handleLocationSelect = async (location: Location) => {
 
       {showDropdown && isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-          {/* Loading State */}
+          
           {loading && (
             <div className="px-4 py-8 text-center">
               <Loader2 className="w-6 h-6 animate-spin text-HG-500 mx-auto mb-2" />
@@ -383,59 +319,50 @@ const handleLocationSelect = async (location: Location) => {
             </div>
           )}
 
-          {/* Results when not loading */}
           {!loading && (
             <>
-              {/* Locations Section - PRIORITY: Show locations first */}
-              {suggestions.locations.length > 0 && (
+              {/* 1. GOOGLE LOCATIONS */}
+              {googleLocations.length > 0 && (
                 <div className="border-b border-gray-100">
                   <div className="px-4 py-2 bg-gray-50">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Locations ({suggestions.locations.length})
+                      Locations
                     </p>
                   </div>
-                  {suggestions.locations.map((location, index) => (
+                  {googleLocations.map((loc, index) => (
                     <div
-                      key={`${location.city}-${location.area}-${index}`}
+                      key={loc.place_id}
                       className={cn(
                         "px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3 transition-colors",
                         focusedIndex === index && "bg-gray-50 border-l-2 border-HG-500"
                       )}
-                      onClick={() => handleItemSelect(index)}
+                      onClick={() => handleGoogleSelect(loc)}
                       onMouseEnter={() => setFocusedIndex(index)}
                     >
                       <MapPin className="w-4 h-4 text-HG-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {location.displayText}
+                          {loc.structured_formatting.main_text}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-gray-500 capitalize">
-                            {location.type} • Within 10km radius
-                          </p>
-                          {location.count && (
-                            <Badge variant="secondary" className="text-xs">
-                              {location.count} properties
-                            </Badge>
-                          )}
-                        </div>
+                        <p className="text-xs text-gray-500 truncate">
+                          {loc.structured_formatting.secondary_text}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Properties Section - Show after locations */}
-              {suggestions.properties.length > 0 && (
+              {/* 2. DB PROPERTIES */}
+              {dbProperties.length > 0 && (
                 <div>
                   <div className="px-4 py-2 bg-gray-50">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Properties ({suggestions.properties.length})
+                      Properties
                     </p>
                   </div>
-                  {suggestions.properties.map((property, index) => {
-                    // Adjust index to account for locations shown first
-                    const actualIndex = suggestions.locations.length + index;
+                  {dbProperties.map((property, index) => {
+                    const actualIndex = googleLocations.length + index;
                     return (
                       <div
                         key={property._id}
@@ -443,7 +370,7 @@ const handleLocationSelect = async (location: Location) => {
                           "px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3 transition-colors",
                           focusedIndex === actualIndex && "bg-gray-50 border-l-2 border-HG-500"
                         )}
-                        onClick={() => handleItemSelect(actualIndex)}
+                        onClick={() => handlePropertySelect(property)}
                         onMouseEnter={() => setFocusedIndex(actualIndex)}
                       >
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
@@ -479,9 +406,6 @@ const handleLocationSelect = async (location: Location) => {
                   <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-sm text-gray-500 mb-1">
                     No results found for &quot;{value}&quot;
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Try searching with different keywords
                   </p>
                 </div>
               )}
