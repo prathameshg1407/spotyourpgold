@@ -1,4 +1,3 @@
-// components/sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -32,6 +31,9 @@ import {
   DollarSign,
   Home,
   Headphones,
+  Shield,
+  FileText,  // ✅ Added FileText icon
+  Award,     // ✅ Added Award icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +67,9 @@ export const iconMap = {
   DollarSign,
   Home,
   Headphones,
+  Shield,
+  FileText,  // ✅ Added FileText to iconMap
+  Award,     // ✅ Added Award to iconMap
 };
 
 export type IconName = keyof typeof iconMap;

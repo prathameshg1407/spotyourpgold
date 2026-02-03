@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Commission from "@/models/commission";
 import Booking from "@/models/booking";
-import User from "@/models/user";
 import Listing from "@/models/listing";
+import User from "@/models/user";
+import Notification from "@/models/notification";
 import { authUser } from "@/actions/authUser";
+import { sendWhatsAppNotification } from "@/services/sendWhatsAppNotification";
 
 // Get commission ledger for admin
 export async function GET(req: NextRequest) {
@@ -86,7 +88,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Mark commission as settled
+// Mark commission as settled with WhatsApp notification
 export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
@@ -109,7 +111,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const commission = await Commission.findById(commissionId);
+    const commission = await Commission.findById(commissionId).populate(
+      "ownerId",
+      "fullName email phoneNumber"
+    );
+    
     if (!commission) {
       return NextResponse.json(
         { success: false, message: "Commission not found" },
@@ -126,6 +132,48 @@ export async function PATCH(req: NextRequest) {
     commission.notes = notes || "";
 
     await commission.save();
+
+    // Send WhatsApp notification to owner
+    const owner = commission.ownerId as any;
+    if (owner?.phoneNumber) {
+      try {
+        await sendWhatsAppNotification({
+          to: owner.phoneNumber,
+          campaignName: "commission_settlement",
+          userName: owner.fullName || "Owner",
+          templateParams: [
+            owner.fullName || "Owner",
+            `₹${commission.commissionAmount.toLocaleString("en-IN")}`,
+            settlementMethod || "cash",
+            settlementReference || "N/A",
+            new Date().toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
+          ],
+        });
+      } catch (whatsappError) {
+        console.error("WhatsApp notification failed:", whatsappError);
+        // Continue execution even if WhatsApp fails
+      }
+    }
+
+    // Create notification for owner
+    try {
+      await Notification.create({
+        userId: commission.ownerId._id || commission.ownerId,
+        type: "payment_reminder",
+        title: "Commission Settled",
+        message: `Your commission of ₹${commission.commissionAmount.toLocaleString("en-IN")} has been settled via ${settlementMethod || "cash"}.`,
+        relatedId: commission.bookingId,
+        relatedType: "booking",
+        priority: "low",
+      });
+    } catch (notificationError) {
+      console.error("Failed to create notification:", notificationError);
+      // Continue execution even if notification creation fails
+    }
 
     return NextResponse.json({
       success: true,

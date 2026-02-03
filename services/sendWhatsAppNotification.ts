@@ -344,3 +344,74 @@ export const sendVisitScheduledWhatsApp = async ({
     templateParams: [userName, pgName, visitDate, visitTime, address],
   });
 };
+
+// Add this function to the existing file:
+
+// ============================================
+// COMMISSION SETTLEMENT NOTIFICATION
+// ============================================
+interface CommissionSettlementParams {
+  to: string;
+  ownerName: string;
+  commissionAmount: number;
+  settlementMethod: string;
+  referenceNumber: string;
+  settlementDate: string;
+}
+
+export const sendCommissionSettlementWhatsApp = async ({
+  to,
+  ownerName,
+  commissionAmount,
+  settlementMethod,
+  referenceNumber,
+  settlementDate,
+}: CommissionSettlementParams) => {
+  // Template: commission_settlement
+  // Params: {{1}}=name, {{2}}=amount, {{3}}=method, {{4}}=reference, {{5}}=date
+  return sendWhatsAppNotification({
+    to,
+    campaignName: "Commission Settlement",
+    userName: ownerName,
+    templateParams: [
+      ownerName,
+      `₹${commissionAmount.toLocaleString("en-IN")}`,
+      settlementMethod,
+      referenceNumber || "N/A",
+      settlementDate,
+    ],
+  });
+};
+
+// ============================================
+// COMMISSION DUE REMINDER
+// ============================================
+interface CommissionDueReminderParams {
+  to: string;
+  ownerName: string;
+  totalAmount: number;
+  pendingCount: number;
+  dueDate: string;
+}
+
+export const sendCommissionDueReminderWhatsApp = async ({
+  to,
+  ownerName,
+  totalAmount,
+  pendingCount,
+  dueDate,
+}: CommissionDueReminderParams) => {
+  // Template: commission_due_reminder
+  // Params: {{1}}=name, {{2}}=amount, {{3}}=count, {{4}}=dueDate
+  return sendWhatsAppNotification({
+    to,
+    campaignName: "Commission Due Reminder",
+    userName: ownerName,
+    templateParams: [
+      ownerName,
+      `₹${totalAmount.toLocaleString("en-IN")}`,
+      pendingCount.toString(),
+      dueDate,
+    ],
+  });
+};

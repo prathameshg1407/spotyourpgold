@@ -1,3 +1,4 @@
+// store/loading.ts
 import { create } from "zustand";
 
 // Define all container loading keys here
@@ -7,6 +8,7 @@ export type ContainerKey =
   | "pgDetails"
   | "userFavorites"
   | "visitRequests"
+  | "roomManagement"
   | "ownerVisitRequests"
   | "roomAllocation";
 
@@ -26,6 +28,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
     pgDetails: true,
     userFavorites: true,
     visitRequests: true,
+    roomManagement: true,  // Added here
     ownerVisitRequests: true,
     roomAllocation: true,
   },
@@ -42,6 +45,7 @@ export const useLoadingStore = create<LoadingState>((set) => ({
         pgDetails: false,
         userFavorites: false,
         visitRequests: false,
+        roomManagement: false,  // Added here
         ownerVisitRequests: false,
         roomAllocation: false,
       },
