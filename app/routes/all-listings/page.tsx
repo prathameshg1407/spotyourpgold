@@ -107,9 +107,16 @@ function AllListingsContent() {
     locationDenied: locationSearchDenied,
   } = useLocationSearch();
 
-  // Check if advanced filters are applied (for category searches with filters)
-  const hasAdvancedFilters = activeFiltersCount > 0;
-  const isCategorySearchWithFilters = isCategorySearch && hasAdvancedFilters;
+  // 🟢 CRITICAL FIX: Determine if we are in "Pure Category" mode or "Filtered" mode
+  // If the ONLY filter active is the 'type' matching the URL category, we are NOT in filtered mode.
+  const hasOtherFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === 'type' && value === category) return false; // Ignore if type matches the URL category
+    if (Array.isArray(value)) return value.length > 0;
+    return !!value;
+  });
+
+  // Only switch to 'filtered' view if there are EXTRA filters beyond the base category
+  const isCategorySearchWithFilters = isCategorySearch && hasOtherFilters;
 
   const goBack = () => {
     router.back();
@@ -459,6 +466,17 @@ function AllListingsContent() {
   useEffect(() => {
     if (initialLoadDone) {
       // Logic to trigger re-fetch based on active mode
+      // But respect if user is refining a category search with extra filters
+      if (isCategorySearchWithFilters) {
+         // If there are EXTRA filters, use the standard search API
+         const locationParams = (userLocation && filters.sortBy === 'distance')
+          ? { lat: userLocation.lat.toString(), lng: userLocation.lng.toString() }
+          : {};
+         const filtersToApply = { ...filters, type: category, ...locationParams };
+         searchWithFilters(filtersToApply, true);
+         return;
+      }
+
       if (isNearbySearch && lat && lng) {
         fetchNearbyListings(1);
       } else if (isCategorySearch && category) {
@@ -821,6 +839,12 @@ function AllListingsContent() {
                   <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("genderPreference")} />
                 </Badge>
               )}
+              {filters.amenities.map((amenity) => (
+                <Badge key={amenity} variant="secondary" className="flex items-center gap-1.5 bg-pink-50 text-pink-700 border-pink-200">
+                  <span className="text-xs capitalize">{amenity}</span>
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("amenities", amenity)} />
+                </Badge>
+              ))}
               {/* Add other badges here if needed */}
             </div>
           </div>
