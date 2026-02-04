@@ -140,21 +140,12 @@ const NavBar = () => {
         <div className="hidden md:flex flex-1 max-w-xl mx-8">
           <div className="flex gap-2 w-full">
             <div className="flex-1">
-              <EnhancedSearchDropdown
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onClear={handleClearSearch}
-                onSelectProperty={(property) => {
-                  // Navigate to property details page
-                  router.push(`/routes/pg-details/${property.slug || property._id}`);
-                }}
-                // onSelectLocation={(location) => {
-                //   // Update query filter with location name
-                //   updateFilter("query", location.name);
-                // }}
-                placeholder="Search by location, PG name, or nearby..."
-                showNearbyOption={true}
-              />
+           <EnhancedSearchDropdown
+  value={searchQuery}
+  onChange={handleSearchChange}
+  onClear={handleClearSearch}
+  placeholder="Search PGs, locations, or nearby..."
+/>
             </div>
             
             {/* UPDATED: Nearby Properties Button */}
@@ -256,21 +247,12 @@ const NavBar = () => {
         <div className="flex gap-2 items-center">
           {/* Search Bar - takes most of the space */}
           <div className="flex-1">
-            <EnhancedSearchDropdown
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onClear={handleClearSearch}
-              onSelectProperty={(property) => {
-                // Navigate to property details page
-                router.push(`/routes/pg-details/${property.slug || property._id}`);
-              }}
-              // onSelectLocation={(location) => {
-              //   // Update query filter with location name
-              //   updateFilter("query", location.name);
-              // }}
-              placeholder="Search PGs, locations, or nearby..."
-              showNearbyOption={true}
-            />
+          <EnhancedSearchDropdown
+  value={searchQuery}
+  onChange={handleSearchChange}
+  onClear={handleClearSearch}
+  placeholder="Search PGs, locations, or nearby..."
+/>
           </div>
 
           {/* UPDATED: Mobile Location/Nearby Button */}

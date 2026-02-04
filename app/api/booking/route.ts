@@ -5,6 +5,28 @@ import Booking from "@/models/booking";
 import Listing from "@/models/listing";
 import Notification from "@/models/notification";
 import Coupon from "@/models/coupon";
+import User from "@/models/user";
+
+// Helper to get commission rate for an owner
+async function getOwnerCommissionRate(ownerId: string): Promise<number> {
+  const owner = await User.findById(ownerId).select("commissionSettings");
+  if (owner?.commissionSettings?.isCustomRateActive && owner.commissionSettings.customRate !== null) {
+    return owner.commissionSettings.customRate;
+  }
+  return 0.10; // Default 10%
+}
+
+// Helper to calculate first month commission split
+function calculateFirstMonthSplit(firstMonthRent: number, commissionRate: number) {
+  const adminAmount = Math.round(firstMonthRent * commissionRate); // 10% to admin
+  const ownerAmount = firstMonthRent - adminAmount; // 90% to owner
+  
+  return {
+    commissionRate,
+    adminAmount,
+    ownerAmount,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,7 +71,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get listing details to calculate amount
+    // Get listing details
     const listing = await Listing.findById(listingId);
     if (!listing) {
       return NextResponse.json(
@@ -86,7 +108,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Check if coupon is expired
       if (coupon.validUntil && new Date() > new Date(coupon.validUntil)) {
         return NextResponse.json(
           { success: false, message: "Coupon has expired" },
@@ -94,7 +115,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Check if coupon is not yet valid
       if (coupon.validFrom && new Date() < new Date(coupon.validFrom)) {
         return NextResponse.json(
           { success: false, message: "Coupon is not yet valid" },
@@ -102,7 +122,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Check usage limit
       if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
         return NextResponse.json(
           { success: false, message: "Coupon usage limit exceeded" },
@@ -110,23 +129,28 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Calculate discount
       discountAmount = Math.round(
         (selectedRoom.monthlyRent * coupon.percentage) / 100
       );
       appliedCoupon = coupon;
     }
 
-    // Calculate amounts - only charge first month's rent
-    const durationMonths = parseInt(duration);
+    // Calculate amounts
     const originalAmount = selectedRoom.monthlyRent;
-    const amount = originalAmount - discountAmount; // Apply discount
+    const firstMonthRent = originalAmount - discountAmount; // After discount
     const securityDeposit = selectedRoom.securityDeposit;
 
-    // Create booking request (pending owner approval)
+    // Get owner's commission rate
+    const commissionRate = await getOwnerCommissionRate(listing.ownerId.toString());
+
+    // Calculate first month commission split
+    const commissionSplit = calculateFirstMonthSplit(firstMonthRent, commissionRate);
+
+    // Create booking request
     const booking = new Booking({
       userId: new mongoose.Types.ObjectId(userId),
       listingId: new mongoose.Types.ObjectId(listingId),
+      ownerId: listing.ownerId, // Store owner ID for easy queries
       roomType,
       moveInDate: new Date(moveInDate),
       duration,
@@ -137,14 +161,27 @@ export async function POST(req: NextRequest) {
       aadhaarNumber: aadhaarNumber || "",
       additionalRequirements: additionalRequirements || "",
       termsAccepted,
-      amount,
+      
+      // Amounts
+      amount: firstMonthRent, // First month rent after discount
       securityDeposit,
-      status: "pending", // Booking request pending owner approval
-      paymentStatus: "pending", // Payment will be pending until approved
-      paymentMethod: "cash", // Cash payment only
+      originalAmount,
+      discountAmount,
       couponCode: couponCode || null,
-      discountAmount: discountAmount,
-      originalAmount: originalAmount,
+      
+      // First month commission split (calculated but not processed yet)
+      firstMonthCommission: {
+        commissionRate: commissionSplit.commissionRate,
+        adminAmount: commissionSplit.adminAmount,
+        ownerAmount: commissionSplit.ownerAmount,
+        adminAmountStatus: "pending",
+        ownerPayoutStatus: "pending",
+      },
+      
+      // Status
+      status: "pending",
+      paymentStatus: "pending",
+      paymentMethod: "cash",
     });
 
     await booking.save();
@@ -169,13 +206,24 @@ export async function POST(req: NextRequest) {
         listingName: listing.pgName,
         tenantName: fullName,
         tenantPhone: phoneNumber,
+        firstMonthRent,
+        adminCommission: commissionSplit.adminAmount,
+        ownerPayout: commissionSplit.ownerAmount,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: "Booking request submitted successfully",
-      data: booking,
+      data: {
+        ...booking.toObject(),
+        // Include split info in response
+        commissionSplit: {
+          adminReceives: commissionSplit.adminAmount,
+          ownerReceives: commissionSplit.ownerAmount,
+          totalFirstMonth: firstMonthRent,
+        },
+      },
     });
   } catch (error) {
     console.error("Booking creation error:", error);
@@ -204,7 +252,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user's bookings with listing details
     const bookings = await Booking.find({
       userId: new mongoose.Types.ObjectId(userId),
     })
