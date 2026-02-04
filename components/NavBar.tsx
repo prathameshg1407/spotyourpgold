@@ -97,6 +97,27 @@ const NavBar = () => {
     }
   };
 
+  // 📍 NEW FUNCTION: Handle "Nearby Properties" Click
+  const handleNearbyClick = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          // Redirect to All Listings with 10km radius logic
+          router.push(
+            `/routes/all-listings?lat=${latitude}&lng=${longitude}&radius=10&nearby=true`
+          );
+        },
+        (error) => {
+          console.error("Location error:", error);
+          toast.error("Please enable location access to find nearby properties.");
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser.");
+    }
+  };
+
   return (
     <nav className="w-full fixed top-0 left-0 z-50 backdrop-blur-md bg-white/20 py-3 md:py-4 md:px-4 shadow-2xl shadow-HG-500/10">
       <div className="flex items-center justify-between px-4">
@@ -135,28 +156,19 @@ const NavBar = () => {
                 showNearbyOption={true}
               />
             </div>
+            
+            {/* UPDATED: Nearby Properties Button */}
             <Button
               variant="outline"
-              onClick={() => router.push("/routes/location-search")}
-              className="px-4 border-HG-500 text-HG-500 hover:bg-HG-50"
+              onClick={handleNearbyClick}
+              className="px-4 border-HG-500 text-HG-500 hover:bg-HG-50 whitespace-nowrap"
             >
               <MapPin className="w-4 h-4 mr-2" />
-              Location
+              Nearby Properties
             </Button>
           </div>
 
-          {/* Advanced Filter Button - directly opens sidebar */}
-          {/* <AdvancedFilter
-            filters={filters}
-            onFiltersChange={(newFilters) => {
-              Object.entries(newFilters).forEach(([key, value]) => {
-                updateFilter(key as any, value);
-              });
-            }}
-            onApplyFilters={searchWithFilters}
-            onClearFilters={clearFilters}
-            activeFiltersCount={activeFiltersCount}
-          /> */}
+          
         </div>
 
         {/* Navigation Links */}
@@ -261,29 +273,16 @@ const NavBar = () => {
             />
           </div>
 
-          {/* Location Search Button */}
+          {/* UPDATED: Mobile Location/Nearby Button */}
           <Button
             variant="outline"
-            onClick={() => router.push("/routes/location-search")}
+            onClick={handleNearbyClick}
             className="px-3 border-HG-500 text-HG-500 hover:bg-HG-50"
           >
             <MapPin className="w-4 h-4" />
           </Button>
 
-          {/* Mobile Advanced Filter Button - Icon only on the right */}
-          {/* <div className="[&>button]:p-2 [&>button]:bg-white/80 [&>button]:backdrop-blur-md [&>button]:border-white/20 [&>button]:hover:bg-white/90 [&>button]:aspect-square [&>button>span]:hidden">
-            <AdvancedFilter
-              filters={filters}
-              onFiltersChange={(newFilters) => {
-                Object.entries(newFilters).forEach(([key, value]) => {
-                  updateFilter(key as any, value);
-                });
-              }}
-              onApplyFilters={searchWithFilters}
-              onClearFilters={clearFilters}
-              activeFiltersCount={activeFiltersCount}
-            />
-          </div> */}
+          
         </div>
       </div>
 
