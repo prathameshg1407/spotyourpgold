@@ -1,18 +1,16 @@
 // app/api/owner/commissions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
+import mongoose from "mongoose";
 import Commission from "@/models/commission";
-import Booking from "@/models/booking";
-import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
 
-// Get commissions for an owner
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
     const user = await authUser();
-    if (!user || (user.role !== "owner" && user.role !== "admin")) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -20,12 +18,26 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type") || "all"; // first_month_owner, monthly_rent, all
+    const status = searchParams.get("status") || "all";
     const page = Math.max(1, Number(searchParams.get("page") || "1"));
     const perPage = Math.min(Number(searchParams.get("per_page") || "20"), 50);
-    const status = searchParams.get("status") || "all";
 
-    // Build query for owner's commissions
-    const query: any = { ownerId: user.id };
+    // Build query
+    const query: any = {
+      ownerId: new mongoose.Types.ObjectId(user.id),
+    };
+
+    // Filter by type
+    if (type === "payouts") {
+      query.commissionType = "first_month_owner";
+    } else if (type === "owed") {
+      query.commissionType = "monthly_rent";
+    } else if (type !== "all") {
+      query.commissionType = type;
+    }
+
+    // Filter by status
     if (status !== "all") {
       query.status = status;
     }
@@ -35,44 +47,35 @@ export async function GET(req: NextRequest) {
     const commissions = await Commission.find(query)
       .populate({
         path: "bookingId",
-        select: "fullName phoneNumber email roomType moveInDate amount listingId",
+        select: "fullName roomType listingId moveInDate",
         populate: {
           path: "listingId",
-          select: "pgName location",
+          select: "pgName",
         },
       })
+      .populate("listingId", "pgName")
       .sort({ createdAt: -1 })
       .skip((page - 1) * perPage)
       .limit(perPage);
 
     const totalPages = Math.ceil(total / perPage);
 
-    // Calculate summary for this owner
+    // Summary by type
     const summary = await Commission.aggregate([
-      { $match: { ownerId: user.id } },
+      {
+        $match: { ownerId: new mongoose.Types.ObjectId(user.id) },
+      },
       {
         $group: {
-          _id: "$status",
+          _id: {
+            type: "$commissionType",
+            status: "$status",
+          },
           count: { $sum: 1 },
           totalAmount: { $sum: "$commissionAmount" },
         },
       },
     ]);
-
-    // Calculate overall stats
-    const pendingCommission = summary.find((s) => s._id === "pending");
-    const settledCommission = summary.find((s) => s._id === "settled");
-    const overdueCommission = summary.find((s) => s._id === "overdue");
-
-    const stats = {
-      pendingAmount: pendingCommission?.totalAmount || 0,
-      pendingCount: pendingCommission?.count || 0,
-      settledAmount: settledCommission?.totalAmount || 0,
-      settledCount: settledCommission?.count || 0,
-      overdueAmount: overdueCommission?.totalAmount || 0,
-      overdueCount: overdueCommission?.count || 0,
-      totalOwed: (pendingCommission?.totalAmount || 0) + (overdueCommission?.totalAmount || 0),
-    };
 
     return NextResponse.json({
       success: true,
@@ -80,16 +83,12 @@ export async function GET(req: NextRequest) {
       total,
       totalPages,
       currentPage: page,
-      stats,
+      summary,
     });
   } catch (error) {
     console.error("Get owner commissions error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "Internal server error" },
       { status: 500 }
     );
   }

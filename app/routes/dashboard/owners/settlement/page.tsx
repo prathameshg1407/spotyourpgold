@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   Clock,
@@ -27,17 +28,22 @@ import {
   Building,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight,
+  ArrowDownLeft,
   PiggyBank,
   Receipt,
+  RefreshCw,
+  Info,
+  Banknote,
 } from "lucide-react";
 
 interface SettlementData {
   overview: {
-    totalEarnings: number;
-    totalCommissionPaid: number;
-    totalCommissionOwed: number;
-    netPayout: number;
+    payoutReceived: number;
+    payoutPending: number;
+    commissionPaid: number;
+    commissionPending: number;
+    netPosition: number;
+    netPositionLabel: string;
     securityDepositsHeld: number;
   };
   rentSummary: {
@@ -47,56 +53,38 @@ interface SettlementData {
     activeAllocations: number;
   };
   commissions: {
-    pending: { count: number; amount: number };
-    settled: { count: number; amount: number };
-    overdue: { count: number; amount: number };
+    payouts: {
+      received: { count: number; amount: number };
+      pending: { count: number; amount: number };
+    };
+    owed: {
+      paid: { count: number; amount: number };
+      pending: { count: number; amount: number };
+      overdue: { count: number; amount: number };
+    };
   };
-  recentSettlements: any[];
+  recentPayouts: any[];
+  recentCommissionPayments: any[];
   monthlyBreakdown: any[];
+  commissionRate: number;
   listingsCount: number;
 }
 
-interface Commission {
-  _id: string;
-  bookingId: {
-    fullName: string;
-    roomType: string;
-    listingId: {
-      pgName: string;
-    };
-  };
-  bookingAmount: number;
-  commissionRate: number;
-  commissionAmount: number;
-  status: string;
-  dueDate: string;
-  createdAt: string;
-  notes: string;
-}
-
 export default function OwnerSettlementPage() {
-  const [settlementData, setSettlementData] = useState<SettlementData | null>(null);
-  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [data, setData] = useState<SettlementData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const [commissionTab, setCommissionTab] = useState("pending");
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  useEffect(() => {
-    if (activeTab === "commissions") {
-      fetchCommissions(commissionTab);
-    }
-  }, [activeTab, commissionTab]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/owner/settlement-summary");
       if (response.data.success) {
-        setSettlementData(response.data.data);
+        setData(response.data.data);
       }
     } catch (error) {
       toast.error("Failed to fetch settlement data");
@@ -105,26 +93,15 @@ export default function OwnerSettlementPage() {
     }
   };
 
-  const fetchCommissions = async (status: string) => {
-    try {
-      const response = await axios.get(`/api/owner/commissions?status=${status}`);
-      if (response.data.success) {
-        setCommissions(response.data.data);
-      }
-    } catch (error) {
-      toast.error("Failed to fetch commissions");
-    }
-  };
+  const formatCurrency = (amount: number) =>
+    `₹${Math.abs(amount).toLocaleString("en-IN")}`;
 
-  const formatCurrency = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -135,11 +112,11 @@ export default function OwnerSettlementPage() {
             Pending
           </Badge>
         );
-      case "settled":
+      case "completed":
         return (
           <Badge variant="outline" className="border-green-300 text-green-700">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Settled
+            Completed
           </Badge>
         );
       case "overdue":
@@ -158,14 +135,14 @@ export default function OwnerSettlementPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-HG-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-gray-600">Loading settlement data...</p>
         </div>
       </div>
     );
   }
 
-  if (!settlementData) {
+  if (!data) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">Failed to load data</p>
@@ -179,65 +156,105 @@ export default function OwnerSettlementPage() {
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
-          Settlement <span className="text-HG-500">Summary</span>
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Track your earnings, commissions, and payouts
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
+            Settlement <span className="text-primary">Summary</span>
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Track your payouts and commission obligations
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-sm">
+            Commission Rate: {data.commissionRate}%
+          </Badge>
+          <Button variant="outline" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Overview Cards */}
+      {/* How It Works Banner */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-1">How Commission Works:</p>
+              <ul className="list-disc list-inside space-y-1 text-blue-700">
+                <li>
+                  <strong>First Month Booking:</strong> Admin receives 10%, you receive 90% (paid separately by admin)
+                </li>
+                <li>
+                  <strong>Monthly Rent (2nd month onwards):</strong> You collect 100%, owe 10% commission to admin
+                </li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Payout from Admin */}
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-6">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-700">Total Earnings</p>
+                <p className="text-sm font-medium text-green-700">
+                  Payout Received
+                </p>
                 <p className="text-2xl font-bold text-green-800">
-                  {formatCurrency(settlementData.overview.totalEarnings)}
+                  {formatCurrency(data.overview.payoutReceived)}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  From {settlementData.listingsCount} properties
+                  90% from first month bookings
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-green-200 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-green-700" />
+                <ArrowDownLeft className="h-6 w-6 text-green-700" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-6">
+        {/* Pending Payout */}
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-700">Commission Owed</p>
-                <p className="text-2xl font-bold text-red-800">
-                  {formatCurrency(settlementData.overview.totalCommissionOwed)}
+                <p className="text-sm font-medium text-yellow-700">
+                  Payout Pending
                 </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {settlementData.commissions.pending.count + settlementData.commissions.overdue.count} pending
+                <p className="text-2xl font-bold text-yellow-800">
+                  {formatCurrency(data.overview.payoutPending)}
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">
+                  {data.commissions.payouts.pending.count} booking(s) pending
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-red-200 flex items-center justify-center">
-                <TrendingDown className="h-6 w-6 text-red-700" />
+              <div className="h-12 w-12 rounded-full bg-yellow-200 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-yellow-700" />
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Commission Paid */}
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-700">Commission Paid</p>
+                <p className="text-sm font-medium text-blue-700">
+                  Commission Paid
+                </p>
                 <p className="text-2xl font-bold text-blue-800">
-                  {formatCurrency(settlementData.overview.totalCommissionPaid)}
+                  {formatCurrency(data.overview.commissionPaid)}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
-                  {settlementData.commissions.settled.count} settlements
+                  {data.commissions.owed.paid.count} settlements
                 </p>
               </div>
               <div className="h-12 w-12 rounded-full bg-blue-200 flex items-center justify-center">
@@ -247,28 +264,96 @@ export default function OwnerSettlementPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-HG-50 to-HG-100 border-HG-200">
-          <CardContent className="p-6">
+        {/* Commission Pending */}
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-HG-700">Net Payout</p>
-                <p className="text-2xl font-bold text-HG-800">
-                  {formatCurrency(settlementData.overview.netPayout)}
+                <p className="text-sm font-medium text-red-700">
+                  Commission Owed
                 </p>
-                <p className="text-xs text-HG-600 mt-1">After commission deduction</p>
+                <p className="text-2xl font-bold text-red-800">
+                  {formatCurrency(data.overview.commissionPending)}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {data.commissions.owed.pending.count + data.commissions.owed.overdue.count} pending
+                  {data.commissions.owed.overdue.count > 0 && (
+                    <span className="text-red-700 font-medium">
+                      {" "}({data.commissions.owed.overdue.count} overdue)
+                    </span>
+                  )}
+                </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-HG-200 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-HG-700" />
+              <div className="h-12 w-12 rounded-full bg-red-200 flex items-center justify-center">
+                <ArrowUpRight className="h-6 w-6 text-red-700" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Net Position Card */}
+      <Card
+        className={`${
+          data.overview.netPosition >= 0
+            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-300"
+            : "bg-gradient-to-r from-red-50 to-orange-50 border-red-300"
+        }`}
+      >
+        <CardContent className="py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={`h-14 w-14 rounded-full flex items-center justify-center ${
+                  data.overview.netPosition >= 0
+                    ? "bg-green-200"
+                    : "bg-red-200"
+                }`}
+              >
+                {data.overview.netPosition >= 0 ? (
+                  <TrendingUp className="h-7 w-7 text-green-700" />
+                ) : (
+                  <TrendingDown className="h-7 w-7 text-red-700" />
+                )}
+              </div>
+              <div>
+                <p
+                  className={`text-sm font-medium ${
+                    data.overview.netPosition >= 0
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {data.overview.netPositionLabel}
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    data.overview.netPosition >= 0
+                      ? "text-green-800"
+                      : "text-red-800"
+                  }`}
+                >
+                  {formatCurrency(data.overview.netPosition)}
+                </p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-600 md:text-right">
+              <p>
+                Pending Payout: <span className="font-medium text-green-600">+{formatCurrency(data.overview.payoutPending)}</span>
+              </p>
+              <p>
+                Commission Owed: <span className="font-medium text-red-600">-{formatCurrency(data.overview.commissionPending)}</span>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="payouts">Payouts</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -279,7 +364,7 @@ export default function OwnerSettlementPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-HG-500" />
+                <Receipt className="h-5 w-5 text-primary" />
                 Rent Collection Summary
               </CardTitle>
             </CardHeader>
@@ -288,25 +373,25 @@ export default function OwnerSettlementPage() {
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Rent Collected</p>
                   <p className="text-xl font-bold text-green-600">
-                    {formatCurrency(settlementData.rentSummary.totalRentCollected)}
+                    {formatCurrency(data.rentSummary.totalRentCollected)}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Pending Rent</p>
                   <p className="text-xl font-bold text-yellow-600">
-                    {formatCurrency(settlementData.rentSummary.pendingRent)}
+                    {formatCurrency(data.rentSummary.pendingRent)}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Overdue Rent</p>
                   <p className="text-xl font-bold text-red-600">
-                    {formatCurrency(settlementData.rentSummary.overdueRent)}
+                    {formatCurrency(data.rentSummary.overdueRent)}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Active Tenants</p>
                   <p className="text-xl font-bold text-blue-600">
-                    {settlementData.rentSummary.activeAllocations}
+                    {data.rentSummary.activeAllocations}
                   </p>
                 </div>
               </div>
@@ -317,7 +402,7 @@ export default function OwnerSettlementPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <PiggyBank className="h-5 w-5 text-HG-500" />
+                <PiggyBank className="h-5 w-5 text-primary" />
                 Security Deposits Held
               </CardTitle>
               <CardDescription>
@@ -327,7 +412,7 @@ export default function OwnerSettlementPage() {
             <CardContent>
               <div className="text-center py-4">
                 <p className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(settlementData.overview.securityDepositsHeld)}
+                  {formatCurrency(data.overview.securityDepositsHeld)}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
                   To be refunded when tenants move out
@@ -337,110 +422,275 @@ export default function OwnerSettlementPage() {
           </Card>
         </TabsContent>
 
-        {/* Commissions Tab */}
-        <TabsContent value="commissions" className="space-y-4">
-          <Tabs value={commissionTab} onValueChange={setCommissionTab}>
-            <TabsList>
-              <TabsTrigger value="pending">
-                Pending ({settlementData.commissions.pending.count})
-              </TabsTrigger>
-              <TabsTrigger value="overdue">
-                Overdue ({settlementData.commissions.overdue.count})
-              </TabsTrigger>
-              <TabsTrigger value="settled">
-                Settled ({settlementData.commissions.settled.count})
-              </TabsTrigger>
-            </TabsList>
+        {/* Payouts Tab (90% from Admin) */}
+        <TabsContent value="payouts" className="space-y-4">
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 text-green-800">
+                <ArrowDownLeft className="h-5 w-5" />
+                <p className="font-medium">
+                  Payouts represent the 90% share you receive from first month bookings (admin pays you)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <TabsContent value={commissionTab}>
-              {commissions.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No {commissionTab} commissions
-                    </h3>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Booking Details</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Commission (10%)</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {commissions.map((commission) => (
-                          <TableRow key={commission._id}>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">
-                                  {commission.bookingId?.listingId?.pgName || "N/A"}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  {commission.bookingId?.fullName} - {commission.bookingId?.roomType}
-                                </p>
-                                {commission.notes && (
-                                  <p className="text-xs text-gray-400 mt-1">{commission.notes}</p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{formatCurrency(commission.bookingAmount)}</TableCell>
-                            <TableCell className="font-medium text-red-600">
-                              {formatCurrency(commission.commissionAmount)}
-                            </TableCell>
-                            <TableCell>{formatDate(commission.dueDate)}</TableCell>
-                            <TableCell>{getStatusBadge(commission.status)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Received</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(data.commissions.payouts.received.amount)}
+                    </p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800">
+                    {data.commissions.payouts.received.count} payouts
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* History Tab */}
-        <TabsContent value="history" className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {formatCurrency(data.commissions.payouts.pending.amount)}
+                    </p>
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-800">
+                    {data.commissions.payouts.pending.count} pending
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Payouts */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Settlements</CardTitle>
-              <CardDescription>Your commission payment history</CardDescription>
+              <CardTitle>Recent Payouts Received</CardTitle>
             </CardHeader>
             <CardContent>
-              {settlementData.recentSettlements.length === 0 ? (
+              {data.recentPayouts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No settlements yet</p>
+                  <Wallet className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No payouts received yet</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {settlementData.recentSettlements.map((settlement: any) => (
+                <div className="space-y-3">
+                  {data.recentPayouts.map((payout: any) => (
                     <div
-                      key={settlement._id}
+                      key={payout._id}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                     >
                       <div>
                         <p className="font-medium">
-                          {settlement.bookingId?.listingId?.pgName || "N/A"}
+                          {payout.bookingId?.listingId?.pgName || "N/A"}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {formatDate(settlement.settledAt)}
+                          Tenant: {payout.bookingId?.fullName}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-green-600">
-                          {formatCurrency(settlement.commissionAmount)}
+                          {formatCurrency(payout.commissionAmount)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {payout.settledAt ? formatDate(payout.settledAt) : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Commissions Tab (10% to Admin) */}
+        <TabsContent value="commissions" className="space-y-4">
+          <Card className="bg-orange-50 border-orange-200">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 text-orange-800">
+                <ArrowUpRight className="h-5 w-5" />
+                <p className="font-medium">
+                  Commissions represent the 10% you owe to admin from monthly rent collections
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Paid</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(data.commissions.owed.paid.amount)}
+                    </p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {data.commissions.owed.paid.count}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {formatCurrency(data.commissions.owed.pending.amount)}
+                    </p>
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-800">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {data.commissions.owed.pending.count}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className={data.commissions.owed.overdue.count > 0 ? "border-red-300" : ""}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Overdue</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {formatCurrency(data.commissions.owed.overdue.amount)}
+                    </p>
+                  </div>
+                  <Badge className="bg-red-100 text-red-800">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    {data.commissions.owed.overdue.count}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Commission Payment Info */}
+          {(data.commissions.owed.pending.count > 0 ||
+            data.commissions.owed.overdue.count > 0) && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium">How to settle commissions:</p>
+                    <p className="mt-1">
+                      Please contact the admin to settle your pending commissions.
+                      You can pay via bank transfer, UPI, or cash.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* History Tab */}
+        <TabsContent value="history" className="space-y-4">
+          {/* Monthly Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Breakdown</CardTitle>
+              <CardDescription>Last 6 months commission activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.monthlyBreakdown.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No data available yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Month</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Count</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.monthlyBreakdown.map((item: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            {new Date(item._id.year, item._id.month - 1).toLocaleDateString(
+                              "en-IN",
+                              { month: "long", year: "numeric" }
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                item._id.type === "first_month_owner"
+                                  ? "border-green-300 text-green-700"
+                                  : "border-orange-300 text-orange-700"
+                              }
+                            >
+                              {item._id.type === "first_month_owner"
+                                ? "Payout (90%)"
+                                : "Commission (10%)"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.count}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(item.totalAmount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Commission Settlements */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Commission Payments</CardTitle>
+              <CardDescription>Your payments to admin</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.recentCommissionPayments.length === 0 ? (
+                <div className="text-center py-8">
+                  <DollarSign className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No commission payments yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {data.recentCommissionPayments.map((payment: any) => (
+                    <div
+                      key={payment._id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {payment.listingId?.pgName || "N/A"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Month {payment.monthNumber}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">
+                          {formatCurrency(payment.commissionAmount)}
                         </p>
                         <p className="text-xs text-gray-500 capitalize">
-                          {settlement.settlementMethod}
+                          {payment.settlementMethod?.replace("_", " ")}
                         </p>
                       </div>
                     </div>

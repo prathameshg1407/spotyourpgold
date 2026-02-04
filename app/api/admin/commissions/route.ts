@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
+import mongoose from "mongoose";
 import Commission from "@/models/commission";
-import Booking from "@/models/booking";
-import Listing from "@/models/listing";
 import User from "@/models/user";
 import Notification from "@/models/notification";
 import { authUser } from "@/actions/authUser";
@@ -25,6 +24,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get("page") || "1"));
     const perPage = Math.min(Number(searchParams.get("per_page") || "20"), 50);
     const status = searchParams.get("status") || "all";
+    const commissionType = searchParams.get("type") || "all";
     const ownerId = searchParams.get("ownerId");
 
     // Build query
@@ -32,23 +32,26 @@ export async function GET(req: NextRequest) {
     if (status !== "all") {
       query.status = status;
     }
+    if (commissionType !== "all") {
+      query.commissionType = commissionType;
+    }
     if (ownerId) {
-      query.ownerId = ownerId;
+      query.ownerId = new mongoose.Types.ObjectId(ownerId);
     }
 
     const total = await Commission.countDocuments(query);
 
     const commissions = await Commission.find(query)
-      .populate("ownerId", "fullName email phoneNumber")
+      .populate("ownerId", "fullName email phone")
       .populate({
         path: "bookingId",
-        select:
-          "amount securityDeposit moveInDate fullName phoneNumber email address aadhaarNumber additionalRequirements",
+        select: "amount securityDeposit moveInDate fullName phoneNumber email",
         populate: {
           path: "userId",
-          select: "fullName email phoneNumber",
+          select: "fullName email phone",
         },
       })
+      .populate("listingId", "pgName")
       .populate("settledBy", "fullName")
       .sort({ createdAt: -1 })
       .skip((page - 1) * perPage)
@@ -56,13 +59,33 @@ export async function GET(req: NextRequest) {
 
     const totalPages = Math.ceil(total / perPage);
 
-    // Calculate summary
+    // Calculate summary by type and status
     const summary = await Commission.aggregate([
       {
         $group: {
-          _id: "$status",
+          _id: {
+            type: "$commissionType",
+            status: "$status",
+          },
           count: { $sum: 1 },
           totalAmount: { $sum: "$commissionAmount" },
+        },
+      },
+    ]);
+
+    // Simplified summary
+    const typeSummary = await Commission.aggregate([
+      {
+        $group: {
+          _id: "$commissionType",
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$commissionAmount" },
+          pending: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, "$commissionAmount", 0] },
+          },
+          completed: {
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$commissionAmount", 0] },
+          },
         },
       },
     ]);
@@ -74,22 +97,21 @@ export async function GET(req: NextRequest) {
       totalPages,
       currentPage: page,
       summary,
+      typeSummary,
     });
   } catch (error) {
     console.error("Get commissions error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// Mark commission as settled with WhatsApp notification
+// Mark monthly rent commission as settled (owner paid to admin)
 export async function PATCH(req: NextRequest) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
 
@@ -101,94 +123,125 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { commissionId, settlementMethod, settlementReference, notes } =
+    const { commissionIds, settlementMethod, settlementReference, notes } =
       await req.json();
 
-    if (!commissionId) {
+    if (!commissionIds || commissionIds.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Commission ID is required" },
+        { success: false, message: "Commission ID(s) required" },
         { status: 400 }
       );
     }
 
-    const commission = await Commission.findById(commissionId).populate(
-      "ownerId",
-      "fullName email phoneNumber"
-    );
-    
-    if (!commission) {
+    session.startTransaction();
+
+    const commissions = await Commission.find({
+      _id: { $in: commissionIds },
+      commissionType: "monthly_rent", // Only monthly rent commissions can be settled this way
+      status: { $in: ["pending", "overdue"] },
+    })
+      .populate("ownerId", "fullName email phone")
+      .session(session);
+
+    if (commissions.length === 0) {
+      await session.abortTransaction();
       return NextResponse.json(
-        { success: false, message: "Commission not found" },
+        { success: false, message: "No pending commissions found" },
         { status: 404 }
       );
     }
 
-    // Update commission
-    commission.status = "settled";
-    commission.settledAt = new Date();
-    commission.settledBy = user.id;
-    commission.settlementMethod = settlementMethod || "cash";
-    commission.settlementReference = settlementReference || "";
-    commission.notes = notes || "";
+    let totalSettled = 0;
+    const ownerUpdates: { [key: string]: number } = {};
 
-    await commission.save();
+    for (const commission of commissions) {
+      commission.status = "completed";
+      commission.settledAt = new Date();
+      commission.settledBy = new mongoose.Types.ObjectId(user.id);
+      commission.settlementMethod = settlementMethod || "cash";
+      commission.settlementReference = settlementReference || "";
+      commission.notes = notes || "";
 
-    // Send WhatsApp notification to owner
-    const owner = commission.ownerId as any;
-    if (owner?.phoneNumber) {
-      try {
-        await sendWhatsAppNotification({
-          to: owner.phoneNumber,
-          campaignName: "commission_settlement",
-          userName: owner.fullName || "Owner",
-          templateParams: [
-            owner.fullName || "Owner",
-            `₹${commission.commissionAmount.toLocaleString("en-IN")}`,
-            settlementMethod || "cash",
-            settlementReference || "N/A",
-            new Date().toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            }),
-          ],
-        });
-      } catch (whatsappError) {
-        console.error("WhatsApp notification failed:", whatsappError);
-        // Continue execution even if WhatsApp fails
-      }
+      await commission.save({ session });
+
+      totalSettled += commission.commissionAmount;
+
+      const ownerId = commission.ownerId._id.toString();
+      ownerUpdates[ownerId] =
+        (ownerUpdates[ownerId] || 0) + commission.commissionAmount;
     }
 
-    // Create notification for owner
-    try {
-      await Notification.create({
-        userId: commission.ownerId._id || commission.ownerId,
-        type: "payment_reminder",
+    // Update owner settlement summaries
+    for (const [ownerId, amount] of Object.entries(ownerUpdates)) {
+      await User.findByIdAndUpdate(
+        ownerId,
+        {
+          $inc: {
+            "settlementSummary.totalCommissionPaid": amount,
+            "settlementSummary.pendingCommissionAmount": -amount,
+          },
+          $set: {
+            "settlementSummary.lastSettlementDate": new Date(),
+          },
+        },
+        { session }
+      );
+    }
+
+    // Send notifications
+    for (const commission of commissions) {
+      const owner = commission.ownerId as any;
+
+      // Create notification
+      await Notification.create([{
+        userId: owner._id,
+        type: "payment",
         title: "Commission Settled",
-        message: `Your commission of ₹${commission.commissionAmount.toLocaleString("en-IN")} has been settled via ${settlementMethod || "cash"}.`,
+        message: `Your commission of ₹${commission.commissionAmount.toLocaleString("en-IN")} has been marked as settled.`,
         relatedId: commission.bookingId,
         relatedType: "booking",
         priority: "low",
-      });
-    } catch (notificationError) {
-      console.error("Failed to create notification:", notificationError);
-      // Continue execution even if notification creation fails
+      }], { session });
+
+      // Send WhatsApp (outside session)
+      if (owner.phone) {
+        try {
+          await sendWhatsAppNotification({
+            to: owner.phone,
+            campaignName: "commission_settlement",
+            userName: owner.fullName || "Owner",
+            templateParams: [
+              owner.fullName || "Owner",
+              `₹${commission.commissionAmount.toLocaleString("en-IN")}`,
+              settlementMethod || "cash",
+              settlementReference || "N/A",
+              new Date().toLocaleDateString("en-IN"),
+            ],
+          });
+        } catch (whatsappError) {
+          console.error("WhatsApp notification failed:", whatsappError);
+        }
+      }
     }
+
+    await session.commitTransaction();
 
     return NextResponse.json({
       success: true,
-      message: "Commission marked as settled",
-      data: commission,
+      message: `${commissions.length} commission(s) marked as settled`,
+      data: {
+        totalSettled,
+        commissionsSettled: commissions.length,
+      },
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Settle commission error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    session.endSession();
   }
 }

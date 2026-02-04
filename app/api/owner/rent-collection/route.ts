@@ -7,6 +7,7 @@ import Listing from "@/models/listing";
 import Commission from "@/models/commission";
 import { authUser } from "@/actions/authUser";
 import { createNotification } from "@/lib/utils/notificationHelper";
+import User from "@/models/user";
 
 // Response helpers
 function jsonResponse(data: object, status: number = 200) {
@@ -160,6 +161,9 @@ export async function GET(req: NextRequest) {
 /**
  * POST - Record rent payment
  */
+/**
+ * POST - Record rent payment (from month 2 onwards)
+ */
 export async function POST(req: NextRequest) {
   const session = await mongoose.startSession();
 
@@ -174,7 +178,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       allocationId,
-      rentMonth, // ISO date string
+      rentMonth,
       paidAmount,
       paymentMethod = "cash",
       transactionId = "",
@@ -195,6 +199,7 @@ export async function POST(req: NextRequest) {
     // Get allocation
     const allocation = await TenantAllocation.findById(allocationId)
       .populate("listingId", "ownerId pgName")
+      .populate("bookingId")
       .session(session);
 
     if (!allocation) {
@@ -226,6 +231,19 @@ export async function POST(req: NextRequest) {
 
     const rent = allocation.rentHistory[rentIndex];
 
+    // Calculate month number (relative to move-in)
+    const booking = allocation.bookingId as any;
+    const moveInDate = new Date(booking?.moveInDate || allocation.moveInDate);
+    const monthNumber =
+      (rentMonth_.getFullYear() - moveInDate.getFullYear()) * 12 +
+      (rentMonth_.getMonth() - moveInDate.getMonth()) + 1;
+
+    // First month rent is handled by booking, not rent collection
+    if (monthNumber <= 1) {
+      await session.abortTransaction();
+      return errorResponse("First month rent is handled through booking payment");
+    }
+
     // Waive late fee if requested
     if (waiveLateFee && rent.lateFee > 0) {
       rent.waivedAmount = (rent.waivedAmount || 0) + rent.lateFee;
@@ -238,10 +256,7 @@ export async function POST(req: NextRequest) {
     rent.paymentMethod = paymentMethod;
     rent.transactionId = transactionId;
     rent.paidAt = new Date();
-
-    if (notes) {
-      rent.notes = notes;
-    }
+    if (notes) rent.notes = notes;
 
     // Determine new status
     const totalDue = rent.amount + (rent.lateFee || 0) - (rent.waivedAmount || 0);
@@ -254,31 +269,52 @@ export async function POST(req: NextRequest) {
     allocation.rentHistory[rentIndex] = rent;
     await allocation.save({ session });
 
-    // Create commission entry (10% of collected amount)
-    const commissionAmount = Math.round(paidAmount * 0.1);
+    // Get owner's commission rate
+    const owner = await User.findById(listing.ownerId).session(session);
+    const commissionRate = owner?.commissionSettings?.isCustomRateActive
+      ? owner.commissionSettings.customRate || 0.10
+      : 0.10;
+
+    // Calculate commission (10% of collected amount)
+    const commissionAmount = Math.round(paidAmount * commissionRate);
     const commissionDueDate = new Date();
     commissionDueDate.setDate(commissionDueDate.getDate() + 7); // Due in 7 days
 
+    // Create monthly rent commission record
     const commission = new Commission({
       ownerId: listing.ownerId,
+      bookingId: allocation.bookingId,
       listingId: listing._id,
+      tenantId: allocation.tenantId,
       allocationId: allocation._id,
-      type: "rent_collection",
+      commissionType: "monthly_rent", // Owner owes 10% to admin
       rentMonth: rentMonth_,
-      rentAmount: paidAmount,
-      commissionRate: 10,
+      monthNumber,
+      baseAmount: paidAmount,
+      commissionRate,
       commissionAmount,
       status: "pending",
       dueDate: commissionDueDate,
-      notes: `Commission for rent collection - ${allocation.pgName}, Room ${allocation.roomNumber}`,
+      notes: `Monthly rent commission - Month ${monthNumber}, ${allocation.pgName}, Room ${allocation.roomNumber}`,
     });
 
     await commission.save({ session });
 
+    // Update owner's pending commission amount
+    await User.findByIdAndUpdate(
+      listing.ownerId,
+      {
+        $inc: {
+          "settlementSummary.pendingCommissionAmount": commissionAmount,
+        },
+      },
+      { session }
+    );
+
     // Notify tenant
     await createNotification({
       userId: allocation.tenantId,
-      type: "rent_paid" as any,
+      type: "payment" as any,
       title: "Rent Payment Recorded",
       message: `Your rent payment of ₹${paidAmount.toLocaleString()} for ${rentMonth_.toLocaleDateString("en-IN", { month: "long", year: "numeric" })} has been recorded.`,
       relatedId: allocation._id,
@@ -294,7 +330,12 @@ export async function POST(req: NextRequest) {
       message: "Rent payment recorded successfully",
       data: {
         rent: allocation.rentHistory[rentIndex],
-        commissionCreated: commissionAmount,
+        commission: {
+          amount: commissionAmount,
+          rate: commissionRate * 100,
+          dueDate: commissionDueDate,
+          status: "pending",
+        },
       },
     });
   } catch (error) {
@@ -305,7 +346,6 @@ export async function POST(req: NextRequest) {
     session.endSession();
   }
 }
-
 /**
  * PATCH - Update rent entry (waive late fee, add notes, etc.)
  */

@@ -1,10 +1,8 @@
-// app/api/admin/settlement-summary/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Commission from "@/models/commission";
 import Booking from "@/models/booking";
 import User from "@/models/user";
-import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
 
 export async function GET(req: NextRequest) {
@@ -19,25 +17,84 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Overall commission stats
-    const commissionStats = await Commission.aggregate([
+    // ============ FIRST MONTH COMMISSION SUMMARY ============
+    // Admin's 10% from first payments
+    const firstMonthAdminCommissions = await Commission.aggregate([
+      { $match: { commissionType: "first_month_admin" } },
       {
         $group: {
           _id: "$status",
           count: { $sum: 1 },
           totalAmount: { $sum: "$commissionAmount" },
-          totalBookingAmount: { $sum: "$bookingAmount" },
         },
       },
     ]);
 
-    const pending = commissionStats.find((s) => s._id === "pending");
-    const settled = commissionStats.find((s) => s._id === "settled");
-    const overdue = commissionStats.find((s) => s._id === "overdue");
+    // 90% that admin owes to owners
+    const firstMonthOwnerPayouts = await Commission.aggregate([
+      { $match: { commissionType: "first_month_owner" } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$commissionAmount" },
+        },
+      },
+    ]);
 
-    // Top owners by pending commission
-    const topOwnersPending = await Commission.aggregate([
-      { $match: { status: { $in: ["pending", "overdue"] } } },
+    // ============ MONTHLY RENT COMMISSION SUMMARY ============
+    // 10% that owners owe to admin
+    const monthlyRentCommissions = await Commission.aggregate([
+      { $match: { commissionType: "monthly_rent" } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$commissionAmount" },
+        },
+      },
+    ]);
+
+    // ============ PENDING OWNER PAYOUTS (90%) ============
+    const pendingOwnerPayouts = await Booking.aggregate([
+      {
+        $match: {
+          "firstMonthCommission.ownerPayoutStatus": "pending",
+          paymentStatus: "completed_cash",
+        },
+      },
+      {
+        $group: {
+          _id: "$ownerId",
+          totalPending: { $sum: "$firstMonthCommission.ownerAmount" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "owner",
+        },
+      },
+      { $unwind: "$owner" },
+      {
+        $project: {
+          ownerId: "$_id",
+          ownerName: "$owner.fullName",
+          ownerEmail: "$owner.email",
+          totalPending: 1,
+          count: 1,
+        },
+      },
+      { $sort: { totalPending: -1 } },
+      { $limit: 10 },
+    ]);
+
+    // ============ TOP OWNERS WITH PENDING COMMISSIONS (10%) ============
+    const topOwnersPendingCommissions = await Commission.aggregate([
+      { $match: { commissionType: "monthly_rent", status: { $in: ["pending", "overdue"] } } },
       {
         $group: {
           _id: "$ownerId",
@@ -45,8 +102,6 @@ export async function GET(req: NextRequest) {
           count: { $sum: 1 },
         },
       },
-      { $sort: { totalPending: -1 } },
-      { $limit: 10 },
       {
         $lookup: {
           from: "users",
@@ -66,20 +121,22 @@ export async function GET(req: NextRequest) {
           count: 1,
         },
       },
+      { $sort: { totalPending: -1 } },
+      { $limit: 10 },
     ]);
 
-    // Monthly trend (last 12 months)
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    // ============ MONTHLY TREND ============
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const monthlyTrend = await Commission.aggregate([
-      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+      { $match: { createdAt: { $gte: sixMonthsAgo } } },
       {
         $group: {
           _id: {
             year: { $year: "$createdAt" },
             month: { $month: "$createdAt" },
-            status: "$status",
+            type: "$commissionType",
           },
           amount: { $sum: "$commissionAmount" },
           count: { $sum: 1 },
@@ -88,45 +145,41 @@ export async function GET(req: NextRequest) {
       { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
 
-    // Recent settlements
-    const recentSettlements = await Commission.find({ status: "settled" })
-      .populate("ownerId", "fullName email phone")
-      .populate({
-        path: "bookingId",
-        select: "fullName listingId",
-        populate: {
-          path: "listingId",
-          select: "pgName",
-        },
-      })
-      .populate("settledBy", "fullName")
-      .sort({ settledAt: -1 })
+    // ============ RECENT ACTIVITY ============
+    const recentActivity = await Commission.find()
+      .populate("ownerId", "fullName email")
+      .populate("listingId", "pgName")
+      .sort({ createdAt: -1 })
       .limit(20);
 
-    // Overdue commissions (priority list)
-    const overdueList = await Commission.find({ status: "overdue" })
-      .populate("ownerId", "fullName email phone")
-      .populate({
-        path: "bookingId",
-        select: "fullName listingId amount",
-        populate: {
-          path: "listingId",
-          select: "pgName",
-        },
-      })
-      .sort({ dueDate: 1 })
-      .limit(20);
+    // ============ CALCULATE TOTALS ============
+    const getAmount = (arr: any[], status: string) => 
+      arr.find(a => a._id === status)?.totalAmount || 0;
+    const getCount = (arr: any[], status: string) => 
+      arr.find(a => a._id === status)?.count || 0;
 
-    // Platform revenue
-    const totalRevenue = settled?.totalAmount || 0;
-    const pendingRevenue = (pending?.totalAmount || 0) + (overdue?.totalAmount || 0);
+    // Revenue from first month admin commissions (10%)
+    const adminRevenue = {
+      received: getAmount(firstMonthAdminCommissions, "completed"),
+      pending: getAmount(firstMonthAdminCommissions, "pending"),
+    };
 
-    // Booking stats
-    const totalBookings = await Booking.countDocuments({ status: "confirmed" });
-    const cashPaymentsCount = await Booking.countDocuments({
-      status: "confirmed",
-      paymentStatus: "completed_cash",
-    });
+    // Payouts to owners from first month (90%)
+    const ownerPayouts = {
+      paid: getAmount(firstMonthOwnerPayouts, "completed"),
+      pending: getAmount(firstMonthOwnerPayouts, "pending"),
+    };
+
+    // Monthly rent commissions (10% owner owes admin)
+    const monthlyCommissions = {
+      collected: getAmount(monthlyRentCommissions, "completed"),
+      pending: getAmount(monthlyRentCommissions, "pending"),
+      overdue: getAmount(monthlyRentCommissions, "overdue"),
+    };
+
+    // Total platform revenue
+    const totalRevenue = adminRevenue.received + monthlyCommissions.collected;
+    const pendingRevenue = adminRevenue.pending + monthlyCommissions.pending + monthlyCommissions.overdue;
 
     return NextResponse.json({
       success: true,
@@ -134,31 +187,34 @@ export async function GET(req: NextRequest) {
         overview: {
           totalRevenue,
           pendingRevenue,
-          totalCommissionsCollected: settled?.count || 0,
-          pendingCommissions: (pending?.count || 0) + (overdue?.count || 0),
-          overdueCommissions: overdue?.count || 0,
+          pendingOwnerPayouts: ownerPayouts.pending,
+          
+          // First month breakdown
+          firstMonth: {
+            adminReceived: adminRevenue.received,
+            adminPending: adminRevenue.pending,
+            ownerPaid: ownerPayouts.paid,
+            ownerPending: ownerPayouts.pending,
+          },
+          
+          // Monthly rent breakdown
+          monthlyRent: {
+            collected: monthlyCommissions.collected,
+            pending: monthlyCommissions.pending,
+            overdue: monthlyCommissions.overdue,
+          },
         },
-        commissionBreakdown: {
-          pending: {
-            count: pending?.count || 0,
-            amount: pending?.totalAmount || 0,
-          },
-          settled: {
-            count: settled?.count || 0,
-            amount: settled?.totalAmount || 0,
-          },
-          overdue: {
-            count: overdue?.count || 0,
-            amount: overdue?.totalAmount || 0,
-          },
-        },
-        topOwnersPending,
+        
+        pendingOwnerPayouts,
+        topOwnersPendingCommissions,
         monthlyTrend,
-        recentSettlements,
-        overdueList,
+        recentActivity,
+        
+        // Booking stats
         bookingStats: {
-          totalBookings,
-          cashPaymentsCount,
+          totalConfirmed: await Booking.countDocuments({ status: "confirmed" }),
+          cashPaymentsCompleted: await Booking.countDocuments({ paymentStatus: "completed_cash" }),
+          pendingPayouts: await Booking.countDocuments({ "firstMonthCommission.ownerPayoutStatus": "pending" }),
         },
       },
     });
