@@ -155,6 +155,13 @@ function AllListingsContent() {
           radius: "10",
         });
 
+        // Add active filters if any
+        if (filters.minPrice) queryParams.set("minPrice", filters.minPrice);
+        if (filters.maxPrice) queryParams.set("maxPrice", filters.maxPrice);
+        if (filters.genderPreference) queryParams.set("genderPreference", filters.genderPreference);
+        if (filters.type) queryParams.set("type", filters.type);
+        if (filters.amenities.length > 0) queryParams.set("amenities", filters.amenities.join(","));
+
         const res = await axios.get(`/api/listing/search?${queryParams.toString()}`);
         if (res?.data?.success) {
           setNearbyListings(res.data.data);
@@ -173,7 +180,7 @@ function AllListingsContent() {
         setNearbyLoading(false);
       }
     },
-    [lat, lng]
+    [lat, lng, filters] // Added filters dependency
   );
 
   // Function to fetch category listings with advanced filters
@@ -198,7 +205,10 @@ function AllListingsContent() {
         // Add advanced filters if provided
         const filtersToApply = appliedFilters || filters;
         if (filtersToApply.query) queryParams.set("q", filtersToApply.query);
-        // ... (existing params logic)
+        if (filtersToApply.minPrice) queryParams.set("minPrice", filtersToApply.minPrice);
+        if (filtersToApply.maxPrice) queryParams.set("maxPrice", filtersToApply.maxPrice);
+        if (filtersToApply.genderPreference) queryParams.set("genderPreference", filtersToApply.genderPreference);
+        if (filtersToApply.amenities.length > 0) queryParams.set("amenities", filtersToApply.amenities.join(","));
         
         const res = await axios.get(
           `/api/listing/category?${queryParams.toString()}`
@@ -254,6 +264,13 @@ function AllListingsContent() {
           params.set("categories", categoriesToUse.join(","));
         }
 
+        // Add Active Filters from Advanced Filter
+        if (filters.minPrice) params.set("minPrice", filters.minPrice);
+        if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+        if (filters.genderPreference) params.set("genderPreference", filters.genderPreference);
+        if (filters.type) params.set("type", filters.type);
+        if (filters.amenities.length > 0) params.set("amenities", filters.amenities.join(","));
+
         // Get category counts
         const countParams = new URLSearchParams(params);
         countParams.set("countByCategory", "true");
@@ -281,7 +298,7 @@ function AllListingsContent() {
         setLocationLoading(false);
       }
     },
-    [city, area, state, q, lat, lng, hasLocationParams, selectedCategories, searchParams]
+    [city, area, state, q, lat, lng, hasLocationParams, selectedCategories, searchParams, filters] // Added filters
   );
 
   // Function to fetch category counts for location-based search
@@ -327,6 +344,12 @@ function AllListingsContent() {
           queryParams.set("categories", selectedCategories.join(","));
         }
 
+        // Add Active Filters
+        if (filters.minPrice) queryParams.set("minPrice", filters.minPrice);
+        if (filters.maxPrice) queryParams.set("maxPrice", filters.maxPrice);
+        if (filters.genderPreference) queryParams.set("genderPreference", filters.genderPreference);
+        if (filters.amenities.length > 0) queryParams.set("amenities", filters.amenities.join(","));
+
         const res = await axios.get(
           `/api/listing/search?${queryParams.toString()}`
         );
@@ -346,7 +369,7 @@ function AllListingsContent() {
         setCategoryLoading(false);
       }
     },
-    [lat, lng, selectedCategories]
+    [lat, lng, selectedCategories, filters] // Added filters
   );
 
   const handleNearbyPageChange = (page: number) => {
@@ -431,37 +454,32 @@ function AllListingsContent() {
   }, [searchParams, updateFilter, filters.type]);
 
   // ==========================================
-  // 🟢 FIX FOR DISAPPEARING LISTINGS
+  // 🟢 FILTER LOGIC UPDATE (Works for all modes)
   // ==========================================
   useEffect(() => {
-    if (initialLoadDone && !isNearbySearch && !isLocationSearch) {
-      const hasFilters = Object.values(filters).some((value) => {
-        if (Array.isArray(value)) return value.length > 0;
-        return value !== "";
-      });
-
-      // 🔴 CRITICAL FIX: Only pass location if user is sorting by distance
-      // Otherwise, we want ALL listings, not just those in 10km radius
-      const locationParams = (userLocation && filters.sortBy === 'distance')
-        ? {
-            lat: userLocation.lat.toString(),
-            lng: userLocation.lng.toString(),
-          }
-        : {};
-
-      if (hasFilters) {
-        searchWithFilters(locationParams);
+    if (initialLoadDone) {
+      // Logic to trigger re-fetch based on active mode
+      if (isNearbySearch && lat && lng) {
+        fetchNearbyListings(1);
+      } else if (isCategorySearch && category) {
+        fetchCategoryListings(1);
+      } else if (isLocationSearch) {
+        fetchLocationListings(1);
       } else {
+        // Standard Listings Search
+        const locationParams = (userLocation && filters.sortBy === 'distance')
+          ? { lat: userLocation.lat.toString(), lng: userLocation.lng.toString() }
+          : {};
         searchWithFilters(locationParams, true);
       }
     }
   }, [
-    filters,
+    filters, // Trigger when filters change
     initialLoadDone,
     isNearbySearch,
+    isCategorySearch,
     isLocationSearch,
-    userLocation, // Keep as dependency, but check logic inside
-    searchWithFilters,
+    // Add other dependencies as needed by your fetch functions
   ]);
 
   // Initial load - fetch listings based on URL parameters
@@ -625,22 +643,30 @@ function AllListingsContent() {
                 </Button>
               </div>
 
-              {/* Right Section - Filter Button */}
+              {/* Right Section - Filter Button - NOW ALWAYS VISIBLE */}
               <div className="flex-shrink-0">
-                {!isNearbySearch && !isLocationSearch && (
-                  <AdvancedFilter
-                    filters={filters}
-                    onFiltersChange={(newFilters) => {
-                      setFilters(newFilters);
+                <AdvancedFilter
+                  filters={filters}
+                  onFiltersChange={(newFilters) => {
+                    setFilters(newFilters);
+                    
+                    // Logic to handle filters based on current page mode
+                    if (isNearbySearch) {
+                      // Trigger nearby fetch with new filters
+                      // The useEffect will catch the filter change
+                    } else if (isLocationSearch) {
+                      // Trigger location fetch
+                    } else {
+                      // Standard search
                       const locationParams = (userLocation && filters.sortBy === 'distance') ? { lat: userLocation.lat.toString(), lng: userLocation.lng.toString() } : {};
                       const filtersToApply = isCategorySearch ? { ...newFilters, type: category, ...locationParams } : { ...newFilters, ...locationParams };
                       searchWithFilters(filtersToApply, true);
-                    }}
-                    onApplyFilters={() => {}}
-                    onClearFilters={clearFilters}
-                    activeFiltersCount={activeFiltersCount}
-                  />
-                )}
+                    }
+                  }}
+                  onApplyFilters={() => {}}
+                  onClearFilters={clearFilters}
+                  activeFiltersCount={activeFiltersCount}
+                />
               </div>
             </div>
 
@@ -741,7 +767,7 @@ function AllListingsContent() {
         )}
 
         {/* Active Filters Display */}
-        {!isNearbySearch && !isLocationSearch && activeFiltersCount > 0 && (
+        {activeFiltersCount > 0 && (
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -772,6 +798,27 @@ function AllListingsContent() {
                   <span className="text-xs font-medium">Type:</span>
                   <span className="text-xs capitalize">{filters.type}</span>
                   <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("type")} />
+                </Badge>
+              )}
+              {filters.minPrice && (
+                <Badge variant="secondary" className="flex items-center gap-1.5 bg-green-50 text-green-700 border-green-200">
+                  <span className="text-xs font-medium">Min Price:</span>
+                  <span className="text-xs">₹{filters.minPrice}</span>
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("minPrice")} />
+                </Badge>
+              )}
+              {filters.maxPrice && (
+                <Badge variant="secondary" className="flex items-center gap-1.5 bg-green-50 text-green-700 border-green-200">
+                  <span className="text-xs font-medium">Max Price:</span>
+                  <span className="text-xs">₹{filters.maxPrice}</span>
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("maxPrice")} />
+                </Badge>
+              )}
+              {filters.genderPreference && (
+                <Badge variant="secondary" className="flex items-center gap-1.5 bg-purple-50 text-purple-700 border-purple-200">
+                  <span className="text-xs font-medium">Gender:</span>
+                  <span className="text-xs capitalize">{filters.genderPreference}</span>
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => removeFilter("genderPreference")} />
                 </Badge>
               )}
               {/* Add other badges here if needed */}
