@@ -1,3 +1,4 @@
+// app/api/booking/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
@@ -6,29 +7,11 @@ import Listing from "@/models/listing";
 import Notification from "@/models/notification";
 import Coupon from "@/models/coupon";
 import User from "@/models/user";
-
-// Helper to get commission rate for an owner
-async function getOwnerCommissionRate(ownerId: string): Promise<number> {
-  const owner = await User.findById(ownerId).select("commissionSettings");
-  if (owner?.commissionSettings?.isCustomRateActive && owner.commissionSettings.customRate !== null) {
-    return owner.commissionSettings.customRate;
-  }
-  return 0.10; // Default 10%
-}
-
-// Helper to calculate first month commission split
-function calculateFirstMonthSplit(firstMonthRent: number, commissionRate: number) {
-  const adminAmount = Math.round(firstMonthRent * commissionRate); // 10% to admin
-  const ownerAmount = firstMonthRent - adminAmount; // 90% to owner
-  
-  return {
-    commissionRate,
-    adminAmount,
-    ownerAmount,
-  };
-}
+import { createRazorpayOrder } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
 
@@ -47,6 +30,7 @@ export async function POST(req: NextRequest) {
       additionalRequirements,
       termsAccepted,
       couponCode,
+      paymentMethod = "online", // Default to online
     } = body;
 
     // Validate required fields
@@ -71,9 +55,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    session.startTransaction();
+
     // Get listing details
-    const listing = await Listing.findById(listingId);
+    const listing = await Listing.findById(listingId).session(session);
     if (!listing) {
+      await session.abortTransaction();
       return NextResponse.json(
         { success: false, message: "Listing not found" },
         { status: 404 }
@@ -85,11 +72,16 @@ export async function POST(req: NextRequest) {
       (room: any) => room.type === roomType
     );
     if (!selectedRoom) {
+      await session.abortTransaction();
       return NextResponse.json(
         { success: false, message: "Selected room type not found" },
         { status: 400 }
       );
     }
+
+    // Calculate amounts
+    const monthlyRent = selectedRoom.monthlyRent;
+    const securityDeposit = selectedRoom.securityDeposit;
 
     // Validate and apply coupon if provided
     let discountAmount = 0;
@@ -99,9 +91,10 @@ export async function POST(req: NextRequest) {
       const coupon = await Coupon.findOne({
         name: couponCode.toUpperCase(),
         isActive: true,
-      });
+      }).session(session);
 
       if (!coupon) {
+        await session.abortTransaction();
         return NextResponse.json(
           { success: false, message: "Invalid coupon code" },
           { status: 400 }
@@ -109,6 +102,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (coupon.validUntil && new Date() > new Date(coupon.validUntil)) {
+        await session.abortTransaction();
         return NextResponse.json(
           { success: false, message: "Coupon has expired" },
           { status: 400 }
@@ -116,6 +110,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (coupon.validFrom && new Date() < new Date(coupon.validFrom)) {
+        await session.abortTransaction();
         return NextResponse.json(
           { success: false, message: "Coupon is not yet valid" },
           { status: 400 }
@@ -123,34 +118,27 @@ export async function POST(req: NextRequest) {
       }
 
       if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
+        await session.abortTransaction();
         return NextResponse.json(
           { success: false, message: "Coupon usage limit exceeded" },
           { status: 400 }
         );
       }
 
-      discountAmount = Math.round(
-        (selectedRoom.monthlyRent * coupon.percentage) / 100
-      );
+      discountAmount = Math.round((monthlyRent * coupon.percentage) / 100);
       appliedCoupon = coupon;
     }
 
-    // Calculate amounts
-    const originalAmount = selectedRoom.monthlyRent;
-    const firstMonthRent = originalAmount - discountAmount; // After discount
-    const securityDeposit = selectedRoom.securityDeposit;
+    // Calculate final amounts for 3-part payment
+    const finalMonthlyRent = monthlyRent - discountAmount;
+    const bookingFeeAmount = Math.round(finalMonthlyRent * 0.1); // 10% booking fee
+    const firstMonthRentAmount = Math.round(finalMonthlyRent * 0.9); // 90% first month rent
 
-    // Get owner's commission rate
-    const commissionRate = await getOwnerCommissionRate(listing.ownerId.toString());
-
-    // Calculate first month commission split
-    const commissionSplit = calculateFirstMonthSplit(firstMonthRent, commissionRate);
-
-    // Create booking request
+    // Create booking with 3-part payment structure
     const booking = new Booking({
       userId: new mongoose.Types.ObjectId(userId),
       listingId: new mongoose.Types.ObjectId(listingId),
-      ownerId: listing.ownerId, // Store owner ID for easy queries
+      ownerId: listing.ownerId,
       roomType,
       moveInDate: new Date(moveInDate),
       duration,
@@ -162,39 +150,101 @@ export async function POST(req: NextRequest) {
       additionalRequirements: additionalRequirements || "",
       termsAccepted,
       
-      // Amounts
-      amount: firstMonthRent, // First month rent after discount
-      securityDeposit,
-      originalAmount,
+      // Payment method
+      paymentMethod,
+      
+      // Pricing
+      monthlyRent: finalMonthlyRent,
+      
+      // 3-Part Payment Structure
+      bookingFee: {
+        amount: bookingFeeAmount,
+        status: "pending",
+        paidAt: null,
+        paymentReference: "",
+      },
+      
+      securityDeposit: {
+        amount: securityDeposit,
+        status: "pending",
+        paidAt: null,
+        paidTo: "",
+        paymentReference: "",
+        transferredToOwner: false,
+      },
+      
+      firstMonthRent: {
+        amount: firstMonthRentAmount,
+        status: "pending",
+        paidAt: null,
+        paidTo: "",
+        paymentReference: "",
+        
+        // For online payments
+        ownerPayoutStatus: paymentMethod === "online" ? "pending" : "not_applicable",
+        ownerPayoutAmount: paymentMethod === "online" ? firstMonthRentAmount : 0,
+        
+        // For cash payments
+        adminCommissionStatus: paymentMethod === "cash" ? "pending" : "not_applicable",
+        adminCommissionAmount: paymentMethod === "cash" ? bookingFeeAmount : 0,
+      },
+      
+      // Discount details
+      originalAmount: monthlyRent,
       discountAmount,
       couponCode: couponCode || null,
       
-      // First month commission split (calculated but not processed yet)
-      firstMonthCommission: {
-        commissionRate: commissionSplit.commissionRate,
-        adminAmount: commissionSplit.adminAmount,
-        ownerAmount: commissionSplit.ownerAmount,
-        adminAmountStatus: "pending",
-        ownerPayoutStatus: "pending",
-      },
+      // Totals
+      totalDue: bookingFeeAmount + securityDeposit + firstMonthRentAmount,
+      totalPaid: 0,
       
       // Status
       status: "pending",
-      paymentStatus: "pending",
-      paymentMethod: "cash",
     });
 
-    await booking.save();
+    await booking.save({ session });
 
     // Increment coupon usage count if coupon was applied
     if (appliedCoupon) {
-      await Coupon.findByIdAndUpdate(appliedCoupon._id, {
-        $inc: { usageCount: 1 },
-      });
+      await Coupon.findByIdAndUpdate(
+        appliedCoupon._id,
+        { $inc: { usageCount: 1 } },
+        { session }
+      );
+    }
+
+    let razorpayOrder = null;
+
+    // Create Razorpay order for booking fee (online payment)
+    if (paymentMethod === "online") {
+      try {
+        razorpayOrder = await createRazorpayOrder({
+          amount: bookingFeeAmount,
+          receipt: `BOOKING_FEE_${booking._id}`,
+          notes: {
+            bookingId: booking._id.toString(),
+            userId: userId,
+            listingId: listingId,
+            paymentType: "booking_fee",
+            pgName: listing.pgName,
+          },
+        });
+
+        // Store Razorpay order ID
+        booking.bookingFee.razorpayOrderId = razorpayOrder.id;
+        await booking.save({ session });
+      } catch (error) {
+        await session.abortTransaction();
+        console.error("Razorpay order creation error:", error);
+        return NextResponse.json(
+          { success: false, message: "Failed to create payment order" },
+          { status: 500 }
+        );
+      }
     }
 
     // Create notification for owner
-    await Notification.create({
+    await Notification.create([{
       userId: listing.ownerId,
       type: "booking_request",
       title: "New Booking Request",
@@ -206,26 +256,44 @@ export async function POST(req: NextRequest) {
         listingName: listing.pgName,
         tenantName: fullName,
         tenantPhone: phoneNumber,
-        firstMonthRent,
-        adminCommission: commissionSplit.adminAmount,
-        ownerPayout: commissionSplit.ownerAmount,
+        paymentMethod,
+        bookingFee: bookingFeeAmount,
+        securityDeposit,
+        firstMonthRent: firstMonthRentAmount,
+        totalAmount: booking.totalDue,
       },
-    });
+    }], { session });
+
+    await session.commitTransaction();
 
     return NextResponse.json({
       success: true,
       message: "Booking request submitted successfully",
       data: {
-        ...booking.toObject(),
-        // Include split info in response
-        commissionSplit: {
-          adminReceives: commissionSplit.adminAmount,
-          ownerReceives: commissionSplit.ownerAmount,
-          totalFirstMonth: firstMonthRent,
+        booking: {
+          _id: booking._id,
+          status: booking.status,
+          paymentBreakdown: {
+            bookingFee: booking.bookingFee,
+            securityDeposit: booking.securityDeposit,
+            firstMonthRent: booking.firstMonthRent,
+          },
+          totalDue: booking.totalDue,
+          totalPaid: booking.totalPaid,
         },
+        razorpayOrder: paymentMethod === "online" ? {
+          orderId: razorpayOrder?.id,
+          amount: bookingFeeAmount,
+          currency: "INR",
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        } : null,
+        nextStep: paymentMethod === "online" 
+          ? "PAY_BOOKING_FEE" 
+          : "WAIT_FOR_APPROVAL",
       },
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Booking creation error:", error);
     return NextResponse.json(
       {
@@ -235,9 +303,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    session.endSession();
   }
 }
 
+// GET - Fetch user bookings
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
@@ -258,9 +329,24 @@ export async function GET(req: NextRequest) {
       .populate("listingId", "pgName location images roomTypes")
       .sort({ createdAt: -1 });
 
+    // Format bookings with payment breakdown
+    const formattedBookings = bookings.map((booking) => ({
+      ...booking.toObject(),
+      paymentBreakdown: {
+        bookingFee: booking.bookingFee,
+        securityDeposit: booking.securityDeposit,
+        firstMonthRent: booking.firstMonthRent,
+      },
+      canPayRemaining: 
+        booking.status === "confirmed" && 
+        booking.bookingFee.status === "paid" &&
+        (booking.securityDeposit.status === "pending" || 
+         booking.firstMonthRent.status === "pending"),
+    }));
+
     return NextResponse.json({
       success: true,
-      data: bookings,
+      data: formattedBookings,
     });
   } catch (error) {
     console.error("Get bookings error:", error);

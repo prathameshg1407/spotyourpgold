@@ -1,4 +1,3 @@
-// app/routes/dashboard/admin/commissions/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -41,14 +40,14 @@ import {
   CheckCircle,
   AlertTriangle,
   User,
-  Calendar,
   Building,
   Eye,
   RefreshCw,
-  ArrowUpRight,
   ArrowDownLeft,
   Banknote,
   TrendingUp,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 interface Commission {
@@ -61,25 +60,27 @@ interface Commission {
   };
   bookingId: {
     _id: string;
-    amount: number;
     fullName: string;
     phoneNumber: string;
-    userId?: {
-      fullName: string;
-      email: string;
-    };
+    monthlyRent: number;
   };
   listingId: {
     _id: string;
     pgName: string;
   };
-  commissionType: "first_month_admin" | "first_month_owner" | "monthly_rent";
+  tenantId?: {
+    fullName: string;
+    email: string;
+  };
+  commissionType: string;
+  direction: string;
+  sourcePaymentMethod: string;
   monthNumber: number;
-  rentMonth: string;
+  rentMonth: string | null;
   baseAmount: number;
   commissionRate: number;
-  commissionAmount: number;
-  status: "pending" | "completed" | "overdue" | "waived";
+  amount: number;
+  status: string;
   dueDate: string;
   settledAt: string | null;
   settlementMethod: string | null;
@@ -93,23 +94,42 @@ interface TypeSummary {
   count: number;
   totalAmount: number;
   pending: number;
+  overdue: number;
   completed: number;
 }
 
+interface OwnerSummary {
+  ownerId: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  totalPending: number;
+  count: number;
+  overdueCount: number;
+}
+
+interface Stats {
+  totalReceivables: number;
+  pendingAmount: number;
+  overdueAmount: number;
+  collectedAmount: number;
+}
+
 export default function AdminCommissionsPage() {
-  // State
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [typeSummary, setTypeSummary] = useState<TypeSummary[]>([]);
+  const [ownerSummary, setOwnerSummary] = useState<OwnerSummary[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filters
-  const [activeTab, setActiveTab] = useState("monthly_rent");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("pending");
 
-  // Selection for bulk settle
+  // Selection
   const [selectedCommissions, setSelectedCommissions] = useState<string[]>([]);
 
   // Settle dialog
@@ -123,16 +143,21 @@ export default function AdminCommissionsPage() {
   const [selectedDetail, setSelectedDetail] = useState<Commission | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
-  // Fetch commissions
   const fetchCommissions = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        type: activeTab,
-        status: statusFilter,
         page: currentPage.toString(),
         per_page: "20",
+        direction: "owner_owes_admin",
       });
+
+      if (typeFilter !== "all") {
+        params.append("type", typeFilter);
+      }
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
 
       const response = await axios.get(`/api/admin/commissions?${params}`);
 
@@ -141,20 +166,21 @@ export default function AdminCommissionsPage() {
         setTotal(response.data.total);
         setTotalPages(response.data.totalPages);
         setTypeSummary(response.data.typeSummary || []);
+        setOwnerSummary(response.data.ownerSummary || []);
+        setStats(response.data.stats);
       }
     } catch (error) {
       toast.error("Failed to fetch commissions");
     } finally {
       setLoading(false);
     }
-  }, [activeTab, statusFilter, currentPage]);
+  }, [currentPage, typeFilter, statusFilter]);
 
   useEffect(() => {
     fetchCommissions();
     setSelectedCommissions([]);
   }, [fetchCommissions]);
 
-  // Handle settle
   const handleSettle = async () => {
     if (selectedCommissions.length === 0) {
       toast.error("Please select commissions to settle");
@@ -162,7 +188,6 @@ export default function AdminCommissionsPage() {
     }
 
     setProcessing(true);
-
     try {
       const response = await axios.patch("/api/admin/commissions", {
         commissionIds: selectedCommissions,
@@ -186,7 +211,6 @@ export default function AdminCommissionsPage() {
     }
   };
 
-  // Helpers
   const formatCurrency = (amount: number) =>
     `₹${amount.toLocaleString("en-IN")}`;
 
@@ -198,74 +222,42 @@ export default function AdminCommissionsPage() {
     });
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case "completed":
-        return (
-          <Badge className="bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
-          </Badge>
-        );
-      case "overdue":
-        return (
-          <Badge className="bg-red-100 text-red-800">
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            Overdue
-          </Badge>
-        );
-      case "waived":
-        return (
-          <Badge variant="outline" className="text-gray-600">
-            Waived
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const config: Record<string, { class: string; icon: any }> = {
+      pending: { class: "bg-yellow-100 text-yellow-800", icon: Clock },
+      completed: { class: "bg-green-100 text-green-800", icon: CheckCircle },
+      overdue: { class: "bg-red-100 text-red-800", icon: AlertTriangle },
+      waived: { class: "bg-gray-100 text-gray-800", icon: CheckCircle },
+    };
+    const { class: className, icon: Icon } = config[status] || config.pending;
+    return (
+      <Badge className={className}>
+        <Icon className="w-3 h-3 mr-1" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "first_month_admin":
-        return "First Month (Admin 10%)";
-      case "first_month_owner":
-        return "First Month (Owner 90%)";
-      case "monthly_rent":
-        return "Monthly Rent (10%)";
-      default:
-        return type;
-    }
-  };
-
-  const getTypeDescription = (type: string) => {
-    switch (type) {
-      case "first_month_admin":
-        return "Admin receives 10% from first payment";
-      case "first_month_owner":
-        return "Admin pays 90% to owner";
-      case "monthly_rent":
-        return "Owner owes 10% to admin";
-      default:
-        return "";
-    }
+    const labels: Record<string, string> = {
+      booking_fee_receivable: "Booking Fee (10%)",
+      monthly_rent_commission: "Monthly Rent (10%)",
+    };
+    return labels[type] || type;
   };
 
   const getSummaryForType = (type: string) => {
-    const summary = typeSummary.find((s) => s._id === type);
-    return summary || { count: 0, totalAmount: 0, pending: 0, completed: 0 };
+    return typeSummary.find((s) => s._id === type) || {
+      count: 0,
+      totalAmount: 0,
+      pending: 0,
+      overdue: 0,
+      completed: 0,
+    };
   };
 
-  // Calculate selected amount
   const selectedAmount = commissions
     .filter((c) => selectedCommissions.includes(c._id))
-    .reduce((sum, c) => sum + c.commissionAmount, 0);
+    .reduce((sum, c) => sum + c.amount, 0);
 
   if (loading && commissions.length === 0) {
     return (
@@ -284,10 +276,10 @@ export default function AdminCommissionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
-            Commission <span className="text-primary">Ledger</span>
+            Commission <span className="text-primary">Receivables</span>
           </h1>
           <p className="text-gray-600 mt-1">
-            Track all commission transactions
+            Track 10% commissions owed by owners to admin
           </p>
         </div>
         <div className="flex gap-2">
@@ -295,7 +287,7 @@ export default function AdminCommissionsPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          {selectedCommissions.length > 0 && activeTab === "monthly_rent" && (
+          {selectedCommissions.length > 0 && (
             <Button onClick={() => setShowSettleDialog(true)}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Settle ({selectedCommissions.length})
@@ -304,124 +296,134 @@ export default function AdminCommissionsPage() {
         </div>
       </div>
 
-      {/* Type Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* First Month Admin */}
-        <Card
-          className={`cursor-pointer transition-all ${
-            activeTab === "first_month_admin"
-              ? "ring-2 ring-primary"
-              : "hover:shadow-md"
-          }`}
-          onClick={() => setActiveTab("first_month_admin")}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  First Month (Admin)
-                </p>
-                <p className="text-xl font-bold text-blue-600">
-                  {formatCurrency(getSummaryForType("first_month_admin").completed)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  <ArrowDownLeft className="w-3 h-3 inline text-green-500" />
-                  {" "}10% received from bookings
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <ArrowDownLeft className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* First Month Owner */}
-        <Card
-          className={`cursor-pointer transition-all ${
-            activeTab === "first_month_owner"
-              ? "ring-2 ring-primary"
-              : "hover:shadow-md"
-          }`}
-          onClick={() => setActiveTab("first_month_owner")}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  First Month (Owner)
-                </p>
-                <p className="text-xl font-bold text-orange-600">
-                  {formatCurrency(getSummaryForType("first_month_owner").pending)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  <ArrowUpRight className="w-3 h-3 inline text-orange-500" />
-                  {" "}90% pending to pay owners
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
-                <ArrowUpRight className="h-5 w-5 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Monthly Rent */}
-        <Card
-          className={`cursor-pointer transition-all ${
-            activeTab === "monthly_rent"
-              ? "ring-2 ring-primary"
-              : "hover:shadow-md"
-          }`}
-          onClick={() => setActiveTab("monthly_rent")}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Monthly Rent
-                </p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(getSummaryForType("monthly_rent").pending)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  <TrendingUp className="w-3 h-3 inline text-green-500" />
-                  {" "}10% owed by owners
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                <Banknote className="h-5 w-5 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Type Info Banner */}
-      <div className="p-4 bg-gray-50 rounded-lg border">
-        <div className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-primary" />
-          <div>
-            <p className="font-medium">{getTypeLabel(activeTab)}</p>
-            <p className="text-sm text-gray-600">{getTypeDescription(activeTab)}</p>
-          </div>
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-gray-500">Total Receivables</p>
+              <p className="text-xl font-bold">{formatCurrency(stats.totalReceivables)}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-yellow-50">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-yellow-600">Pending</p>
+              <p className="text-xl font-bold text-yellow-700">
+                {formatCurrency(stats.pendingAmount)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-red-50">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-red-600">Overdue</p>
+              <p className="text-xl font-bold text-red-700">
+                {formatCurrency(stats.overdueAmount)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-50">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-green-600">Collected</p>
+              <p className="text-xl font-bold text-green-700">
+                {formatCurrency(stats.collectedAmount)}
+              </p>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* Type Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card
+          className={`cursor-pointer transition-all ${
+            typeFilter === "booking_fee_receivable" ? "ring-2 ring-primary" : "hover:shadow-md"
+          }`}
+          onClick={() => setTypeFilter("booking_fee_receivable")}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Booking Fee Commissions</p>
+                <p className="text-xl font-bold text-orange-600">
+                  {formatCurrency(getSummaryForType("booking_fee_receivable").pending)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  10% from cash bookings • {getSummaryForType("booking_fee_receivable").count} total
+                </p>
+              </div>
+              <Banknote className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className={`cursor-pointer transition-all ${
+            typeFilter === "monthly_rent_commission" ? "ring-2 ring-primary" : "hover:shadow-md"
+          }`}
+          onClick={() => setTypeFilter("monthly_rent_commission")}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Monthly Rent Commissions</p>
+                <p className="text-xl font-bold text-green-600">
+                  {formatCurrency(getSummaryForType("monthly_rent_commission").pending)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  10% from cash monthly rents • {getSummaryForType("monthly_rent_commission").count} total
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Status Filter */}
+      {/* Info Banner */}
+      <Card className="bg-orange-50 border-orange-200">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <ArrowDownLeft className="h-5 w-5 text-orange-600 mt-0.5" />
+            <div>
+              <p className="font-medium text-orange-800">Owner Owes Admin</p>
+              <p className="text-sm text-orange-700 mt-1">
+                These are 10% commissions that owners need to pay to admin from cash payments they collected.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filters */}
       <div className="flex items-center gap-4">
-        <Label>Status:</Label>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Label>Type:</Label>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="booking_fee_receivable">Booking Fee</SelectItem>
+              <SelectItem value="monthly_rent_commission">Monthly Rent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Label>Status:</Label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {selectedCommissions.length > 0 && (
           <div className="ml-auto text-sm text-gray-600">
@@ -429,6 +431,56 @@ export default function AdminCommissionsPage() {
           </div>
         )}
       </div>
+
+      {/* Top Owners Owing */}
+      {ownerSummary.length > 0 && statusFilter !== "completed" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Top Owners with Pending Commissions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ownerSummary.slice(0, 6).map((owner, idx) => (
+                <div
+                  key={owner.ownerId}
+                  className="p-4 bg-gray-50 rounded-lg flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        idx === 0
+                          ? "bg-red-100 text-red-700"
+                          : idx === 1
+                          ? "bg-orange-100 text-orange-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{owner.ownerName}</p>
+                      <p className="text-xs text-gray-500">
+                        {owner.count} pending
+                        {owner.overdueCount > 0 && (
+                          <span className="text-red-600 ml-1">
+                            ({owner.overdueCount} overdue)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-bold text-orange-600">
+                    {formatCurrency(owner.totalPending)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Commissions Table */}
       {commissions.length === 0 ? (
@@ -439,8 +491,8 @@ export default function AdminCommissionsPage() {
               No Commissions Found
             </h3>
             <p className="text-gray-600">
-              No {statusFilter !== "all" ? statusFilter : ""} commissions for{" "}
-              {getTypeLabel(activeTab).toLowerCase()}
+              No {statusFilter !== "all" ? statusFilter : ""} commissions
+              {typeFilter !== "all" ? ` of type "${getTypeLabel(typeFilter)}"` : ""}.
             </p>
           </CardContent>
         </Card>
@@ -450,7 +502,7 @@ export default function AdminCommissionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {activeTab === "monthly_rent" && statusFilter !== "completed" && (
+                  {statusFilter !== "completed" && (
                     <TableHead className="w-10">
                       <Checkbox
                         checked={
@@ -475,9 +527,9 @@ export default function AdminCommissionsPage() {
                   )}
                   <TableHead>Owner</TableHead>
                   <TableHead>Property</TableHead>
-                  <TableHead>Month</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Base Amount</TableHead>
-                  <TableHead>Commission</TableHead>
+                  <TableHead>Commission (10%)</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -486,7 +538,7 @@ export default function AdminCommissionsPage() {
               <TableBody>
                 {commissions.map((commission) => (
                   <TableRow key={commission._id}>
-                    {activeTab === "monthly_rent" && statusFilter !== "completed" && (
+                    {statusFilter !== "completed" && (
                       <TableCell>
                         {commission.status !== "completed" && (
                           <Checkbox
@@ -508,7 +560,7 @@ export default function AdminCommissionsPage() {
                           {commission.ownerId?.fullName || "N/A"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {commission.ownerId?.email}
+                          {commission.ownerId?.phone || commission.ownerId?.email}
                         </p>
                       </div>
                     </TableCell>
@@ -519,31 +571,20 @@ export default function AdminCommissionsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">Month {commission.monthNumber}</p>
-                        <p className="text-xs text-gray-500">
-                          {commission.rentMonth
-                            ? formatDate(commission.rentMonth)
-                            : "N/A"}
+                      <Badge variant="outline">
+                        {getTypeLabel(commission.commissionType)}
+                      </Badge>
+                      {commission.monthNumber > 1 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Month {commission.monthNumber}
                         </p>
-                      </div>
+                      )}
                     </TableCell>
                     <TableCell>{formatCurrency(commission.baseAmount)}</TableCell>
                     <TableCell>
-                      <span
-                        className={`font-bold ${
-                          activeTab === "monthly_rent"
-                            ? "text-green-600"
-                            : activeTab === "first_month_owner"
-                            ? "text-orange-600"
-                            : "text-blue-600"
-                        }`}
-                      >
-                        {formatCurrency(commission.commissionAmount)}
+                      <span className="font-bold text-orange-600">
+                        {formatCurrency(commission.amount)}
                       </span>
-                      <p className="text-xs text-gray-500">
-                        {(commission.commissionRate * 100).toFixed(0)}%
-                      </p>
                     </TableCell>
                     <TableCell>{formatDate(commission.dueDate)}</TableCell>
                     <TableCell>{getStatusBadge(commission.status)}</TableCell>
@@ -600,7 +641,7 @@ export default function AdminCommissionsPage() {
           <DialogHeader>
             <DialogTitle>Settle Commission</DialogTitle>
             <DialogDescription>
-              Mark {selectedCommissions.length} commission(s) as settled
+              Mark {selectedCommissions.length} commission(s) as received from owner
             </DialogDescription>
           </DialogHeader>
 
@@ -615,7 +656,7 @@ export default function AdminCommissionsPage() {
             </div>
 
             <div>
-              <Label>Settlement Method *</Label>
+              <Label>Payment Method *</Label>
               <Select value={settlementMethod} onValueChange={setSettlementMethod}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -624,7 +665,6 @@ export default function AdminCommissionsPage() {
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="adjusted">Adjusted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -702,9 +742,11 @@ export default function AdminCommissionsPage() {
                   <p className="text-xs text-gray-500">Base Amount</p>
                   <p className="font-medium">{formatCurrency(selectedDetail.baseAmount)}</p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Commission ({(selectedDetail.commissionRate * 100).toFixed(0)}%)</p>
-                  <p className="font-bold text-lg">{formatCurrency(selectedDetail.commissionAmount)}</p>
+                <div className="p-3 bg-orange-50 rounded-lg">
+                  <p className="text-xs text-orange-600">Commission (10%)</p>
+                  <p className="font-bold text-lg text-orange-700">
+                    {formatCurrency(selectedDetail.amount)}
+                  </p>
                 </div>
               </div>
 
@@ -712,6 +754,7 @@ export default function AdminCommissionsPage() {
                 <p className="text-xs text-blue-600 mb-1">Owner</p>
                 <p className="font-medium">{selectedDetail.ownerId?.fullName}</p>
                 <p className="text-sm text-gray-600">{selectedDetail.ownerId?.email}</p>
+                <p className="text-sm text-gray-600">{selectedDetail.ownerId?.phone}</p>
               </div>
 
               <div className="p-3 bg-gray-50 rounded-lg">

@@ -1,11 +1,14 @@
+// app/api/user/rent/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
+import mongoose from "mongoose";
 import TenantAllocation from "@/models/tenantAllocation";
-import Notification from "@/models/notification";
+import MonthlyRentPayment from "@/models/MonthlyRentPayment";
 import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
+import { createRazorpayOrder } from "@/lib/razorpay";
 
-// GET - Get rent history
+// GET - Get rent history for user
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
@@ -21,51 +24,114 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const allocationId = searchParams.get("allocationId");
 
-    let query: any = { tenantId: user.id };
+    // Get active allocation
+    const allocationQuery: any = { 
+      tenantId: user.id,
+      status: { $in: ["active", "notice_period"] },
+    };
+    
     if (allocationId) {
-      query._id = allocationId;
+      allocationQuery._id = allocationId;
     }
 
-    const allocations = await TenantAllocation.find(query)
-      .select("pgName roomNumber bedNumber monthlyRent rentHistory status")
-      .sort({ createdAt: -1 });
+    const allocation = await TenantAllocation.findOne(allocationQuery)
+      .populate("listingId", "pgName location ownerId");
 
-    // Flatten rent history across all allocations
-    const rentHistory = allocations.flatMap((allocation: any) =>
-      allocation.rentHistory.map((rent: any) => ({
-        ...rent.toObject(),
-        allocationId: allocation._id,
-        pgName: allocation.pgName,
-        roomNumber: allocation.roomNumber,
-        bedNumber: allocation.bedNumber,
-      }))
-    );
+    if (!allocation) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          allocation: null,
+          rentHistory: [],
+          summary: {
+            totalPaid: 0,
+            totalPending: 0,
+            totalOverdue: 0,
+            overdueCount: 0,
+          },
+          nextDue: null,
+        },
+      });
+    }
 
-    // Sort by due date descending
-    rentHistory.sort(
-      (a: any, b: any) =>
-        new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
-    );
+    // Get monthly rent payments
+    const rentPayments = await MonthlyRentPayment.find({
+      tenantId: user.id,
+      allocationId: allocation._id,
+    }).sort({ rentMonth: -1 });
+
+    // Format rent history
+    const rentHistory = rentPayments.map((rent) => ({
+      _id: rent._id,
+      rentMonth: rent.rentMonth,
+      monthNumber: rent.monthNumber,
+      amount: rent.rentAmount,
+      dueDate: rent.dueDate,
+      status: rent.paymentStatus,
+      paidAmount: rent.paidAmount,
+      paidAt: rent.paidAt,
+      paymentMethod: rent.paymentMethod,
+      paymentReference: rent.paymentReference,
+      lateFee: rent.lateFee || 0,
+      totalDue: rent.rentAmount + (rent.lateFee || 0),
+      pendingAmount: rent.rentAmount + (rent.lateFee || 0) - (rent.paidAmount || 0),
+      canPay: ["pending", "overdue", "partially_paid"].includes(rent.paymentStatus),
+    }));
 
     // Calculate summary
     const summary = {
       totalPaid: rentHistory
-        .filter((r: any) => r.status === "paid")
-        .reduce((acc: number, r: any) => acc + r.paidAmount, 0),
+        .filter((r) => r.status === "paid")
+        .reduce((acc, r) => acc + r.paidAmount, 0),
       totalPending: rentHistory
-        .filter((r: any) => r.status === "pending")
-        .reduce((acc: number, r: any) => acc + r.amount, 0),
+        .filter((r) => r.status === "pending")
+        .reduce((acc, r) => acc + r.amount, 0),
       totalOverdue: rentHistory
-        .filter((r: any) => r.status === "overdue")
-        .reduce((acc: number, r: any) => acc + r.amount + (r.lateFee || 0), 0),
-      overdueCount: rentHistory.filter((r: any) => r.status === "overdue").length,
+        .filter((r) => r.status === "overdue")
+        .reduce((acc, r) => acc + r.totalDue - r.paidAmount, 0),
+      overdueCount: rentHistory.filter((r) => r.status === "overdue").length,
     };
+
+    // Find next due rent
+    const today = new Date();
+    const nextDueRent = rentPayments.find(
+      (r) => ["pending", "overdue", "upcoming"].includes(r.paymentStatus)
+    );
+
+    let nextDue = null;
+    if (nextDueRent) {
+      const dueDate = new Date(nextDueRent.dueDate);
+      const daysRemaining = Math.ceil(
+        (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      nextDue = {
+        rentId: nextDueRent._id,
+        rentMonth: nextDueRent.rentMonth,
+        monthNumber: nextDueRent.monthNumber,
+        amount: nextDueRent.rentAmount + (nextDueRent.lateFee || 0),
+        dueDate: nextDueRent.dueDate,
+        daysRemaining,
+        isOverdue: daysRemaining < 0,
+      };
+    }
 
     return NextResponse.json({
       success: true,
       data: {
+        allocation: {
+          _id: allocation._id,
+          pgName: allocation.pgName,
+          roomNumber: allocation.roomNumber,
+          bedNumber: allocation.bedNumber,
+          monthlyRent: allocation.monthlyRent,
+          moveInDate: allocation.moveInDate,
+          status: allocation.status,
+          listing: allocation.listingId,
+        },
         rentHistory,
         summary,
+        nextDue,
       },
     });
   } catch (error) {
@@ -77,96 +143,90 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Mark rent as paid (for owner)
+// POST - Initiate online rent payment
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const user = await authUser();
 
-    if (!user || (user.role !== "owner" && user.role !== "admin")) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const {
-      allocationId,
-      rentMonth, // Date of the rent month
-      paidAmount,
-      paymentMethod,
-      transactionId,
-    } = await req.json();
+    const { rentId } = await req.json();
 
-    if (!allocationId || !rentMonth || !paidAmount) {
+    if (!rentId) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields" },
+        { success: false, message: "Rent ID is required" },
         { status: 400 }
       );
     }
 
-    const allocation = await TenantAllocation.findById(allocationId);
-    if (!allocation) {
+    const rent = await MonthlyRentPayment.findById(rentId)
+      .populate("listingId", "pgName");
+
+    if (!rent) {
       return NextResponse.json(
-        { success: false, message: "Allocation not found" },
+        { success: false, message: "Rent payment not found" },
         { status: 404 }
       );
     }
 
-    // Verify owner
-    const listing = await Listing.findById(allocation.listingId);
-    if (!listing || listing.ownerId.toString() !== user.id) {
+    // Verify tenant
+    if (rent.tenantId.toString() !== user.id) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 403 }
       );
     }
 
-    // Find the rent entry
-    const rentIndex = allocation.rentHistory.findIndex((r: any) => {
-      const rentDate = new Date(r.month);
-      const targetDate = new Date(rentMonth);
-      return (
-        rentDate.getMonth() === targetDate.getMonth() &&
-        rentDate.getFullYear() === targetDate.getFullYear()
-      );
-    });
-
-    if (rentIndex === -1) {
+    // Check if already paid
+    if (rent.paymentStatus === "paid") {
       return NextResponse.json(
-        { success: false, message: "Rent entry not found" },
-        { status: 404 }
+        { success: false, message: "Rent already paid" },
+        { status: 400 }
       );
     }
 
-    // Update rent entry
-    const rent = allocation.rentHistory[rentIndex];
-    rent.paidAmount = paidAmount;
-    rent.paidAt = new Date();
-    rent.paymentMethod = paymentMethod || "cash";
-    rent.transactionId = transactionId || "";
-    rent.status = paidAmount >= rent.amount + (rent.lateFee || 0) ? "paid" : "partial";
+    // Calculate amount due
+    const amountDue = rent.rentAmount + (rent.lateFee || 0) - (rent.paidAmount || 0);
 
-    await allocation.save();
+    if (amountDue <= 0) {
+      return NextResponse.json(
+        { success: false, message: "No amount due" },
+        { status: 400 }
+      );
+    }
 
-    // Notify tenant
-    await Notification.create({
-      userId: allocation.tenantId,
-      type: "rent_received",
-      title: "Rent Payment Received",
-      message: `Your rent payment of ₹${paidAmount} for ${allocation.pgName}, Room ${allocation.roomNumber} has been recorded.`,
-      relatedId: allocation._id,
-      relatedType: "allocation",
-      priority: "low",
+    // Create Razorpay order
+    const razorpayOrder = await createRazorpayOrder({
+      amount: amountDue,
+      receipt: `RENT_${rent._id}_${Date.now()}`,
+      notes: {
+        rentId: rent._id.toString(),
+        userId: user.id,
+        monthNumber: rent.monthNumber.toString(),
+        pgName: (rent.listingId as any).pgName,
+        type: "monthly_rent",
+      },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Rent payment recorded",
-      data: allocation.rentHistory[rentIndex],
+      data: {
+        orderId: razorpayOrder.id,
+        amount: amountDue,
+        currency: "INR",
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        rentId: rent._id,
+        monthNumber: rent.monthNumber,
+      },
     });
   } catch (error) {
-    console.error("Record rent payment error:", error);
+    console.error("Initiate rent payment error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 }
