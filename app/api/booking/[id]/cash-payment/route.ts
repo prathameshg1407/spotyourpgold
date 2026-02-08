@@ -41,6 +41,7 @@ export async function POST(
 
     const booking = await Booking.findById(bookingId)
       .populate("listingId", "ownerId pgName")
+      .populate("userId", "fullName email")
       .session(session);
 
     if (!booking) {
@@ -62,7 +63,6 @@ export async function POST(
     }
 
     // Check if booking is in a valid state for cash payment
-    // Allow: pending_cash_payment, pending, confirmed (with cash payment method)
     const validStatuses = ["pending_cash_payment", "pending", "confirmed"];
     const isValidStatus = validStatuses.includes(booking.paymentStatus) || 
                           (booking.status === "confirmed" && booking.paymentMethod === "cash");
@@ -78,10 +78,12 @@ export async function POST(
       );
     }
 
-    // Calculate total amount
-    const totalAmount = (booking.bookingFee?.amount || 0) + 
-                        (booking.firstMonthRent?.amount || 0) + 
-                        (booking.securityDeposit?.amount || 0);
+    // Calculate amounts
+    const bookingFeeAmount = booking.bookingFee?.amount || 0;
+    const firstMonthRentAmount = booking.firstMonthRent?.amount || 0;
+    const securityDepositAmount = booking.securityDeposit?.amount || 0;
+    const totalAmount = bookingFeeAmount + firstMonthRentAmount + securityDepositAmount;
+    const monthlyRent = bookingFeeAmount * 10; // Booking fee is 10% of monthly rent
 
     // Update booking payment status
     booking.paymentStatus = "fully_paid";
@@ -93,12 +95,14 @@ export async function POST(
       booking.bookingFee.paidTo = "owner";
       booking.bookingFee.paymentMethod = "cash";
       booking.bookingFee.ownerCommissionStatus = "pending"; // Owner owes this to admin
+      booking.bookingFee.paidAt = new Date();
     }
     
     if (booking.firstMonthRent) {
       booking.firstMonthRent.status = "paid";
       booking.firstMonthRent.paidTo = "owner";
       booking.firstMonthRent.paymentMethod = "cash";
+      booking.firstMonthRent.paidAt = new Date();
     }
     
     if (booking.securityDeposit) {
@@ -106,6 +110,7 @@ export async function POST(
       booking.securityDeposit.paidTo = "owner";
       booking.securityDeposit.transferredToOwner = true;
       booking.securityDeposit.transferredAt = new Date();
+      booking.securityDeposit.paidAt = new Date();
     }
     
     // Cash payment tracking
@@ -115,6 +120,9 @@ export async function POST(
       verifiedByAdmin: false,
     };
     
+    // Update totals
+    booking.totalPaid = totalAmount;
+    
     if (notes) {
       booking.ownerNotes = booking.ownerNotes 
         ? `${booking.ownerNotes}\nPayment: ${notes}`
@@ -123,20 +131,67 @@ export async function POST(
 
     await booking.save({ session });
 
-    // Create commission record - owner owes booking fee to admin
-    const commissionAmount = booking.bookingFee?.amount || 0;
-    
-    if (commissionAmount > 0) {
-      await Commission.create([{
-        bookingId: booking._id,
+    // Create commission record for booking fee that owner owes to admin
+    if (bookingFeeAmount > 0) {
+      const commissionData = {
+        // Required references
         ownerId: listing.ownerId,
-        amount: commissionAmount,
-        commissionType: "booking_fee",
+        bookingId: booking._id,
+        listingId: booking.listingId._id,
+        tenantId: booking.userId?._id || null,
+        
+        // Commission type for cash payment where owner owes admin
+        commissionType: "booking_fee_receivable",
+        
+        // Direction - owner owes admin the booking fee
+        direction: "owner_owes_admin",
+        
+        // Source payment method
+        sourcePaymentMethod: "cash",
+        
+        // Amounts
+        baseAmount: monthlyRent, // Base monthly rent amount
+        commissionRate: 0.1, // 10% commission rate
+        amount: bookingFeeAmount, // The commission amount (10% of monthly rent)
+        
+        // Status
         status: "pending",
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        notes: "Commission due from cash payment collection",
-      }], { session });
+        
+        // Due date - 7 days from now
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        
+        // Notes
+        notes: `Cash payment collected by ${cashCollectedBy || user.fullName}. Commission due to admin. ${notes || ''}`.trim(),
+        
+        // Month tracking (for first month)
+        monthNumber: 1,
+        rentMonth: null, // Not a recurring monthly payment
+        
+        // Settlement details (to be filled when owner pays)
+        settledAt: null,
+        settledBy: null,
+        settlementMethod: "",
+        settlementReference: "",
+        settlementProof: "",
+        
+        // Related IDs
+        allocationId: null,
+        monthlyRentPaymentId: null,
+      };
+
+      await Commission.create([commissionData], { session });
     }
+
+    // Update owner's pending commission amount
+    await User.findByIdAndUpdate(
+      listing.ownerId,
+      {
+        $inc: {
+          "settlementSummary.pendingCommissionAmount": bookingFeeAmount,
+        },
+      },
+      { session }
+    );
 
     // Notify admin about cash payment
     const admins = await User.find({ role: "admin" }).select("_id").session(session);
@@ -144,29 +199,39 @@ export async function POST(
       await Notification.create([{
         userId: admin._id,
         type: "payment",
-        title: "Cash Payment Collected",
-        message: `Owner ${user.fullName} collected ₹${totalAmount.toLocaleString()} cash for ${listing.pgName}. Commission pending: ₹${commissionAmount.toLocaleString()}`,
+        title: "Cash Payment Collected - Commission Due",
+        message: `Owner ${user.fullName} collected ₹${totalAmount.toLocaleString()} cash for ${listing.pgName}. Commission due: ₹${bookingFeeAmount.toLocaleString()}`,
         relatedId: booking._id,
         relatedType: "booking",
         priority: "high",
         metadata: {
           totalCollected: totalAmount,
-          commissionPending: commissionAmount,
+          commissionDue: bookingFeeAmount,
           ownerId: listing.ownerId,
+          bookingId: booking._id.toString(),
+          pgName: listing.pgName,
+          tenantName: booking.fullName,
         },
       }], { session });
     }
 
-    // Notify tenant
-    await Notification.create([{
-      userId: booking.userId,
-      type: "payment",
-      title: "Payment Received",
-      message: `Your payment of ₹${totalAmount.toLocaleString()} for ${listing.pgName} has been received.`,
-      relatedId: booking._id,
-      relatedType: "booking",
-      priority: "medium",
-    }], { session });
+    // Notify tenant about payment confirmation
+    if (booking.userId) {
+      await Notification.create([{
+        userId: booking.userId._id,
+        type: "payment",
+        title: "Payment Confirmed",
+        message: `Your cash payment of ₹${totalAmount.toLocaleString()} for ${listing.pgName} has been received by the owner.`,
+        relatedId: booking._id,
+        relatedType: "booking",
+        priority: "medium",
+        metadata: {
+          amount: totalAmount,
+          pgName: listing.pgName,
+          ownerName: user.fullName,
+        },
+      }], { session });
+    }
 
     await session.commitTransaction();
 
@@ -174,18 +239,49 @@ export async function POST(
       success: true,
       message: "Cash payment recorded successfully",
       data: {
-        booking: booking.toObject(),
+        booking: {
+          _id: booking._id,
+          status: booking.status,
+          paymentStatus: booking.paymentStatus,
+          totalCollected: totalAmount,
+          bookingFee: booking.bookingFee,
+          firstMonthRent: booking.firstMonthRent,
+          securityDeposit: booking.securityDeposit,
+        },
+        commission: {
+          amount: bookingFeeAmount,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          status: "pending",
+          type: "booking_fee_receivable",
+        },
         totalCollected: totalAmount,
-        commissionCreated: commissionAmount,
+        commissionCreated: bookingFeeAmount,
       },
     });
   } catch (error) {
     await session.abortTransaction();
     console.error("Cash payment error:", error);
+    
+    // More detailed error logging
+    if (error instanceof mongoose.Error.ValidationError) {
+      console.error("Validation errors:", error.errors);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Validation error",
+          errors: Object.keys(error.errors).map(key => ({
+            field: key,
+            message: error.errors[key].message
+          }))
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       {
         success: false,
-        message: "Internal server error",
+        message: "Failed to record cash payment",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
