@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET - Fetch user bookings
+// GET - Fetch user bookings with owner details
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
@@ -326,27 +326,58 @@ export async function GET(req: NextRequest) {
     const bookings = await Booking.find({
       userId: new mongoose.Types.ObjectId(userId),
     })
-      .populate("listingId", "pgName location images roomTypes")
+      .populate({
+        path: "listingId",
+        select: "pgName location primaryImage roomTypes ownerId",
+        populate: {
+          path: "ownerId",
+          model: "User",
+          select: "fullName email phone",
+        }
+      })
+      .populate({
+        path: "ownerId",
+        model: "User",
+        select: "fullName email phone",
+      })
       .sort({ createdAt: -1 });
 
-    // Format bookings with payment breakdown
-    const formattedBookings = bookings.map((booking) => ({
-      ...booking.toObject(),
-      paymentBreakdown: {
-        bookingFee: booking.bookingFee,
-        securityDeposit: booking.securityDeposit,
-        firstMonthRent: booking.firstMonthRent,
-      },
-      canPayRemaining: 
-        booking.status === "confirmed" && 
-        booking.bookingFee.status === "paid" &&
-        (booking.securityDeposit.status === "pending" || 
-         booking.firstMonthRent.status === "pending"),
-    }));
+    // Format bookings with payment breakdown and owner details
+    const formattedBookings = bookings.map((booking) => {
+      const bookingObj = booking.toObject();
+      
+      // Extract owner from ownerId field or from listing
+      let ownerInfo = null;
+      
+      // First priority: direct ownerId field
+      if (bookingObj.ownerId) {
+        ownerInfo = bookingObj.ownerId;
+      }
+      // Second priority: owner from listing
+      else if (bookingObj.listingId && bookingObj.listingId.ownerId) {
+        ownerInfo = bookingObj.listingId.ownerId;
+      }
+
+      return {
+        ...bookingObj,
+        ownerId: ownerInfo, // Ensure owner is at root level
+        paymentBreakdown: {
+          bookingFee: booking.bookingFee || {},
+          securityDeposit: booking.securityDeposit || {},
+          firstMonthRent: booking.firstMonthRent || {},
+        },
+        canPayRemaining: 
+          booking.status === "confirmed" && 
+          booking.bookingFee?.status === "paid" &&
+          (booking.securityDeposit?.status === "pending" || 
+           booking.firstMonthRent?.status === "pending"),
+      };
+    });
 
     return NextResponse.json({
       success: true,
       data: formattedBookings,
+      total: formattedBookings.length,
     });
   } catch (error) {
     console.error("Get bookings error:", error);
@@ -354,6 +385,151 @@ export async function GET(req: NextRequest) {
       {
         success: false,
         message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Cancel/Delete booking
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const bookingId = searchParams.get("id");
+
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, message: "Booking ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, message: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only allow deletion if booking is pending
+    if (booking.status !== "pending") {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Only pending bookings can be deleted. Please contact support for confirmed bookings." 
+        },
+        { status: 400 }
+      );
+    }
+
+    await Booking.findByIdAndDelete(bookingId);
+
+    return NextResponse.json({
+      success: true,
+      message: "Booking deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete booking error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to delete booking",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update booking details
+export async function PUT(req: NextRequest) {
+  try {
+    await connectToDB();
+
+    const body = await req.json();
+    const { bookingId, ...updateData } = body;
+
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, message: "Booking ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, message: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only allow updates for pending bookings
+    if (booking.status !== "pending") {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Only pending bookings can be edited" 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update allowed fields
+    const allowedFields = [
+      'fullName',
+      'phoneNumber',
+      'email',
+      'address',
+      'aadhaarNumber',
+      'additionalRequirements',
+      'moveInDate',
+      'duration',
+      'roomType'
+    ];
+
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        booking[field] = updateData[field];
+      }
+    });
+
+    await booking.save();
+
+    // Fetch updated booking with populated fields
+    const updatedBooking = await Booking.findById(bookingId)
+      .populate({
+        path: "listingId",
+        select: "pgName location primaryImage roomTypes ownerId",
+        populate: {
+          path: "ownerId",
+          model: "User",
+          select: "fullName email phone",
+        }
+      })
+      .populate({
+        path: "ownerId",
+        model: "User",
+        select: "fullName email phone",
+      });
+
+    return NextResponse.json({
+      success: true,
+      message: "Booking updated successfully",
+      data: updatedBooking,
+    });
+  } catch (error) {
+    console.error("Update booking error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update booking",
         error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

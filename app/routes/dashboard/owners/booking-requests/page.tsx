@@ -36,7 +36,7 @@ import {
   ChevronRight,
   AlertCircle,
   IndianRupee,
-  Upload,
+  Banknote,
 } from "lucide-react";
 import { BlurImage } from "@/components/BlurImage";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -75,7 +75,7 @@ interface BookingRequest {
   status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed" | "active";
   
   // Payment details
-  monthlyRent?: number; // Added as optional since it might not always be present
+  monthlyRent?: number;
   bookingFee: {
     amount: number;
     status: "pending" | "paid";
@@ -105,9 +105,6 @@ interface BookingRequest {
   
   // Cash payment details
   cashPayment?: {
-    bookingFeeProof?: string;
-    securityDepositProof?: string;
-    firstMonthRentProof?: string;
     collectedBy?: string;
     collectedAt?: string;
     verifiedByAdmin: boolean;
@@ -137,9 +134,6 @@ export default function BookingRequestsPage() {
   // Cash payment confirmation state
   const [showCashDialog, setShowCashDialog] = useState(false);
   const [cashPaymentDetails, setCashPaymentDetails] = useState({
-    bookingFeeProof: "",
-    securityDepositProof: "",
-    firstMonthRentProof: "",
     collectedBy: "",
     notes: "",
   });
@@ -182,7 +176,7 @@ export default function BookingRequestsPage() {
         toast.success(`Booking ${action} successfully`);
         
         if (action === "confirmed" && response.data.data.paymentMethod === "cash") {
-          toast.info("Please collect cash payment from tenant and upload proof", { duration: 5000 });
+          toast.info("Please collect cash payment from tenant", { duration: 5000 });
           setSelectedBooking(response.data.data);
           setShowCashDialog(true);
         }
@@ -190,8 +184,9 @@ export default function BookingRequestsPage() {
         setOwnerNotes("");
         fetchBookings(activeTab, currentPage);
       }
-    } catch (error) {
-      toast.error(`Failed to ${action} booking`);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || `Failed to ${action} booking`;
+      toast.error(errorMessage);
     } finally {
       setActionLoading(null);
     }
@@ -202,38 +197,32 @@ export default function BookingRequestsPage() {
       setActionLoading(bookingId);
 
       const response = await axios.post(`/api/booking/${bookingId}/cash-payment`, {
-        cashPaymentProof: {
-          bookingFeeProof: cashPaymentDetails.bookingFeeProof,
-          securityDepositProof: cashPaymentDetails.securityDepositProof,
-          firstMonthRentProof: cashPaymentDetails.firstMonthRentProof,
-        },
-        cashCollectedBy: cashPaymentDetails.collectedBy,
-        notes: cashPaymentDetails.notes,
+        cashCollectedBy: cashPaymentDetails.collectedBy || undefined,
+        notes: cashPaymentDetails.notes || undefined,
       });
 
       if (response.data.success) {
-        toast.success("Cash payment confirmation uploaded successfully");
+        toast.success("Cash payment recorded successfully");
         
         // Show commission info
-        if (response.data.commissionCreated) {
+        if (response.data.data?.commissionCreated) {
           toast.info(
-            `Commission of ₹${response.data.commissionCreated.toLocaleString()} is pending. Please pay to admin within 7 days.`,
+            `Commission of ₹${response.data.data.commissionCreated.toLocaleString()} is pending. Please pay to admin within 7 days.`,
             { duration: 6000 }
           );
         }
         
         setShowCashDialog(false);
         setCashPaymentDetails({
-          bookingFeeProof: "",
-          securityDepositProof: "",
-          firstMonthRentProof: "",
           collectedBy: "",
           notes: "",
         });
         fetchBookings(activeTab, currentPage);
       }
-    } catch (error) {
-      toast.error("Failed to confirm cash payment");
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Failed to confirm cash payment";
+      toast.error(errorMessage);
+      console.error("Cash payment error:", error.response?.data);
     } finally {
       setActionLoading(null);
     }
@@ -250,7 +239,6 @@ export default function BookingRequestsPage() {
     }
 
     if (booking.paymentMethod === "online") {
-      // Check if owner has received their 90% payout
       if (booking.firstMonthRent?.ownerPayoutStatus === "pending") {
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
@@ -269,7 +257,6 @@ export default function BookingRequestsPage() {
     }
 
     if (booking.paymentMethod === "cash") {
-      // Check if owner has paid commission to admin
       if (booking.bookingFee?.ownerCommissionStatus === "pending") {
         return (
           <Badge className="bg-orange-100 text-orange-800">
@@ -305,7 +292,6 @@ export default function BookingRequestsPage() {
   };
 
   const getPaymentBreakdown = (booking: BookingRequest) => {
-    // Safely get amounts with fallbacks
     const bookingFeeAmount = booking.bookingFee?.amount || 0;
     const firstMonthAmount = booking.firstMonthRent?.amount || 0;
     const securityAmount = booking.securityDeposit?.amount || 0;
@@ -392,20 +378,35 @@ export default function BookingRequestsPage() {
     });
   };
 
-  // Helper function to calculate monthly rent from booking fee (10% of monthly rent)
   const getMonthlyRent = (booking: BookingRequest) => {
     if (booking.monthlyRent) {
       return booking.monthlyRent;
     }
-    // If monthlyRent is not available, calculate from booking fee (which is 10%)
     if (booking.bookingFee?.amount) {
       return booking.bookingFee.amount * 10;
     }
-    // If firstMonthRent is available, use it as an approximation
     if (booking.firstMonthRent?.amount) {
       return booking.firstMonthRent.amount;
     }
     return 0;
+  };
+
+  const getTotalAmount = (booking: BookingRequest) => {
+    return (
+      (booking.bookingFee?.amount || 0) +
+      (booking.firstMonthRent?.amount || 0) +
+      (booking.securityDeposit?.amount || 0)
+    );
+  };
+
+  // Check if cash payment can be recorded
+  const canRecordCashPayment = (booking: BookingRequest) => {
+    return (
+      booking.status === "confirmed" &&
+      booking.paymentMethod === "cash" &&
+      booking.paymentStatus !== "fully_paid" &&
+      !booking.cashPayment?.collectedAt
+    );
   };
 
   if (loading && bookings.length === 0) {
@@ -453,7 +454,10 @@ export default function BookingRequestsPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        setCurrentPage(1);
+      }}>
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
@@ -523,7 +527,7 @@ export default function BookingRequestsPage() {
                                 </span>
                               </p>
                             </div>
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-wrap gap-1">
                               <Badge
                                 variant={
                                   booking.status === "confirmed"
@@ -585,15 +589,21 @@ export default function BookingRequestsPage() {
                                   </>
                                 ) : (
                                   <>
-                                    <DollarSign className="w-3 h-3 mr-1" />
+                                    <Banknote className="w-3 h-3 mr-1" />
                                     Cash
                                   </>
                                 )}
                               </Badge>
                             )}
+                            {booking.status === "confirmed" && (
+                              <span className="text-gray-500 text-xs">
+                                Total: ₹{getTotalAmount(booking).toLocaleString()}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {/* View Details Button */}
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button
@@ -631,6 +641,24 @@ export default function BookingRequestsPage() {
                                           {selectedBooking.listingId?.location?.area || 'Area'},{" "}
                                           {selectedBooking.listingId?.location?.city || 'City'}
                                         </p>
+                                        <div className="flex gap-2 mt-2">
+                                          <Badge
+                                            variant={
+                                              selectedBooking.status === "confirmed"
+                                                ? "default"
+                                                : selectedBooking.status === "pending"
+                                                ? "secondary"
+                                                : "destructive"
+                                            }
+                                          >
+                                            {selectedBooking.status}
+                                          </Badge>
+                                          {selectedBooking.paymentMethod && (
+                                            <Badge variant="outline">
+                                              {selectedBooking.paymentMethod === "online" ? "Online" : "Cash"}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
 
@@ -661,6 +689,49 @@ export default function BookingRequestsPage() {
                                           </label>
                                           <p className="font-medium">{selectedBooking.email || 'N/A'}</p>
                                         </div>
+                                        {selectedBooking.aadhaarNumber && (
+                                          <div className="col-span-2">
+                                            <label className="text-sm font-medium text-gray-500">
+                                              Aadhaar Number
+                                            </label>
+                                            <p className="font-medium">{selectedBooking.aadhaarNumber}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Booking Details */}
+                                    <div>
+                                      <h4 className="font-semibold mb-3">Booking Details</h4>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="text-sm font-medium text-gray-500">
+                                            Room Type
+                                          </label>
+                                          <p className="font-medium">{selectedBooking.roomType || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium text-gray-500">
+                                            Move-in Date
+                                          </label>
+                                          <p className="font-medium">
+                                            {selectedBooking.moveInDate ? formatDate(selectedBooking.moveInDate) : 'N/A'}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium text-gray-500">
+                                            Duration
+                                          </label>
+                                          <p className="font-medium">{selectedBooking.duration || 'N/A'} months</p>
+                                        </div>
+                                        <div>
+                                          <label className="text-sm font-medium text-gray-500">
+                                            Requested On
+                                          </label>
+                                          <p className="font-medium">
+                                            {formatDate(selectedBooking.createdAt)}
+                                          </p>
+                                        </div>
                                       </div>
                                     </div>
 
@@ -682,13 +753,32 @@ export default function BookingRequestsPage() {
                                         <h4 className="font-semibold mb-3">
                                           Additional Requirements
                                         </h4>
-                                        <p className="text-gray-700">
+                                        <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
                                           {selectedBooking.additionalRequirements}
                                         </p>
                                       </div>
                                     )}
 
-                                    {/* Owner Notes */}
+                                    {/* Cash Payment Info */}
+                                    {selectedBooking.cashPayment?.collectedAt && (
+                                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <h4 className="font-semibold text-green-800 mb-2">Cash Payment Collected</h4>
+                                        <div className="text-sm text-green-700 space-y-1">
+                                          <p>Collected by: {selectedBooking.cashPayment.collectedBy}</p>
+                                          <p>Collected at: {formatDate(selectedBooking.cashPayment.collectedAt)}</p>
+                                          <p>
+                                            Admin verification: {" "}
+                                            {selectedBooking.cashPayment.verifiedByAdmin ? (
+                                              <span className="text-green-600 font-medium">Verified</span>
+                                            ) : (
+                                              <span className="text-orange-600 font-medium">Pending</span>
+                                            )}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Owner Notes Input (for pending) */}
                                     {selectedBooking.status === "pending" && (
                                       <div>
                                         <label className="text-sm font-medium text-gray-500 mb-2 block">
@@ -703,6 +793,16 @@ export default function BookingRequestsPage() {
                                       </div>
                                     )}
 
+                                    {/* Existing Owner Notes */}
+                                    {selectedBooking.ownerNotes && (
+                                      <div>
+                                        <h4 className="font-semibold mb-3">Owner Notes</h4>
+                                        <p className="text-gray-700 bg-gray-50 p-3 rounded-lg whitespace-pre-line">
+                                          {selectedBooking.ownerNotes}
+                                        </p>
+                                      </div>
+                                    )}
+
                                     {/* Action Buttons */}
                                     {selectedBooking.status === "pending" && (
                                       <div className="flex gap-3 pt-4 border-t">
@@ -713,7 +813,11 @@ export default function BookingRequestsPage() {
                                           disabled={actionLoading === selectedBooking._id}
                                           className="flex-1 bg-green-600 hover:bg-green-700"
                                         >
-                                          <CheckCircle className="w-4 h-4 mr-2" />
+                                          {actionLoading === selectedBooking._id ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                          ) : (
+                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                          )}
                                           Approve Booking
                                         </Button>
                                         <Button
@@ -729,28 +833,68 @@ export default function BookingRequestsPage() {
                                         </Button>
                                       </div>
                                     )}
+
+                                    {/* Record Cash Payment Button (in dialog) */}
+                                    {canRecordCashPayment(selectedBooking) && (
+                                      <div className="pt-4 border-t">
+                                        <Button
+                                          onClick={() => {
+                                            setShowCashDialog(true);
+                                          }}
+                                          className="w-full bg-green-600 hover:bg-green-700"
+                                        >
+                                          <Banknote className="w-4 h-4 mr-2" />
+                                          Record Cash Payment
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </DialogContent>
                             </Dialog>
 
-                            {/* Upload Cash Payment Proof */}
-                            {booking.status === "confirmed" &&
-                              booking.paymentMethod === "cash" &&
-                              !booking.cashPayment?.verifiedByAdmin && (
+                            {/* Quick Actions for Pending */}
+                            {booking.status === "pending" && (
+                              <>
                                 <Button
                                   size="sm"
-                                  variant="outline"
-                                  className="border-green-300 text-green-600 hover:bg-green-50"
-                                  onClick={() => {
-                                    setSelectedBooking(booking);
-                                    setShowCashDialog(true);
-                                  }}
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => handleBookingAction(booking._id, "confirmed")}
+                                  disabled={actionLoading === booking._id}
                                 >
-                                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                  Upload Proof
+                                  {actionLoading === booking._id ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1" />
+                                  ) : (
+                                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  )}
+                                  Approve
                                 </Button>
-                              )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleBookingAction(booking._id, "rejected")}
+                                  disabled={actionLoading === booking._id}
+                                >
+                                  <XCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+
+                            {/* Record Cash Payment Button */}
+                            {canRecordCashPayment(booking) && (
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowCashDialog(true);
+                                }}
+                              >
+                                <Banknote className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                Record Payment
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -763,92 +907,78 @@ export default function BookingRequestsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Cash Payment Dialog */}
+      {/* Cash Payment Dialog - Simplified */}
       <Dialog open={showCashDialog} onOpenChange={setShowCashDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Cash Payment Collection</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Banknote className="w-5 h-5 text-green-600" />
+              Confirm Cash Payment
+            </DialogTitle>
             <DialogDescription>
-              Please collect the full payment from tenant and upload proof
+              Confirm that you have collected the payment from the tenant
             </DialogDescription>
           </DialogHeader>
 
           {selectedBooking && (
             <div className="space-y-4 py-4">
-              {/* Amount to Collect */}
+              {/* Amount Collected */}
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm font-medium text-green-800 mb-2">Amount to Collect:</p>
-                <p className="text-2xl font-bold text-green-900">
-                  ₹
-                  {(
-                    (selectedBooking.bookingFee?.amount || 0) +
+                <p className="text-sm font-medium text-green-800 mb-2">Total Amount to Collect:</p>
+                <p className="text-3xl font-bold text-green-900">
+                  ₹{getTotalAmount(selectedBooking).toLocaleString()}
+                </p>
+                <div className="mt-3 space-y-1 text-sm text-green-700">
+                  <div className="flex justify-between">
+                    <span>Booking Fee (10%):</span>
+                    <span>₹{(selectedBooking.bookingFee?.amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>First Month Rent:</span>
+                    <span>₹{(selectedBooking.firstMonthRent?.amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Security Deposit:</span>
+                    <span>₹{(selectedBooking.securityDeposit?.amount || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Your Earnings */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-medium text-blue-800 mb-1">You Keep:</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  ₹{(
                     (selectedBooking.firstMonthRent?.amount || 0) +
                     (selectedBooking.securityDeposit?.amount || 0)
                   ).toLocaleString()}
                 </p>
-                <div className="mt-2 space-y-1 text-xs text-green-700">
-                  <p>• Booking Fee: ₹{(selectedBooking.bookingFee?.amount || 0).toLocaleString()}</p>
-                  <p>• First Month: ₹{(selectedBooking.firstMonthRent?.amount || 0).toLocaleString()}</p>
-                  <p>• Security: ₹{(selectedBooking.securityDeposit?.amount || 0).toLocaleString()}</p>
-                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  (First month rent + Security deposit)
+                </p>
               </div>
 
               {/* Commission Info */}
               <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-sm text-orange-800">
-                  <strong>Note:</strong> You'll owe ₹
-                  {(selectedBooking.bookingFee?.amount || 0).toLocaleString()} (10%) as commission to admin
-                </p>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-orange-800">
+                    <p className="font-medium">Commission Due to Admin:</p>
+                    <p className="text-lg font-bold">
+                      ₹{(selectedBooking.bookingFee?.amount || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs mt-1">Please pay within 7 days</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Upload Fields */}
+              {/* Optional Fields */}
               <div className="space-y-3">
                 <div>
-                  <Label>Booking Fee Proof URL</Label>
+                  <Label htmlFor="collectedBy">Collected By (Optional)</Label>
                   <Input
-                    placeholder="https://drive.google.com/..."
-                    value={cashPaymentDetails.bookingFeeProof}
-                    onChange={(e) =>
-                      setCashPaymentDetails({
-                        ...cashPaymentDetails,
-                        bookingFeeProof: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>First Month Rent Proof URL</Label>
-                  <Input
-                    placeholder="https://drive.google.com/..."
-                    value={cashPaymentDetails.firstMonthRentProof}
-                    onChange={(e) =>
-                      setCashPaymentDetails({
-                        ...cashPaymentDetails,
-                        firstMonthRentProof: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>Security Deposit Proof URL</Label>
-                  <Input
-                    placeholder="https://drive.google.com/..."
-                    value={cashPaymentDetails.securityDepositProof}
-                    onChange={(e) =>
-                      setCashPaymentDetails({
-                        ...cashPaymentDetails,
-                        securityDepositProof: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>Collected By *</Label>
-                  <Input
-                    placeholder="Your name"
+                    id="collectedBy"
+                    placeholder="Your name (defaults to your profile name)"
                     value={cashPaymentDetails.collectedBy}
                     onChange={(e) =>
                       setCashPaymentDetails({
@@ -860,9 +990,10 @@ export default function BookingRequestsPage() {
                 </div>
 
                 <div>
-                  <Label>Notes (Optional)</Label>
+                  <Label htmlFor="notes">Notes (Optional)</Label>
                   <Textarea
-                    placeholder="Any additional notes..."
+                    id="notes"
+                    placeholder="Any additional notes about the payment..."
                     value={cashPaymentDetails.notes}
                     onChange={(e) =>
                       setCashPaymentDetails({
@@ -877,24 +1008,27 @@ export default function BookingRequestsPage() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCashDialog(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCashDialog(false);
+                setCashPaymentDetails({ collectedBy: "", notes: "" });
+              }}
+            >
               Cancel
             </Button>
             <Button
               onClick={() => selectedBooking && handleCashPaymentConfirmation(selectedBooking._id)}
-              disabled={
-                !cashPaymentDetails.collectedBy ||
-                actionLoading === selectedBooking?._id
-              }
+              disabled={actionLoading === selectedBooking?._id}
               className="bg-green-600 hover:bg-green-700"
             >
-              {actionLoading ? (
+              {actionLoading === selectedBooking?._id ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
               ) : (
                 <CheckCircle className="w-4 h-4 mr-2" />
               )}
-              Confirm Collection
+              Confirm Payment Received
             </Button>
           </DialogFooter>
         </DialogContent>
