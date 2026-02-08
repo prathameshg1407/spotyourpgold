@@ -54,7 +54,7 @@ const notificationSchema = new mongoose.Schema(
 
     relatedType: {
       type: String,
-      enum: ["booking", "listing", "visit_request", "ticket"],
+      enum: ["booking", "listing", "visit_request", "ticket", "allocation"],
       required: false,
     },
 
