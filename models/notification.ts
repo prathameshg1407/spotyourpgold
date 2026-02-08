@@ -23,7 +23,9 @@ const notificationSchema = new mongoose.Schema(
         "visit_request",
         "payment_reminder",
         "payment",              // ✅ Added
-        "ticket_created",     
+        "ticket_created",   
+        "booking_update",  
+        "monthlyRent",
         "ticket_response",     
         "ticket_resolved",     
         "general",

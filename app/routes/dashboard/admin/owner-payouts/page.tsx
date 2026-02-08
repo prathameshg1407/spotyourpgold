@@ -5,7 +5,13 @@ import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -27,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -42,7 +49,6 @@ import {
   Building,
   Send,
   RefreshCw,
-  IndianRupee,
   Phone,
   Mail,
   ChevronDown,
@@ -50,6 +56,10 @@ import {
   CreditCard,
   Banknote,
   Calendar,
+  Users,
+  ArrowUpRight,
+  History,
+  ListFilter,
 } from "lucide-react";
 
 interface OwnerPayoutSummary {
@@ -133,7 +143,9 @@ export default function AdminOwnerPayoutsPage() {
   const [activeTab, setActiveTab] = useState("by-owner");
   const [expandedOwners, setExpandedOwners] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [payoutType, setPayoutType] = useState<"first_month" | "security_deposit" | "monthly_rent">("first_month");
+  const [payoutType, setPayoutType] = useState<
+    "first_month" | "security_deposit" | "monthly_rent"
+  >("first_month");
 
   // Payout dialog
   const [showPayoutDialog, setShowPayoutDialog] = useState(false);
@@ -154,7 +166,9 @@ export default function AdminOwnerPayoutsPage() {
         setPendingDeposits(data.pendingDepositTransfers || []);
         setPendingMonthly(data.pendingMonthlyPayouts || []);
         setRecentPayouts(data.recentPayouts || []);
-        setTotals(data.totals || { firstMonth: 0, deposit: 0, monthly: 0, total: 0 });
+        setTotals(
+          data.totals || { firstMonth: 0, deposit: 0, monthly: 0, total: 0 }
+        );
       }
     } catch (error) {
       toast.error("Failed to fetch payout data");
@@ -259,6 +273,19 @@ export default function AdminOwnerPayoutsPage() {
       }, 0);
   };
 
+  const getPayoutTypeLabel = () => {
+    switch (payoutType) {
+      case "first_month":
+        return "First Month Rent (90%)";
+      case "security_deposit":
+        return "Security Deposits";
+      case "monthly_rent":
+        return "Monthly Rent (90%)";
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -271,8 +298,10 @@ export default function AdminOwnerPayoutsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* Header */}
+    <div className="space-y-8 pb-10">
+      {/* ═══════════════════════════════════════════════════════════════════
+          SECTION 1: HEADER
+      ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
@@ -283,8 +312,10 @@ export default function AdminOwnerPayoutsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchData}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           {selectedItems.length > 0 && (
@@ -296,503 +327,697 @@ export default function AdminOwnerPayoutsPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-yellow-700">Total Pending</p>
-                <p className="text-2xl font-bold text-yellow-800">
-                  {formatCurrency(totals.total)}
-                </p>
+      {/* ═══════════════════════════════════════════════════════════════════
+          SECTION 2: PAYOUT SUMMARY
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Wallet className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-800">Payout Summary</h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Pending Card */}
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-yellow-700">
+                    Total Pending
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-800">
+                    {formatCurrency(totals.total)}
+                  </p>
+                  <p className="text-xs text-yellow-600">
+                    Across all categories
+                  </p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-yellow-200 flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-yellow-700" />
+                </div>
               </div>
-              <Wallet className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card
-          className={`cursor-pointer transition-all ${
-            payoutType === "first_month" ? "ring-2 ring-primary" : "hover:shadow-md"
-          }`}
-          onClick={() => {
-            setPayoutType("first_month");
-            setSelectedItems([]);
-          }}
-        >
-          <CardContent className="pt-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600">First Month (90%)</p>
-              <p className="text-xl font-bold text-blue-600">
-                {formatCurrency(totals.firstMonth)}
-              </p>
-              <p className="text-xs text-gray-500">{pendingFirstMonth.length} pending</p>
-            </div>
-          </CardContent>
-        </Card>
+          {/* First Month Card */}
+          <Card
+            className={`cursor-pointer transition-all ${
+              payoutType === "first_month"
+                ? "ring-2 ring-primary shadow-md"
+                : "hover:shadow-md"
+            }`}
+            onClick={() => {
+              setPayoutType("first_month");
+              setSelectedItems([]);
+            }}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-600">
+                    First Month (90%)
+                  </p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {formatCurrency(totals.firstMonth)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {pendingFirstMonth.length} pending
+                  </p>
+                </div>
+                {payoutType === "first_month" && (
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card
-          className={`cursor-pointer transition-all ${
-            payoutType === "security_deposit" ? "ring-2 ring-primary" : "hover:shadow-md"
-          }`}
-          onClick={() => {
-            setPayoutType("security_deposit");
-            setSelectedItems([]);
-          }}
-        >
-          <CardContent className="pt-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Security Deposits</p>
-              <p className="text-xl font-bold text-orange-600">
-                {formatCurrency(totals.deposit)}
-              </p>
-              <p className="text-xs text-gray-500">{pendingDeposits.length} pending</p>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Security Deposit Card */}
+          <Card
+            className={`cursor-pointer transition-all ${
+              payoutType === "security_deposit"
+                ? "ring-2 ring-primary shadow-md"
+                : "hover:shadow-md"
+            }`}
+            onClick={() => {
+              setPayoutType("security_deposit");
+              setSelectedItems([]);
+            }}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-600">
+                    Security Deposits
+                  </p>
+                  <p className="text-xl font-bold text-orange-600">
+                    {formatCurrency(totals.deposit)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {pendingDeposits.length} pending
+                  </p>
+                </div>
+                {payoutType === "security_deposit" && (
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card
-          className={`cursor-pointer transition-all ${
-            payoutType === "monthly_rent" ? "ring-2 ring-primary" : "hover:shadow-md"
-          }`}
-          onClick={() => {
-            setPayoutType("monthly_rent");
-            setSelectedItems([]);
-          }}
-        >
-          <CardContent className="pt-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Rent (90%)</p>
-              <p className="text-xl font-bold text-green-600">
-                {formatCurrency(totals.monthly)}
-              </p>
-              <p className="text-xs text-gray-500">{pendingMonthly.length} pending</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Monthly Rent Card */}
+          <Card
+            className={`cursor-pointer transition-all ${
+              payoutType === "monthly_rent"
+                ? "ring-2 ring-primary shadow-md"
+                : "hover:shadow-md"
+            }`}
+            onClick={() => {
+              setPayoutType("monthly_rent");
+              setSelectedItems([]);
+            }}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-600">
+                    Monthly Rent (90%)
+                  </p>
+                  <p className="text-xl font-bold text-green-600">
+                    {formatCurrency(totals.monthly)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {pendingMonthly.length} pending
+                  </p>
+                </div>
+                {payoutType === "monthly_rent" && (
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* Info Banner */}
+      {/* ═══════════════════════════════════════════════════════════════════
+          SECTION 3: PAYMENT FLOW INFO
+      ═══════════════════════════════════════════════════════════════════ */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <CreditCard className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-blue-800">Online Payment Flow</p>
-              <p className="text-sm text-blue-700 mt-1">
-                User → Admin (100%) → Owner (90%)
-              </p>
-              <p className="text-sm text-blue-600 mt-1">
-                Currently showing:{" "}
-                <strong>
-                  {payoutType === "first_month"
-                    ? "First Month Rent Payouts (90%)"
-                    : payoutType === "security_deposit"
-                    ? "Security Deposit Transfers"
-                    : "Monthly Rent Payouts (90%)"}
-                </strong>
-              </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <CreditCard className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-blue-800">Online Payment Flow</p>
+                <p className="text-sm text-blue-700">
+                  User → Admin (100%) → Owner (90%)
+                </p>
+              </div>
             </div>
+            <Badge className="bg-blue-100 text-blue-800 self-start sm:self-center">
+              <ListFilter className="h-3 w-3 mr-1" />
+              Showing: {getPayoutTypeLabel()}
+            </Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="by-owner">By Owner</TabsTrigger>
-          <TabsTrigger value="all-pending">All Pending</TabsTrigger>
-          <TabsTrigger value="recent">Recent Payouts</TabsTrigger>
-        </TabsList>
+      {/* ═══════════════════════════════════════════════════════════════════
+          SECTION 4: PAYOUT MANAGEMENT TABS
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <ArrowUpRight className="h-5 w-5 text-gray-500" />
+          <h2 className="text-lg font-semibold text-gray-800">
+            Payout Management
+          </h2>
+        </div>
 
-        {/* By Owner Tab */}
-        <TabsContent value="by-owner" className="space-y-4">
-          {ownerWiseSummary.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  All Caught Up!
-                </h3>
-                <p className="text-gray-600">
-                  No pending payouts to owners at this time.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {ownerWiseSummary.map((owner) => {
-                const isExpanded = expandedOwners.includes(owner.ownerId);
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="by-owner" className="gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">By Owner</span>
+            </TabsTrigger>
+            <TabsTrigger value="all-pending" className="gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">All Pending</span>
+            </TabsTrigger>
+            <TabsTrigger value="recent" className="gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Recent</span>
+            </TabsTrigger>
+          </TabsList>
 
-                return (
-                  <Card key={owner.ownerId} className="overflow-hidden">
-                    <div
-                      className="p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() => toggleOwnerExpansion(owner.ownerId)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900">
-                              {owner.ownerName}
-                            </h3>
-                            <div className="flex items-center gap-3 text-sm text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {owner.ownerEmail}
-                              </span>
-                              {owner.ownerPhone && (
-                                <span className="flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  {owner.ownerPhone}
-                                </span>
-                              )}
+          {/* ─────────────────────────────────────────────────────────────────
+              TAB: BY OWNER
+          ───────────────────────────────────────────────────────────────── */}
+          <TabsContent value="by-owner" className="space-y-4">
+            {ownerWiseSummary.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    All Caught Up!
+                  </h3>
+                  <p className="text-gray-600">
+                    No pending payouts to owners at this time.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {ownerWiseSummary.map((owner) => {
+                  const isExpanded = expandedOwners.includes(owner.ownerId);
+
+                  return (
+                    <Card key={owner.ownerId} className="overflow-hidden">
+                      {/* Owner Header */}
+                      <div
+                        className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => toggleOwnerExpansion(owner.ownerId)}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          {/* Owner Info */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <User className="h-5 w-5 text-primary" />
                             </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">
+                                {owner.ownerName}
+                              </h3>
+                              <div className="flex items-center gap-3 text-sm text-gray-500">
+                                <span className="flex items-center gap-1 truncate">
+                                  <Mail className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{owner.ownerEmail}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Amount & Status */}
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-right hidden sm:block">
+                              <p className="text-lg font-bold text-yellow-600">
+                                {formatCurrency(owner.totalPending)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {owner.bookingCount} booking(s)
+                              </p>
+                            </div>
+
+                            <Badge
+                              className={
+                                owner.bankDetails?.isVerified
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }
+                            >
+                              {owner.bankDetails?.isVerified ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  <span className="hidden sm:inline">Verified</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  <span className="hidden sm:inline">No Bank</span>
+                                </>
+                              )}
+                            </Badge>
+
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-yellow-600">
-                              {formatCurrency(owner.totalPending)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {owner.bookingCount} booking(s), {owner.monthlyCount || 0} monthly
-                            </p>
-                          </div>
-                          {owner.bankDetails?.isVerified ? (
-                            <Badge className="bg-green-100 text-green-700">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Bank Verified
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-yellow-300 text-yellow-700">
-                              No Bank Details
-                            </Badge>
-                          )}
-                          {isExpanded ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
+                        {/* Mobile Amount Display */}
+                        <div className="mt-3 sm:hidden">
+                          <p className="text-lg font-bold text-yellow-600">
+                            {formatCurrency(owner.totalPending)}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Bank Details */}
-                      {isExpanded && owner.bankDetails && (
-                        <div className="mt-3 pt-3 border-t grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div>
-                            <span className="text-gray-500">Account:</span>
-                            <p className="font-medium">
-                              {owner.bankDetails.accountNumber || "N/A"}
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="border-t">
+                          {/* Bank Details */}
+                          {owner.bankDetails && (
+                            <div className="p-4 bg-gray-50">
+                              <p className="text-xs font-medium text-gray-500 mb-2">
+                                Bank Details
+                              </p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <span className="text-gray-500 text-xs">Account</span>
+                                  <p className="font-medium">
+                                    {owner.bankDetails.accountNumber || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">IFSC</span>
+                                  <p className="font-medium">
+                                    {owner.bankDetails.ifscCode || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">Bank</span>
+                                  <p className="font-medium">
+                                    {owner.bankDetails.bankName || "N/A"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 text-xs">UPI</span>
+                                  <p className="font-medium">
+                                    {owner.bankDetails.upiId || "N/A"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Payout Breakdown */}
+                          <div className="p-4">
+                            <p className="text-xs font-medium text-gray-500 mb-3">
+                              Pending Breakdown
                             </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">IFSC:</span>
-                            <p className="font-medium">
-                              {owner.bankDetails.ifscCode || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Bank:</span>
-                            <p className="font-medium">
-                              {owner.bankDetails.bankName || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">UPI:</span>
-                            <p className="font-medium">
-                              {owner.bankDetails.upiId || "N/A"}
-                            </p>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="p-3 bg-blue-50 rounded-lg text-center">
+                                <p className="text-xs text-blue-600 mb-1">
+                                  First Month
+                                </p>
+                                <p className="font-bold text-blue-700">
+                                  {formatCurrency(owner.firstMonthPending)}
+                                </p>
+                              </div>
+                              <div className="p-3 bg-orange-50 rounded-lg text-center">
+                                <p className="text-xs text-orange-600 mb-1">
+                                  Deposit
+                                </p>
+                                <p className="font-bold text-orange-700">
+                                  {formatCurrency(owner.depositPending)}
+                                </p>
+                              </div>
+                              <div className="p-3 bg-green-50 rounded-lg text-center">
+                                <p className="text-xs text-green-600 mb-1">
+                                  Monthly
+                                </p>
+                                <p className="font-bold text-green-700">
+                                  {formatCurrency(owner.monthlyPending || 0)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
-                    </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
-                    {/* Breakdown */}
-                    {isExpanded && (
-                      <div className="p-4 border-t">
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                          <div className="p-3 bg-blue-50 rounded-lg">
-                            <p className="text-xs text-blue-600">First Month (90%)</p>
-                            <p className="font-bold text-blue-700">
-                              {formatCurrency(owner.firstMonthPending)}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-orange-50 rounded-lg">
-                            <p className="text-xs text-orange-600">Security Deposit</p>
-                            <p className="font-bold text-orange-700">
-                              {formatCurrency(owner.depositPending)}
-                            </p>
-                          </div>
-                          <div className="p-3 bg-green-50 rounded-lg">
-                            <p className="text-xs text-green-600">Monthly (90%)</p>
-                            <p className="font-bold text-green-700">
-                              {formatCurrency(owner.monthlyPending || 0)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+          {/* ─────────────────────────────────────────────────────────────────
+              TAB: ALL PENDING
+          ───────────────────────────────────────────────────────────────── */}
+          <TabsContent value="all-pending">
+            {(() => {
+              let items: PendingPayout[] = [];
+              if (payoutType === "first_month") items = pendingFirstMonth;
+              else if (payoutType === "security_deposit") items = pendingDeposits;
+              else items = pendingMonthly;
+
+              if (items.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="text-center py-12">
+                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No Pending Payouts
+                      </h3>
+                      <p className="text-gray-600">
+                        All {getPayoutTypeLabel()} payouts are processed.
+                      </p>
+                    </CardContent>
                   </Card>
                 );
-              })}
-            </div>
-          )}
-        </TabsContent>
+              }
 
-        {/* All Pending Tab */}
-        <TabsContent value="all-pending">
-          {(() => {
-            let items: PendingPayout[] = [];
-            if (payoutType === "first_month") items = pendingFirstMonth;
-            else if (payoutType === "security_deposit") items = pendingDeposits;
-            else items = pendingMonthly;
-
-            if (items.length === 0) {
               return (
                 <Card>
-                  <CardContent className="text-center py-12">
-                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      No Pending Payouts
-                    </h3>
-                    <p className="text-gray-600">
-                      All{" "}
-                      {payoutType === "first_month"
-                        ? "first month"
-                        : payoutType === "security_deposit"
-                        ? "security deposit"
-                        : "monthly rent"}{" "}
-                      payouts are processed.
-                    </p>
+                  {/* Selection Summary */}
+                  {selectedItems.length > 0 && (
+                    <div className="p-4 bg-primary/5 border-b flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {selectedItems.length} item(s) selected
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Total: {formatCurrency(getSelectedAmount())}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowPayoutDialog(true)}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Process Payout
+                      </Button>
+                    </div>
+                  )}
+
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">
+                              <Checkbox
+                                checked={
+                                  items.length > 0 &&
+                                  items.every((item) =>
+                                    selectedItems.includes(item._id)
+                                  )
+                                }
+                                onCheckedChange={() =>
+                                  handleSelectAllForType(items)
+                                }
+                              />
+                            </TableHead>
+                            <TableHead>Owner</TableHead>
+                            <TableHead className="hidden md:table-cell">
+                              Property
+                            </TableHead>
+                            <TableHead>Tenant</TableHead>
+                            {payoutType === "monthly_rent" && (
+                              <TableHead className="hidden sm:table-cell">
+                                Month
+                              </TableHead>
+                            )}
+                            <TableHead>Amount</TableHead>
+                            <TableHead className="hidden lg:table-cell">
+                              Date
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {items.map((item) => (
+                            <TableRow
+                              key={item._id}
+                              className={
+                                selectedItems.includes(item._id)
+                                  ? "bg-primary/5"
+                                  : ""
+                              }
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedItems.includes(item._id)}
+                                  onCheckedChange={() =>
+                                    handleItemSelect(item._id)
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {item.ownerId?.fullName || "N/A"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 hidden sm:block">
+                                    {item.ownerId?.email}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <p className="text-sm">
+                                  {item.listingId?.pgName || "N/A"}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {item.fullName ||
+                                      item.tenantId?.fullName ||
+                                      "N/A"}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {item.phoneNumber || ""}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              {payoutType === "monthly_rent" && (
+                                <TableCell className="hidden sm:table-cell">
+                                  <Badge variant="outline">
+                                    Month {item.monthNumber}
+                                  </Badge>
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <p className="font-bold text-green-600">
+                                  {formatCurrency(
+                                    payoutType === "first_month"
+                                      ? item.firstMonthRent?.ownerPayoutAmount ||
+                                          0
+                                      : payoutType === "security_deposit"
+                                      ? item.securityDeposit?.amount || 0
+                                      : item.onlinePayment?.ownerPayoutAmount ||
+                                          0
+                                  )}
+                                </p>
+                              </TableCell>
+                              <TableCell className="hidden lg:table-cell">
+                                <p className="text-sm text-gray-500">
+                                  {formatDate(
+                                    item.firstMonthRent?.paidAt ||
+                                      item.securityDeposit?.paidAt ||
+                                      item.createdAt
+                                  )}
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </CardContent>
                 </Card>
               );
-            }
+            })()}
+          </TabsContent>
 
-            return (
+          {/* ─────────────────────────────────────────────────────────────────
+              TAB: RECENT PAYOUTS
+          ───────────────────────────────────────────────────────────────── */}
+          <TabsContent value="recent">
+            {recentPayouts.length === 0 ? (
               <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">
-                          <Checkbox
-                            checked={
-                              items.length > 0 &&
-                              items.every((item) => selectedItems.includes(item._id))
-                            }
-                            onCheckedChange={() => handleSelectAllForType(items)}
-                          />
-                        </TableHead>
-                        <TableHead>Owner</TableHead>
-                        <TableHead>Property</TableHead>
-                        <TableHead>Tenant</TableHead>
-                        {payoutType === "monthly_rent" && <TableHead>Month</TableHead>}
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item) => (
-                        <TableRow key={item._id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedItems.includes(item._id)}
-                              onCheckedChange={() => handleItemSelect(item._id)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">
-                                {item.ownerId?.fullName || "N/A"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {item.ownerId?.email}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{item.listingId?.pgName || "N/A"}</TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">
-                                {item.fullName || item.tenantId?.fullName || "N/A"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {item.phoneNumber || item.tenantId?.email || ""}
-                              </p>
-                            </div>
-                          </TableCell>
-                          {payoutType === "monthly_rent" && (
-                            <TableCell>
-                              <div>
-                                <p>Month {item.monthNumber}</p>
-                                <p className="text-xs text-gray-500">
-                                  {item.rentMonth ? formatDate(item.rentMonth) : "N/A"}
-                                </p>
-                              </div>
-                            </TableCell>
-                          )}
-                          <TableCell>
-                            <p className="font-bold text-green-600">
-                              {formatCurrency(
-                                payoutType === "first_month"
-                                  ? item.firstMonthRent?.ownerPayoutAmount || 0
-                                  : payoutType === "security_deposit"
-                                  ? item.securityDeposit?.amount || 0
-                                  : item.onlinePayment?.ownerPayoutAmount || 0
-                              )}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">
-                              {formatDate(
-                                item.firstMonthRent?.paidAt ||
-                                  item.securityDeposit?.paidAt ||
-                                  item.createdAt
-                              )}
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <CardContent className="text-center py-12">
+                  <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No Recent Payouts
+                  </h3>
+                  <p className="text-gray-600">
+                    Processed payouts will appear here.
+                  </p>
                 </CardContent>
               </Card>
-            );
-          })()}
-        </TabsContent>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Owner</TableHead>
+                          <TableHead className="hidden md:table-cell">
+                            Property
+                          </TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead className="hidden sm:table-cell">
+                            Method
+                          </TableHead>
+                          <TableHead className="hidden lg:table-cell">
+                            Reference
+                          </TableHead>
+                          <TableHead>Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recentPayouts.map((payout) => (
+                          <TableRow key={payout._id}>
+                            <TableCell>
+                              <p className="font-medium text-sm">
+                                {payout.ownerId?.fullName || "N/A"}
+                              </p>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <p className="text-sm">
+                                {payout.listingId?.pgName || "N/A"}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-bold text-green-600">
+                                {formatCurrency(
+                                  payout.firstMonthRent?.ownerPayoutAmount || 0
+                                )}
+                              </p>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Badge variant="outline" className="capitalize">
+                                {payout.firstMonthRent?.ownerPayoutMethod?.replace(
+                                  "_",
+                                  " "
+                                ) || "N/A"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <p className="text-sm text-gray-600 truncate max-w-[150px]">
+                                {payout.firstMonthRent?.ownerPayoutReference ||
+                                  "N/A"}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm text-gray-500">
+                                {payout.firstMonthRent?.ownerPayoutDate
+                                  ? formatDate(
+                                      payout.firstMonthRent.ownerPayoutDate
+                                    )
+                                  : "N/A"}
+                              </p>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </section>
 
-        {/* Recent Payouts Tab */}
-        <TabsContent value="recent">
-          {recentPayouts.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Recent Payouts
-                </h3>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Property</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentPayouts.map((payout) => (
-                      <TableRow key={payout._id}>
-                        <TableCell className="font-medium">
-                          {payout.ownerId?.fullName || "N/A"}
-                        </TableCell>
-                        <TableCell>{payout.listingId?.pgName || "N/A"}</TableCell>
-                        <TableCell className="font-bold text-green-600">
-                          {formatCurrency(payout.firstMonthRent?.ownerPayoutAmount || 0)}
-                        </TableCell>
-                        <TableCell className="capitalize">
-                          {payout.firstMonthRent?.ownerPayoutMethod?.replace("_", " ") || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {payout.firstMonthRent?.ownerPayoutReference || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {payout.firstMonthRent?.ownerPayoutDate
-                            ? formatDate(payout.firstMonthRent.ownerPayoutDate)
-                            : "N/A"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Process Payout Dialog */}
+      {/* ═══════════════════════════════════════════════════════════════════
+          DIALOG: PROCESS PAYOUT
+      ═══════════════════════════════════════════════════════════════════ */}
       <Dialog open={showPayoutDialog} onOpenChange={setShowPayoutDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Process Owner Payout</DialogTitle>
             <DialogDescription>
-              Transfer{" "}
-              {payoutType === "first_month"
-                ? "90% first month rent"
-                : payoutType === "security_deposit"
-                ? "security deposit"
-                : "90% monthly rent"}{" "}
-              to owners
+              Transfer {getPayoutTypeLabel()} to owners
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Summary */}
+            {/* Payout Summary */}
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-green-700">Total Payout Amount</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-green-700">Total Amount</span>
                 <span className="text-2xl font-bold text-green-800">
                   {formatCurrency(getSelectedAmount())}
                 </span>
               </div>
-              <p className="text-xs text-green-600 mt-1">
-                {selectedItems.length} item(s) selected
+              <Separator className="my-2 bg-green-200" />
+              <p className="text-xs text-green-600">
+                {selectedItems.length} item(s) selected for payout
               </p>
             </div>
 
-            {/* Payout Method */}
-            <div>
-              <Label>Payment Method *</Label>
-              <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Form Fields */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="payoutMethod">Payment Method *</Label>
+                <Select value={payoutMethod} onValueChange={setPayoutMethod}>
+                  <SelectTrigger id="payoutMethod" className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        Bank Transfer
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="upi">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        UPI
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Reference */}
-            <div>
-              <Label>Payment Reference *</Label>
-              <Input
-                value={payoutReference}
-                onChange={(e) => setPayoutReference(e.target.value)}
-                placeholder="Transaction ID, UTR number, etc."
-                className="mt-1"
-              />
-            </div>
+              <div>
+                <Label htmlFor="payoutReference">Payment Reference *</Label>
+                <Input
+                  id="payoutReference"
+                  value={payoutReference}
+                  onChange={(e) => setPayoutReference(e.target.value)}
+                  placeholder="Transaction ID, UTR number, etc."
+                  className="mt-1.5"
+                />
+              </div>
 
-            {/* Notes */}
-            <div>
-              <Label>Notes (Optional)</Label>
-              <Textarea
-                value={payoutNotes}
-                onChange={(e) => setPayoutNotes(e.target.value)}
-                placeholder="Any additional notes..."
-                className="mt-1"
-                rows={2}
-              />
+              <div>
+                <Label htmlFor="payoutNotes">Notes (Optional)</Label>
+                <Textarea
+                  id="payoutNotes"
+                  value={payoutNotes}
+                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  placeholder="Any additional notes..."
+                  className="mt-1.5"
+                  rows={2}
+                />
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setShowPayoutDialog(false)}

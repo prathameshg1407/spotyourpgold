@@ -19,8 +19,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -30,16 +28,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Calendar,
   Clock,
   MapPin,
   Phone,
   Mail,
-  Trash2,
   Eye,
   Search,
   RefreshCw,
@@ -52,6 +46,8 @@ import {
   AlertCircle,
   IndianRupee,
   Filter,
+  Download,
+  TrendingUp,
 } from "lucide-react";
 import { BlurImage } from "@/components/BlurImage";
 
@@ -142,14 +138,9 @@ export default function AdminBookingRequestsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
 
-  // Dialogs
+  // View Dialog
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [newStatus, setNewStatus] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
-  const [processing, setProcessing] = useState(false);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -193,49 +184,10 @@ export default function AdminBookingRequestsPage() {
     fetchBookings();
   };
 
-  const handleUpdateStatus = async () => {
-    if (!selectedBooking || !newStatus) return;
-
-    setProcessing(true);
-    try {
-      const response = await axios.patch(`/api/admin/booking/${selectedBooking._id}`, {
-        status: newStatus,
-        adminNotes,
-      });
-
-      if (response.data.success) {
-        toast.success("Booking status updated");
-        setShowStatusDialog(false);
-        setSelectedBooking(null);
-        setNewStatus("");
-        setAdminNotes("");
-        fetchBookings();
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update status");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleDeleteBooking = async () => {
-    if (!selectedBooking) return;
-
-    setProcessing(true);
-    try {
-      const response = await axios.delete(`/api/admin/booking/${selectedBooking._id}`);
-
-      if (response.data.success) {
-        toast.success("Booking deleted successfully");
-        setShowDeleteDialog(false);
-        setSelectedBooking(null);
-        fetchBookings();
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to delete booking");
-    } finally {
-      setProcessing(false);
-    }
+  const handleExportData = () => {
+    // Export functionality for reports
+    toast.success("Exporting booking data...");
+    // Implementation would go here
   };
 
   const formatCurrency = (amount: number) =>
@@ -322,16 +274,22 @@ export default function AdminBookingRequestsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-poppins">
-            Booking <span className="text-primary">Requests</span>
+            Booking <span className="text-primary">Overview</span>
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage all booking requests across the platform
+            Monitor all booking activity across the platform
           </p>
         </div>
-        <Button variant="outline" onClick={fetchBookings} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportData}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" onClick={fetchBookings} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -339,46 +297,81 @@ export default function AdminBookingRequestsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-gray-500">Total</p>
-              <p className="text-xl font-bold">{stats.totalBookings}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500">Total</p>
+                  <p className="text-xl font-bold">{stats.totalBookings}</p>
+                </div>
+                <Calendar className="h-5 w-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-yellow-200">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-yellow-600">Pending</p>
+                  <p className="text-xl font-bold text-yellow-700">{stats.pendingBookings}</p>
+                </div>
+                <Clock className="h-5 w-5 text-yellow-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-blue-200">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-blue-600">Confirmed</p>
+                  <p className="text-xl font-bold text-blue-700">{stats.confirmedBookings}</p>
+                </div>
+                <CheckCircle className="h-5 w-5 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-green-200">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-green-600">Active</p>
+                  <p className="text-xl font-bold text-green-700">{stats.activeBookings}</p>
+                </div>
+                <User className="h-5 w-5 text-green-400" />
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-yellow-600">Pending</p>
-              <p className="text-xl font-bold text-yellow-700">{stats.pendingBookings}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-blue-600">Online</p>
+                  <p className="text-xl font-bold">{stats.onlinePayments}</p>
+                </div>
+                <CreditCard className="h-5 w-5 text-blue-400" />
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-blue-600">Confirmed</p>
-              <p className="text-xl font-bold text-blue-700">{stats.confirmedBookings}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-orange-600">Cash</p>
+                  <p className="text-xl font-bold">{stats.cashPayments}</p>
+                </div>
+                <Banknote className="h-5 w-5 text-orange-400" />
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-300">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-green-600">Active</p>
-              <p className="text-xl font-bold text-green-700">{stats.activeBookings}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-blue-600">Online</p>
-              <p className="text-xl font-bold">{stats.onlinePayments}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-orange-600">Cash</p>
-              <p className="text-xl font-bold">{stats.cashPayments}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-50">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-green-600">Revenue (10%)</p>
-              <p className="text-xl font-bold text-green-700">
-                {formatCurrency(stats.totalRevenue)}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-green-600">Revenue</p>
+                  <p className="text-xl font-bold text-green-700">
+                    {formatCurrency(stats.totalRevenue)}
+                  </p>
+                </div>
+                <TrendingUp className="h-5 w-5 text-green-500" />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -456,7 +449,7 @@ export default function AdminBookingRequestsPage() {
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -530,40 +523,17 @@ export default function AdminBookingRequestsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setShowDetailDialog(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setNewStatus(booking.status);
-                              setShowStatusDialog(true);
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setShowDetailDialog(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -578,7 +548,7 @@ export default function AdminBookingRequestsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages} ({total} total)
+            Showing {((currentPage - 1) * 20) + 1} - {Math.min(currentPage * 20, total)} of {total} bookings
           </p>
           <div className="flex gap-2">
             <Button
@@ -589,6 +559,31 @@ export default function AdminBookingRequestsPage() {
             >
               Previous
             </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={i}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0"
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -601,9 +596,9 @@ export default function AdminBookingRequestsPage() {
         </div>
       )}
 
-      {/* Detail Dialog */}
+      {/* View-Only Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Booking Details</DialogTitle>
           </DialogHeader>
@@ -643,246 +638,239 @@ export default function AdminBookingRequestsPage() {
                 </div>
               </div>
 
-              {/* Tenant Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Tenant Details
-                  </h4>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-500">Name:</span> {selectedBooking.fullName}</p>
-                    <p><span className="text-gray-500">Email:</span> {selectedBooking.email}</p>
-                    <p><span className="text-gray-500">Phone:</span> {selectedBooking.phoneNumber}</p>
-                    {selectedBooking.aadhaarNumber && (
-                      <p><span className="text-gray-500">Aadhaar:</span> {selectedBooking.aadhaarNumber}</p>
-                    )}
-                  </div>
-                </div>
+              {/* Info Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Tenant Information */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Tenant Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500 text-xs">Name</p>
+                        <p className="font-medium">{selectedBooking.fullName}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Email</p>
+                        <p className="font-medium break-all">{selectedBooking.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Phone</p>
+                        <p className="font-medium">{selectedBooking.phoneNumber}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    Owner Details
-                  </h4>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-500">Name:</span> {selectedBooking.ownerId?.fullName || "N/A"}</p>
-                    <p><span className="text-gray-500">Email:</span> {selectedBooking.ownerId?.email || "N/A"}</p>
-                    <p><span className="text-gray-500">Phone:</span> {selectedBooking.ownerId?.phone || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
+                {/* Owner Information */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Owner Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500 text-xs">Name</p>
+                        <p className="font-medium">{selectedBooking.ownerId?.fullName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Email</p>
+                        <p className="font-medium break-all">{selectedBooking.ownerId?.email || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Phone</p>
+                        <p className="font-medium">{selectedBooking.ownerId?.phone || "N/A"}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Booking Details */}
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold mb-2">Booking Details</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Room Type</p>
-                    <p className="font-medium">{selectedBooking.roomType}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Move-in Date</p>
-                    <p className="font-medium">{formatDate(selectedBooking.moveInDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Duration</p>
-                    <p className="font-medium">{selectedBooking.duration} month(s)</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Monthly Rent</p>
-                    <p className="font-medium">{formatCurrency(selectedBooking.monthlyRent)}</p>
-                  </div>
-                </div>
+                {/* Booking Info */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Booking Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500 text-xs">Room Type</p>
+                        <p className="font-medium">{selectedBooking.roomType}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Move-in Date</p>
+                        <p className="font-medium">{formatDate(selectedBooking.moveInDate)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Duration</p>
+                        <p className="font-medium">{selectedBooking.duration} month(s)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Payment Breakdown */}
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold mb-3">Payment Breakdown</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Booking Fee (10%)</p>
-                      <p className="text-xs text-gray-500">
-                        {selectedBooking.paymentMethod === "online"
-                          ? "Admin Revenue"
-                          : "Owner owes Admin"}
-                      </p>
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-sm">Payment Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-2 border-b">
+                      <div>
+                        <p className="font-medium">Monthly Rent</p>
+                        <p className="text-xs text-gray-500">Base rent amount</p>
+                      </div>
+                      <p className="font-bold text-lg">{formatCurrency(selectedBooking.monthlyRent)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(selectedBooking.bookingFee.amount)}</p>
-                      {getPaymentStatusBadge(selectedBooking.bookingFee.status)}
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-sm">Booking Fee (10%)</p>
+                        <p className="text-xs text-gray-500">
+                          Platform commission
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{formatCurrency(selectedBooking.bookingFee.amount)}</p>
+                        {getPaymentStatusBadge(selectedBooking.bookingFee.status)}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-sm">Security Deposit</p>
+                        <p className="text-xs text-gray-500">
+                          {selectedBooking.securityDeposit.transferredToOwner
+                            ? "Transferred to owner"
+                            : "Held for owner"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{formatCurrency(selectedBooking.securityDeposit.amount)}</p>
+                        {getPaymentStatusBadge(selectedBooking.securityDeposit.status)}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-sm">First Month Rent (90%)</p>
+                        <p className="text-xs text-gray-500">
+                          Owner's share
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{formatCurrency(selectedBooking.firstMonthRent.amount)}</p>
+                        {getPaymentStatusBadge(selectedBooking.firstMonthRent.status)}
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-3 flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">Total Amount</p>
+                        <p className="text-xs text-green-600">
+                          Paid: {formatCurrency(selectedBooking.totalPaid)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-xl text-green-700">
+                          {formatCurrency(selectedBooking.totalDue)}
+                        </p>
+                        {selectedBooking.totalPaid >= selectedBooking.totalDue && (
+                          <Badge className="bg-green-100 text-green-800 mt-1">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Fully Paid
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Security Deposit</p>
-                      <p className="text-xs text-gray-500">
-                        {selectedBooking.paymentMethod === "online"
-                          ? selectedBooking.securityDeposit.transferredToOwner
-                            ? "Transferred to Owner"
-                            : "Pending Transfer to Owner"
-                          : "With Owner"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(selectedBooking.securityDeposit.amount)}</p>
-                      {getPaymentStatusBadge(selectedBooking.securityDeposit.status)}
-                    </div>
-                  </div>
+              {/* Additional Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Address */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm">Tenant Address</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">
+                      {selectedBooking.address.street}, {selectedBooking.address.city},{" "}
+                      {selectedBooking.address.state} - {selectedBooking.address.pincode}
+                    </p>
+                  </CardContent>
+                </Card>
 
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">First Month Rent (90%)</p>
-                      <p className="text-xs text-gray-500">
-                        {selectedBooking.paymentMethod === "online"
-                          ? selectedBooking.firstMonthRent.ownerPayoutStatus === "completed"
-                            ? "Paid to Owner"
-                            : "Pending Payout to Owner"
-                          : "With Owner"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(selectedBooking.firstMonthRent.amount)}</p>
-                      {getPaymentStatusBadge(selectedBooking.firstMonthRent.status)}
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-3 flex justify-between items-center">
-                    <p className="font-semibold">Total</p>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">{formatCurrency(selectedBooking.totalDue)}</p>
-                      <p className="text-sm text-green-600">
-                        Paid: {formatCurrency(selectedBooking.totalPaid)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-2">Tenant Address</h4>
-                <p className="text-sm">
-                  {selectedBooking.address.street}, {selectedBooking.address.city},{" "}
-                  {selectedBooking.address.state} - {selectedBooking.address.pincode}
-                </p>
+                {/* Requirements */}
+                {selectedBooking.additionalRequirements && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Additional Requirements</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">{selectedBooking.additionalRequirements}</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Timestamps */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Created At</p>
-                  <p className="font-medium">{formatDateTime(selectedBooking.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Last Updated</p>
-                  <p className="font-medium">{formatDateTime(selectedBooking.updatedAt)}</p>
-                </div>
-                {selectedBooking.cashCollectedAt && (
-                  <div>
-                    <p className="text-gray-500">Cash Collected At</p>
-                    <p className="font-medium">{formatDateTime(selectedBooking.cashCollectedAt)}</p>
+              <Card className="bg-gray-50">
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 text-xs">Created</p>
+                      <p className="font-medium">{formatDateTime(selectedBooking.createdAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Updated</p>
+                      <p className="font-medium">{formatDateTime(selectedBooking.updatedAt)}</p>
+                    </div>
+                    {selectedBooking.cashCollectedAt && (
+                      <div>
+                        <p className="text-gray-500 text-xs">Cash Collected</p>
+                        <p className="font-medium">{formatDateTime(selectedBooking.cashCollectedAt)}</p>
+                      </div>
+                    )}
+                    {selectedBooking.adminVerifiedAt && (
+                      <div>
+                        <p className="text-gray-500 text-xs">Verified</p>
+                        <p className="font-medium">{formatDateTime(selectedBooking.adminVerifiedAt)}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-                {selectedBooking.adminVerifiedAt && (
-                  <div>
-                    <p className="text-gray-500">Admin Verified At</p>
-                    <p className="font-medium">{formatDateTime(selectedBooking.adminVerifiedAt)}</p>
+                </CardContent>
+              </Card>
+
+              {/* Note for Admin */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-900 mb-1">Admin View Only</p>
+                      <p className="text-blue-700">
+                        This is a read-only view. Booking management (approval, rejection, status updates) 
+                        should be handled by the property owner through their dashboard.
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Update Status Dialog */}
-      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Booking Status</DialogTitle>
-            <DialogDescription>
-              Change the status of this booking request
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>New Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Admin Notes (Optional)</Label>
-              <Textarea
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Add notes about this status change..."
-                className="mt-1"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateStatus} disabled={processing}>
-              {processing ? "Updating..." : "Update Status"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Booking</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this booking? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800 font-medium">
-                This will permanently delete:
-              </p>
-              <ul className="text-sm text-red-700 mt-2 list-disc list-inside">
-                <li>Booking details</li>
-                <li>Associated commission records</li>
-                <li>Related notifications</li>
-              </ul>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteBooking}
-              disabled={processing}
-            >
-              {processing ? "Deleting..." : "Delete Booking"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

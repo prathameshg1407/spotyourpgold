@@ -1,15 +1,15 @@
-// app/api/booking/[id]/cash-payment/route.ts
+// app/api/booking/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import Booking from "@/models/booking";
-import Commission from "@/models/commission";
-import User from "@/models/user";
+import Listing from "@/models/listing";
 import Notification from "@/models/notification";
+import User from "@/models/user";
 import { authUser } from "@/actions/authUser";
 
-// Owner records cash payment collected from tenant
-export async function POST(
+// PATCH - Update booking status (owner approval/rejection)
+export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -27,24 +27,22 @@ export async function POST(
     }
 
     const { id: bookingId } = await params;
-    const { 
-      paymentType, // "booking_fee" | "security_deposit" | "first_month_rent" | "all"
-      proofUrl,
-      amount,
-      notes,
-    } = await req.json();
+    const { status, ownerNotes } = await req.json();
 
-    if (!paymentType) {
+    // Validate status
+    if (!status || !["confirmed", "rejected", "cancelled"].includes(status)) {
       return NextResponse.json(
-        { success: false, message: "Payment type is required" },
+        { success: false, message: "Invalid status" },
         { status: 400 }
       );
     }
 
     session.startTransaction();
 
+    // Find booking with listing details
     const booking = await Booking.findById(bookingId)
-      .populate("listingId", "ownerId pgName")
+      .populate("listingId", "pgName ownerId location primaryImage roomTypes")
+      .populate("userId", "fullName email phone")
       .session(session);
 
     if (!booking) {
@@ -55,205 +53,180 @@ export async function POST(
       );
     }
 
+    // Verify user is the owner of the listing
     const listing = booking.listingId as any;
-
-    // Verify user is the owner
-    if (listing.ownerId.toString() !== user.id && user.role !== "admin") {
+    if (listing.ownerId.toString() !== user.id) {
       await session.abortTransaction();
       return NextResponse.json(
-        { success: false, message: "Unauthorized - Not the owner" },
+        { 
+          success: false, 
+          message: "Unauthorized - You can only manage bookings for your own properties" 
+        },
         { status: 403 }
       );
     }
 
-    // Verify booking is for cash payment
-    if (booking.paymentMethod !== "cash") {
+    // Check current booking status
+    if (booking.status !== "pending") {
       await session.abortTransaction();
       return NextResponse.json(
-        { success: false, message: "This booking is not for cash payment" },
-        { status: 400 }
-      );
-    }
-
-    // Verify booking is confirmed
-    if (booking.status !== "confirmed" && booking.status !== "pending") {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "Invalid booking status for payment" },
-        { status: 400 }
-      );
-    }
-
-    const now = new Date();
-    let paymentsUpdated: string[] = [];
-    let totalCollected = 0;
-
-    // Process payments based on type
-    if (paymentType === "booking_fee" || paymentType === "all") {
-      if (booking.bookingFee.status === "pending") {
-        booking.bookingFee.status = "paid";
-        booking.bookingFee.paidAt = now;
-        booking.bookingFee.paymentReference = proofUrl || "";
-        booking.totalPaid += booking.bookingFee.amount;
-        totalCollected += booking.bookingFee.amount;
-        paymentsUpdated.push("booking_fee");
-
-        if (proofUrl) {
-          booking.cashPaymentProof.bookingFeeProof = proofUrl;
-        }
-      }
-    }
-
-    if (paymentType === "security_deposit" || paymentType === "all") {
-      if (booking.securityDeposit.status === "pending") {
-        booking.securityDeposit.status = "paid";
-        booking.securityDeposit.paidAt = now;
-        booking.securityDeposit.paidTo = "owner";
-        booking.securityDeposit.paymentReference = proofUrl || "";
-        booking.totalPaid += booking.securityDeposit.amount;
-        totalCollected += booking.securityDeposit.amount;
-        paymentsUpdated.push("security_deposit");
-
-        if (proofUrl) {
-          booking.cashPaymentProof.securityDepositProof = proofUrl;
-        }
-      }
-    }
-
-    if (paymentType === "first_month_rent" || paymentType === "all") {
-      if (booking.firstMonthRent.status === "pending") {
-        booking.firstMonthRent.status = "paid";
-        booking.firstMonthRent.paidAt = now;
-        booking.firstMonthRent.paidTo = "owner";
-        booking.firstMonthRent.paymentReference = proofUrl || "";
-        booking.totalPaid += booking.firstMonthRent.amount;
-        totalCollected += booking.firstMonthRent.amount;
-        paymentsUpdated.push("first_month_rent");
-
-        if (proofUrl) {
-          booking.cashPaymentProof.firstMonthRentProof = proofUrl;
-        }
-      }
-    }
-
-    if (paymentsUpdated.length === 0) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { success: false, message: "No pending payments to process" },
-        { status: 400 }
-      );
-    }
-
-    // Update cash collection metadata
-    booking.cashCollectedBy = user.fullName;
-    booking.cashCollectedAt = now;
-
-    if (notes) {
-      booking.ownerNotes = `${booking.ownerNotes || ""}\n[${now.toISOString()}] Cash payment: ${notes}`;
-    }
-
-    // Check if all payments are complete
-    const allPaymentsComplete = 
-      booking.bookingFee.status === "paid" &&
-      booking.securityDeposit.status === "paid" &&
-      booking.firstMonthRent.status === "paid";
-
-    if (allPaymentsComplete) {
-      booking.status = "active";
-
-      // Calculate admin commission (10% of first month rent)
-      const adminCommission = booking.bookingFee.amount;
-      booking.firstMonthRent.adminCommissionAmount = adminCommission;
-      booking.firstMonthRent.adminCommissionStatus = "pending";
-
-      // Create commission record - owner owes admin 10%
-      await Commission.create([{
-        ownerId: booking.ownerId,
-        bookingId: booking._id,
-        listingId: booking.listingId._id,
-        tenantId: booking.userId,
-        commissionType: "first_month_cash_commission",
-        paymentDirection: "owner_to_admin",
-        monthNumber: 1,
-        baseAmount: booking.monthlyRent,
-        commissionRate: 0.1,
-        commissionAmount: adminCommission,
-        status: "pending",
-        dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        notes: "Commission due from cash payment collection",
-      }], { session });
-
-      // Update owner's pending commission
-      await User.findByIdAndUpdate(
-        booking.ownerId,
-        {
-          $inc: {
-            "settlementSummary.pendingCommissionAmount": adminCommission,
-          },
+        { 
+          success: false, 
+          message: `Cannot ${status} booking. Current status: ${booking.status}` 
         },
-        { session }
+        { status: 400 }
       );
     }
 
-    await booking.save({ session });
+    // Build update object
+    const updateData: any = {
+      status: status,
+      updatedAt: new Date(),
+    };
 
-    // Notify admin about cash collection
-    const admins = await User.find({ role: "admin" }).select("_id").session(session);
-    for (const admin of admins) {
+    // Add owner notes if provided
+    if (ownerNotes) {
+      updateData.ownerNotes = ownerNotes;
+    }
+
+    // Handle confirmed booking
+    if (status === "confirmed") {
+      // Create notification for tenant
       await Notification.create([{
-        userId: admin._id,
-        type: "payment",
-        title: "Cash Payment Collected",
-        message: `Owner ${user.fullName} collected ₹${totalCollected.toLocaleString()} (${paymentsUpdated.join(", ")}) for ${listing.pgName}.${allPaymentsComplete ? ` Commission of ₹${booking.bookingFee.amount} pending.` : ""}`,
+        userId: booking.userId._id,
+        type: "booking_update",
+        title: "Booking Approved!",
+        message: `Your booking for ${listing.pgName} has been approved by the owner.${
+          booking.paymentMethod === "online" 
+            ? " Please proceed with the payment." 
+            : " The owner will contact you for cash payment collection."
+        }`,
         relatedId: booking._id,
         relatedType: "booking",
-        priority: "medium",
+        priority: "high",
         metadata: {
-          paymentsCollected: paymentsUpdated,
-          totalCollected,
-          allPaymentsComplete,
-          commissionPending: allPaymentsComplete ? booking.bookingFee.amount : 0,
+          listingName: listing.pgName,
+          ownerName: user.fullName,
+          paymentMethod: booking.paymentMethod,
+          bookingId: booking._id.toString(),
         },
       }], { session });
+
+      // Create notification for admins
+      const admins = await User.find({ role: "admin" }).select("_id").session(session);
+      for (const admin of admins) {
+        await Notification.create([{
+          userId: admin._id,
+          type: "booking_update",
+          title: "Booking Confirmed",
+          message: `Owner ${user.fullName} has confirmed a booking for ${listing.pgName}. ${
+            booking.paymentMethod === "online"
+              ? "Payment will be collected online."
+              : "Cash payment will be collected by owner."
+          }`,
+          relatedId: booking._id,
+          relatedType: "booking",
+          priority: "medium",
+          metadata: {
+            ownerId: user.id,
+            ownerName: user.fullName,
+            listingName: listing.pgName,
+            tenantName: booking.fullName,
+            paymentMethod: booking.paymentMethod,
+            bookingFee: booking.bookingFee?.amount || 0,
+            totalAmount: booking.totalDue || 0,
+          },
+        }], { session });
+      }
+
+      // Update listing availability if needed
+      if (booking.roomType) {
+        await Listing.findByIdAndUpdate(
+          listing._id,
+          {
+            $inc: {
+              "roomTypes.$[room].availableRooms": -1,
+            },
+          },
+          {
+            arrayFilters: [{ "room.type": booking.roomType }],
+            session,
+          }
+        );
+      }
     }
 
-    // Notify tenant
-    await Notification.create([{
-      userId: booking.userId,
-      type: "payment",
-      title: "Payment Received",
-      message: `Your cash payment of ₹${totalCollected.toLocaleString()} for ${listing.pgName} has been recorded.`,
-      relatedId: booking._id,
-      relatedType: "booking",
-      priority: "medium",
-    }], { session });
+    // Handle rejected booking
+    if (status === "rejected") {
+      // Create notification for tenant
+      await Notification.create([{
+        userId: booking.userId._id,
+        type: "booking_update",
+        title: "Booking Rejected",
+        message: `Your booking for ${listing.pgName} has been rejected by the owner.${
+          ownerNotes ? ` Reason: ${ownerNotes}` : ""
+        }`,
+        relatedId: booking._id,
+        relatedType: "booking",
+        priority: "high",
+        metadata: {
+          listingName: listing.pgName,
+          ownerName: user.fullName,
+          reason: ownerNotes || "No reason provided",
+        },
+      }], { session });
+
+      // If any payment was made, it needs to be refunded (handled separately)
+      if (booking.totalPaid > 0) {
+        updateData.refundStatus = "pending";
+        updateData.refundAmount = booking.totalPaid;
+        
+        // Notify admins about pending refund
+        const admins = await User.find({ role: "admin" }).select("_id").session(session);
+        for (const admin of admins) {
+          await Notification.create([{
+            userId: admin._id,
+            type: "payment",
+            title: "Refund Required",
+            message: `Booking for ${listing.pgName} was rejected. Refund of ₹${booking.totalPaid.toLocaleString()} is pending.`,
+            relatedId: booking._id,
+            relatedType: "booking",
+            priority: "high",
+            metadata: {
+              bookingId: booking._id.toString(),
+              refundAmount: booking.totalPaid,
+              tenantName: booking.fullName,
+              listingName: listing.pgName,
+            },
+          }], { session });
+        }
+      }
+    }
+
+    // Use findByIdAndUpdate instead of save() to avoid validation issues
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateData },
+      { 
+        new: true, 
+        session,
+        runValidators: false // Disable validators for partial update
+      }
+    )
+    .populate("listingId", "pgName primaryImage location")
+    .populate("userId", "fullName email phone");
 
     await session.commitTransaction();
 
     return NextResponse.json({
       success: true,
-      message: "Cash payment recorded successfully",
-      data: {
-        booking: {
-          _id: booking._id,
-          status: booking.status,
-          paymentBreakdown: {
-            bookingFee: booking.bookingFee,
-            securityDeposit: booking.securityDeposit,
-            firstMonthRent: booking.firstMonthRent,
-          },
-          totalPaid: booking.totalPaid,
-          totalDue: booking.totalDue,
-        },
-        paymentsUpdated,
-        totalCollected,
-        allPaymentsComplete,
-        commissionPending: allPaymentsComplete ? booking.bookingFee.amount : 0,
-      },
+      message: `Booking ${status} successfully`,
+      data: updatedBooking,
     });
+
   } catch (error) {
     await session.abortTransaction();
-    console.error("Cash payment error:", error);
+    console.error("Update booking error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -267,7 +240,7 @@ export async function POST(
   }
 }
 
-// GET - Get cash payment status
+// GET - Get single booking details
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -286,8 +259,9 @@ export async function GET(
     const { id: bookingId } = await params;
 
     const booking = await Booking.findById(bookingId)
-      .populate("listingId", "pgName ownerId")
-      .select("paymentMethod bookingFee securityDeposit firstMonthRent cashPaymentProof cashCollectedBy cashCollectedAt totalPaid totalDue status");
+      .populate("listingId", "pgName primaryImage location ownerId roomTypes")
+      .populate("userId", "fullName email phone")
+      .populate("ownerId", "fullName email phone");
 
     if (!booking) {
       return NextResponse.json(
@@ -297,40 +271,200 @@ export async function GET(
     }
 
     // Check authorization
-    const isOwner = booking.listingId.ownerId.toString() === user.id;
-    const isTenant = booking.userId?.toString() === user.id;
+    const listing = booking.listingId as any;
+    const isOwner = listing?.ownerId?.toString() === user.id;
+    const isTenant = booking.userId?._id?.toString() === user.id;
     const isAdmin = user.role === "admin";
 
     if (!isOwner && !isTenant && !isAdmin) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
+        { success: false, message: "Unauthorized to view this booking" },
         { status: 403 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: {
-        paymentMethod: booking.paymentMethod,
-        status: booking.status,
-        paymentBreakdown: {
-          bookingFee: booking.bookingFee,
-          securityDeposit: booking.securityDeposit,
-          firstMonthRent: booking.firstMonthRent,
-        },
-        cashPaymentProof: booking.cashPaymentProof,
-        cashCollectedBy: booking.cashCollectedBy,
-        cashCollectedAt: booking.cashCollectedAt,
-        totalPaid: booking.totalPaid,
-        totalDue: booking.totalDue,
-        pendingAmount: booking.totalDue - booking.totalPaid,
-      },
+      data: booking,
     });
+
   } catch (error) {
-    console.error("Get cash payment status error:", error);
+    console.error("Get booking error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      {
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
+  }
+}
+
+// DELETE - Cancel booking (by tenant or owner)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await mongoose.startSession();
+
+  try {
+    await connectToDB();
+
+    const user = await authUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id: bookingId } = await params;
+    
+    let reason = "";
+    try {
+      const body = await req.json();
+      reason = body.reason || "";
+    } catch {
+      // No body provided
+    }
+
+    session.startTransaction();
+
+    const booking = await Booking.findById(bookingId)
+      .populate("listingId", "pgName ownerId")
+      .session(session);
+
+    if (!booking) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { success: false, message: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check authorization
+    const listing = booking.listingId as any;
+    const isOwner = listing?.ownerId?.toString() === user.id;
+    const isTenant = booking.userId?.toString() === user.id;
+
+    if (!isOwner && !isTenant) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { success: false, message: "Unauthorized to cancel this booking" },
+        { status: 403 }
+      );
+    }
+
+    // Check if booking can be cancelled
+    if (!["pending", "confirmed"].includes(booking.status)) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Cannot cancel booking with status: ${booking.status}` 
+        },
+        { status: 400 }
+      );
+    }
+
+    const previousStatus = booking.status;
+
+    // Build update object
+    const updateData: any = {
+      status: "cancelled",
+      cancelledBy: user.id,
+      cancelledAt: new Date(),
+      cancellationReason: reason || "No reason provided",
+    };
+
+    // Handle refunds if payment was made
+    if (booking.totalPaid > 0) {
+      updateData.refundStatus = "pending";
+      updateData.refundAmount = booking.totalPaid;
+
+      // Notify admins about pending refund
+      const admins = await User.find({ role: "admin" }).select("_id").session(session);
+      for (const admin of admins) {
+        await Notification.create([{
+          userId: admin._id,
+          type: "payment",
+          title: "Refund Required - Booking Cancelled",
+          message: `Booking for ${listing.pgName} was cancelled. Refund of ₹${booking.totalPaid.toLocaleString()} is pending.`,
+          relatedId: booking._id,
+          relatedType: "booking",
+          priority: "high",
+          metadata: {
+            bookingId: booking._id.toString(),
+            refundAmount: booking.totalPaid,
+            cancelledBy: isOwner ? "owner" : "tenant",
+            tenantName: booking.fullName,
+            listingName: listing.pgName,
+          },
+        }], { session });
+      }
+    }
+
+    // Update room availability if booking was confirmed
+    if (previousStatus === "confirmed" && booking.roomType) {
+      await Listing.findByIdAndUpdate(
+        listing._id,
+        {
+          $inc: {
+            "roomTypes.$[room].availableRooms": 1,
+          },
+        },
+        {
+          arrayFilters: [{ "room.type": booking.roomType }],
+          session,
+        }
+      );
+    }
+
+    // Update booking using findByIdAndUpdate
+    await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateData },
+      { session, runValidators: false }
+    );
+
+    // Send notifications
+    const notificationRecipient = isOwner ? booking.userId : listing.ownerId;
+    await Notification.create([{
+      userId: notificationRecipient,
+      type: "booking_cancelled",
+      title: "Booking Cancelled",
+      message: `Booking for ${listing.pgName} has been cancelled${reason ? `: ${reason}` : "."}`,
+      relatedId: booking._id,
+      relatedType: "booking",
+      priority: "high",
+    }], { session });
+
+    await session.commitTransaction();
+
+    return NextResponse.json({
+      success: true,
+      message: "Booking cancelled successfully",
+      data: {
+        bookingId: booking._id,
+        status: "cancelled",
+        refundPending: booking.totalPaid > 0,
+        refundAmount: booking.totalPaid > 0 ? booking.totalPaid : 0,
+      },
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Cancel booking error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  } finally {
+    session.endSession();
   }
 }

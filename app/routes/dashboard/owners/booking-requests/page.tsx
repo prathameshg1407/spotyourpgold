@@ -75,7 +75,7 @@ interface BookingRequest {
   status: "pending" | "confirmed" | "rejected" | "cancelled" | "completed" | "active";
   
   // Payment details
-  monthlyRent: number;
+  monthlyRent?: number; // Added as optional since it might not always be present
   bookingFee: {
     amount: number;
     status: "pending" | "paid";
@@ -251,14 +251,14 @@ export default function BookingRequestsPage() {
 
     if (booking.paymentMethod === "online") {
       // Check if owner has received their 90% payout
-      if (booking.firstMonthRent.ownerPayoutStatus === "pending") {
+      if (booking.firstMonthRent?.ownerPayoutStatus === "pending") {
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
             <Clock className="w-3 h-3 mr-1" />
             Payout Pending
           </Badge>
         );
-      } else if (booking.firstMonthRent.ownerPayoutStatus === "completed") {
+      } else if (booking.firstMonthRent?.ownerPayoutStatus === "completed") {
         return (
           <Badge className="bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -270,14 +270,14 @@ export default function BookingRequestsPage() {
 
     if (booking.paymentMethod === "cash") {
       // Check if owner has paid commission to admin
-      if (booking.bookingFee.ownerCommissionStatus === "pending") {
+      if (booking.bookingFee?.ownerCommissionStatus === "pending") {
         return (
           <Badge className="bg-orange-100 text-orange-800">
             <AlertCircle className="w-3 h-3 mr-1" />
             Commission Due
           </Badge>
         );
-      } else if (booking.bookingFee.ownerCommissionStatus === "paid") {
+      } else if (booking.bookingFee?.ownerCommissionStatus === "paid") {
         return (
           <Badge className="bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -299,13 +299,17 @@ export default function BookingRequestsPage() {
     return (
       <Badge variant="outline">
         <Clock className="w-3 h-3 mr-1" />
-        {booking.paymentStatus.replace("_", " ")}
+        {booking.paymentStatus?.replace("_", " ") || "pending"}
       </Badge>
     );
   };
 
   const getPaymentBreakdown = (booking: BookingRequest) => {
-    const total = booking.bookingFee.amount + booking.firstMonthRent.amount + booking.securityDeposit.amount;
+    // Safely get amounts with fallbacks
+    const bookingFeeAmount = booking.bookingFee?.amount || 0;
+    const firstMonthAmount = booking.firstMonthRent?.amount || 0;
+    const securityAmount = booking.securityDeposit?.amount || 0;
+    const total = bookingFeeAmount + firstMonthAmount + securityAmount;
     
     return (
       <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
@@ -315,7 +319,7 @@ export default function BookingRequestsPage() {
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Booking Fee (10%)</span>
           <div className="text-right">
-            <span className="font-medium">₹{booking.bookingFee.amount.toLocaleString()}</span>
+            <span className="font-medium">₹{bookingFeeAmount.toLocaleString()}</span>
             {booking.paymentMethod === "online" && (
               <p className="text-xs text-gray-500">Admin keeps this</p>
             )}
@@ -329,7 +333,7 @@ export default function BookingRequestsPage() {
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">First Month Rent (90%)</span>
           <div className="text-right">
-            <span className="font-medium">₹{booking.firstMonthRent.amount.toLocaleString()}</span>
+            <span className="font-medium">₹{firstMonthAmount.toLocaleString()}</span>
             {booking.paymentMethod === "online" && (
               <p className="text-xs text-green-600">You'll receive this</p>
             )}
@@ -343,7 +347,7 @@ export default function BookingRequestsPage() {
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Security Deposit</span>
           <div className="text-right">
-            <span className="font-medium">₹{booking.securityDeposit.amount.toLocaleString()}</span>
+            <span className="font-medium">₹{securityAmount.toLocaleString()}</span>
             <p className="text-xs text-gray-500">Refundable</p>
           </div>
         </div>
@@ -360,7 +364,7 @@ export default function BookingRequestsPage() {
             <div>
               <p className="text-sm font-medium text-green-700">Your Payout (from Admin):</p>
               <p className="text-xl font-bold text-green-800">
-                ₹{(booking.firstMonthRent.amount + booking.securityDeposit.amount).toLocaleString()}
+                ₹{(firstMonthAmount + securityAmount).toLocaleString()}
               </p>
               <p className="text-xs text-gray-600 mt-1">90% rent + security deposit</p>
             </div>
@@ -368,10 +372,10 @@ export default function BookingRequestsPage() {
             <div>
               <p className="text-sm font-medium text-green-700">You Keep:</p>
               <p className="text-xl font-bold text-green-800">
-                ₹{(booking.firstMonthRent.amount + booking.securityDeposit.amount).toLocaleString()}
+                ₹{(firstMonthAmount + securityAmount).toLocaleString()}
               </p>
               <p className="text-xs text-orange-600 mt-1">
-                Commission due: ₹{booking.bookingFee.amount.toLocaleString()}
+                Commission due: ₹{bookingFeeAmount.toLocaleString()}
               </p>
             </div>
           ) : null}
@@ -386,6 +390,22 @@ export default function BookingRequestsPage() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Helper function to calculate monthly rent from booking fee (10% of monthly rent)
+  const getMonthlyRent = (booking: BookingRequest) => {
+    if (booking.monthlyRent) {
+      return booking.monthlyRent;
+    }
+    // If monthlyRent is not available, calculate from booking fee (which is 10%)
+    if (booking.bookingFee?.amount) {
+      return booking.bookingFee.amount * 10;
+    }
+    // If firstMonthRent is available, use it as an approximation
+    if (booking.firstMonthRent?.amount) {
+      return booking.firstMonthRent.amount;
+    }
+    return 0;
   };
 
   if (loading && bookings.length === 0) {
@@ -480,8 +500,8 @@ export default function BookingRequestsPage() {
                       {/* Property Image */}
                       <div className="w-full sm:w-24 md:w-32 h-24 sm:h-24 md:h-32 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         <BlurImage
-                          src={booking.listingId.primaryImage}
-                          alt={booking.listingId.pgName}
+                          src={booking.listingId?.primaryImage || '/placeholder.jpg'}
+                          alt={booking.listingId?.pgName || 'Property'}
                           width={128}
                           height={128}
                           className="w-full h-full object-cover"
@@ -494,12 +514,12 @@ export default function BookingRequestsPage() {
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                             <div className="flex-1">
                               <h3 className="font-semibold text-sm sm:text-base md:text-lg text-gray-900">
-                                {booking.listingId.pgName}
+                                {booking.listingId?.pgName || 'Property Name'}
                               </h3>
                               <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-1 mt-1">
                                 <MapPin className="w-3 h-3 flex-shrink-0" />
                                 <span className="truncate">
-                                  {booking.listingId.location.area}, {booking.listingId.location.city}
+                                  {booking.listingId?.location?.area || 'Area'}, {booking.listingId?.location?.city || 'City'}
                                 </span>
                               </p>
                             </div>
@@ -524,30 +544,30 @@ export default function BookingRequestsPage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                              <span className="font-medium">{booking.fullName}</span>
+                              <span className="font-medium">{booking.fullName || 'N/A'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                              <span>{booking.phoneNumber}</span>
+                              <span>{booking.phoneNumber || 'N/A'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                              <span className="break-all">{booking.email}</span>
+                              <span className="break-all">{booking.email || 'N/A'}</span>
                             </div>
                           </div>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                              <span>Move-in: {formatDate(booking.moveInDate)}</span>
+                              <span>Move-in: {booking.moveInDate ? formatDate(booking.moveInDate) : 'N/A'}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">Room Type: </span>
-                              <span className="font-medium">{booking.roomType}</span>
+                              <span className="font-medium">{booking.roomType || 'N/A'}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">Monthly Rent: </span>
                               <span className="font-medium text-HG-600">
-                                ₹{booking.monthlyRent.toLocaleString()}
+                                ₹{getMonthlyRent(booking).toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -596,8 +616,8 @@ export default function BookingRequestsPage() {
                                     <div className="flex gap-4">
                                       <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
                                         <BlurImage
-                                          src={selectedBooking.listingId.primaryImage}
-                                          alt={selectedBooking.listingId.pgName}
+                                          src={selectedBooking.listingId?.primaryImage || '/placeholder.jpg'}
+                                          alt={selectedBooking.listingId?.pgName || 'Property'}
                                           width={96}
                                           height={96}
                                           className="w-full h-full object-cover"
@@ -605,11 +625,11 @@ export default function BookingRequestsPage() {
                                       </div>
                                       <div>
                                         <h3 className="font-semibold text-lg">
-                                          {selectedBooking.listingId.pgName}
+                                          {selectedBooking.listingId?.pgName || 'Property Name'}
                                         </h3>
                                         <p className="text-gray-600">
-                                          {selectedBooking.listingId.location.area},{" "}
-                                          {selectedBooking.listingId.location.city}
+                                          {selectedBooking.listingId?.location?.area || 'Area'},{" "}
+                                          {selectedBooking.listingId?.location?.city || 'City'}
                                         </p>
                                       </div>
                                     </div>
@@ -625,34 +645,36 @@ export default function BookingRequestsPage() {
                                           <label className="text-sm font-medium text-gray-500">
                                             Full Name
                                           </label>
-                                          <p className="font-medium">{selectedBooking.fullName}</p>
+                                          <p className="font-medium">{selectedBooking.fullName || 'N/A'}</p>
                                         </div>
                                         <div>
                                           <label className="text-sm font-medium text-gray-500">
                                             Phone
                                           </label>
                                           <p className="font-medium">
-                                            {selectedBooking.phoneNumber}
+                                            {selectedBooking.phoneNumber || 'N/A'}
                                           </p>
                                         </div>
                                         <div className="col-span-2">
                                           <label className="text-sm font-medium text-gray-500">
                                             Email
                                           </label>
-                                          <p className="font-medium">{selectedBooking.email}</p>
+                                          <p className="font-medium">{selectedBooking.email || 'N/A'}</p>
                                         </div>
                                       </div>
                                     </div>
 
                                     {/* Address */}
-                                    <div>
-                                      <h4 className="font-semibold mb-3">Address</h4>
-                                      <p className="text-gray-700">
-                                        {selectedBooking.address.street}, {selectedBooking.address.city},{" "}
-                                        {selectedBooking.address.state} -{" "}
-                                        {selectedBooking.address.pincode}
-                                      </p>
-                                    </div>
+                                    {selectedBooking.address && (
+                                      <div>
+                                        <h4 className="font-semibold mb-3">Address</h4>
+                                        <p className="text-gray-700">
+                                          {selectedBooking.address.street}, {selectedBooking.address.city},{" "}
+                                          {selectedBooking.address.state} -{" "}
+                                          {selectedBooking.address.pincode}
+                                        </p>
+                                      </div>
+                                    )}
 
                                     {/* Additional Requirements */}
                                     {selectedBooking.additionalRequirements && (
@@ -759,15 +781,15 @@ export default function BookingRequestsPage() {
                 <p className="text-2xl font-bold text-green-900">
                   ₹
                   {(
-                    selectedBooking.bookingFee.amount +
-                    selectedBooking.firstMonthRent.amount +
-                    selectedBooking.securityDeposit.amount
+                    (selectedBooking.bookingFee?.amount || 0) +
+                    (selectedBooking.firstMonthRent?.amount || 0) +
+                    (selectedBooking.securityDeposit?.amount || 0)
                   ).toLocaleString()}
                 </p>
                 <div className="mt-2 space-y-1 text-xs text-green-700">
-                  <p>• Booking Fee: ₹{selectedBooking.bookingFee.amount.toLocaleString()}</p>
-                  <p>• First Month: ₹{selectedBooking.firstMonthRent.amount.toLocaleString()}</p>
-                  <p>• Security: ₹{selectedBooking.securityDeposit.amount.toLocaleString()}</p>
+                  <p>• Booking Fee: ₹{(selectedBooking.bookingFee?.amount || 0).toLocaleString()}</p>
+                  <p>• First Month: ₹{(selectedBooking.firstMonthRent?.amount || 0).toLocaleString()}</p>
+                  <p>• Security: ₹{(selectedBooking.securityDeposit?.amount || 0).toLocaleString()}</p>
                 </div>
               </div>
 
@@ -775,7 +797,7 @@ export default function BookingRequestsPage() {
               <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <p className="text-sm text-orange-800">
                   <strong>Note:</strong> You'll owe ₹
-                  {selectedBooking.bookingFee.amount.toLocaleString()} (10%) as commission to admin
+                  {(selectedBooking.bookingFee?.amount || 0).toLocaleString()} (10%) as commission to admin
                 </p>
               </div>
 
