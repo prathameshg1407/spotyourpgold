@@ -3,7 +3,7 @@ import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import Commission from "@/models/commission";
 import Booking from "@/models/booking";
-import MonthlyRentPayment from "@/models/monthlyRentPayment";
+import MonthlyRentPayment from "@/models/MonthlyRentPayment";
 import User from "@/models/user";
 import Notification from "@/models/notification";
 import { verifyRazorpaySignature, fetchPaymentDetails } from "@/lib/razorpay";

@@ -44,15 +44,25 @@ export async function POST(req: NextRequest) {
     // Calculate total amount
     const totalAmount = commissions.reduce((sum, c) => sum + c.amount, 0);
 
+    // Generate a shorter receipt ID (max 40 chars)
+    // Option 1: Use a shorter timestamp (last 10 digits) and shorter user ID
+    const shortTimestamp = Date.now().toString().slice(-10);
+    const shortUserId = user.id.toString().slice(-8);
+    const receipt = `COM_${shortUserId}_${shortTimestamp}`;
+
+    // Option 2: Alternative - use a simple counter or random string
+    // const receipt = `COM_${Date.now().toString(36).toUpperCase()}`;
+
     // Create Razorpay order
     const razorpayOrder = await createRazorpayOrder({
       amount: totalAmount,
-      receipt: `COMMISSION_${user.id}_${Date.now()}`,
+      receipt: receipt,
       notes: {
         ownerId: user.id,
         commissionCount: commissions.length.toString(),
         commissionIds: commissionIds.join(","),
         paymentType: "commission_payment",
+        fullTimestamp: Date.now().toString(), // Store full timestamp in notes if needed
       },
     });
 

@@ -1,13 +1,18 @@
 // app/routes/pg-details/[slug]/page.tsx
 "use client";
 
-import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import axios from "axios";
+import { toast } from "sonner";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   Star,
   Phone,
   Calendar,
   MapPin,
+  Share2,
   Wifi,
   Car,
   Utensils,
@@ -29,62 +34,34 @@ import {
   DoorOpen,
   Building,
   IndianRupee,
-  UserCheck,
   AirVent,
   Droplets,
   Camera,
   Refrigerator,
   BrushIcon,
-  Share2,
-  Loader2,
-  CreditCard,
-  Wallet,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  ChevronRight,
-  Tag,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
-import {
-  IconHeart,
-  IconHeartFilled,
-  IconArrowUpRight,
-} from "@tabler/icons-react";
-import { BlurImage } from "@/components/BlurImage";
+import { IconHeart, IconHeartFilled, IconArrowUpRight } from "@tabler/icons-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import Link from "next/link";
-import { useLoadingStore } from "@/store/loading";
-import { useParams, useRouter } from "next/navigation";
-import axios from "axios";
-import { toast } from "sonner";
-import dynamic from "next/dynamic";
-import { useState, useEffect, useCallback } from "react";
 
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { useListingStore } from "@/store/listingStore";
+import { useLoadingStore } from "@/store/loading";
 import { useUserStore } from "@/store/userStore";
+import { decryptResponse, isEncryptedResponse } from "@/lib/decryption";
+
 import SectionHeading from "@/components/SectionHeading";
 import PgCard from "@/components/PgCard";
-import { FeaturedCarousel } from "@/components/FeaturedCarousel";
 import OwnerListingSection from "@/components/OwnerListingSection";
 import VisitRequestForm from "@/components/VisitRequestForm";
 import AuthModal from "@/components/AuthModal";
-import { decryptResponse, isEncryptedResponse } from "@/lib/decryption";
 
-// Import payment components
-import RazorpayCheckout, {
-  RazorpaySuccessResponse,
-} from "@/components/payments/RazorpayCheckout";
-import PaymentSteps from "@/components/payments/PaymentSteps";
+// Import our new components
+import ProductGallery from "@/components/pg-details/ProductGallery";
+import BookingModal from "@/components/pg-details/BookingModal";
 
 // Dynamic imports for maps
 const MapView = dynamic(() => import("@/components/maps/MapView"), {
@@ -108,45 +85,28 @@ const PGMapWithDistance = dynamic(
   }
 );
 
-// Amenities icon mapping (keep existing)
+// Amenities icon mapping
 const amenityIcons: Record<string, any> = {
-  wifi: Wifi,
-  "wi-fi": Wifi,
+  wifi: Wifi, "wi-fi": Wifi,
   parking: Car,
   meals: Utensils,
-  security: Shield,
-  "24x7-security": Shield,
-  "24x7 security": Shield,
-  power: Zap,
-  "power-backup": Zap,
-  "power backup": Zap,
-  ac: AirVent,
-  "air conditioning": AirVent,
+  security: Shield, "24x7-security": Shield, "24x7 security": Shield,
+  power: Zap, "power-backup": Zap, "power backup": Zap,
+  ac: AirVent, "air conditioning": AirVent,
   geyser: Zap,
-  "water-purifier": Droplets,
-  "water purifier": Droplets,
-  tv: Tv,
-  "tv/entertainment": Tv,
+  "water-purifier": Droplets, "water purifier": Droplets,
+  tv: Tv, "tv/entertainment": Tv,
   sofa: Sofa,
-  laundry: Shirt,
-  "laundry facility": Shirt,
-  bed: Bed,
-  "mattress-wardrobe": Bed,
-  "mattress and wardrobe": Bed,
+  laundry: Shirt, "laundry facility": Shirt,
+  bed: Bed, "mattress-wardrobe": Bed, "mattress and wardrobe": Bed,
   bathroom: Bath,
   kitchen: Home,
-  "combined-cooking": Coffee,
-  "combined cooking area": Coffee,
-  common: Users,
-  "common-area": Users,
-  "common area": Users,
-  "common area / lounge": Users,
+  "combined-cooking": Coffee, "combined cooking area": Coffee,
+  common: Users, "common-area": Users, "common area": Users, "common area / lounge": Users,
   coffee: Coffee,
   games: Gamepad2,
   gym: Dumbbell,
-  study: BookOpen,
-  "study-desk": BookOpen,
-  "study desk": BookOpen,
+  study: BookOpen, "study-desk": BookOpen, "study desk": BookOpen,
   library: BookOpen,
   "24/7": Clock,
   electricity: Lightbulb,
@@ -158,37 +118,19 @@ const amenityIcons: Record<string, any> = {
   cleaning: Bath,
   housekeeping: BrushIcon,
   maintenance: Home,
-  refrigerator: Refrigerator,
-  "common-refrigerator": Refrigerator,
-  "common refrigerator": Refrigerator,
-  "separate-refrigerator": Refrigerator,
-  "separate refrigerator": Refrigerator,
+  refrigerator: Refrigerator, "common-refrigerator": Refrigerator, "common refrigerator": Refrigerator,
+  "separate-refrigerator": Refrigerator, "separate refrigerator": Refrigerator,
 };
 
-// Room type icons mapping (keep existing)
+// Room type icons mapping
 const roomTypeIcons: Record<string, any> = {
-  single: Bed,
-  double: Users,
-  triple: Building,
-  shared: Users,
-  private: DoorOpen,
-  "1 bhk": Home,
-  "2 bhk": Building,
-  "3 bhk": Building,
-  "1 rk": DoorOpen,
-  dormitory: Building,
-  suite: Home,
-  studio: DoorOpen,
+  single: Bed, double: Users, triple: Building, shared: Users, private: DoorOpen,
+  "1 bhk": Home, "2 bhk": Building, "3 bhk": Building, "1 rk": DoorOpen,
+  dormitory: Building, suite: Home, studio: DoorOpen,
 };
 
 // Star Rating Component
-const StarRating = ({
-  rating,
-  size = "w-4 h-4",
-}: {
-  rating: number;
-  size?: string;
-}) => {
+const StarRating = ({ rating, size = "w-4 h-4" }: { rating: number; size?: string }) => {
   return (
     <div className="flex">
       {[1, 2, 3, 4, 5].map((star) => {
@@ -196,10 +138,7 @@ const StarRating = ({
         return (
           <div key={star} className="relative">
             <Star className={`${size} text-gray-300`} />
-            <div
-              className="absolute inset-0 overflow-hidden"
-              style={{ width: `${fillPercentage * 100}%` }}
-            >
+            <div className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercentage * 100}%` }}>
               <Star className={`${size} fill-yellow-400 text-yellow-400`} />
             </div>
           </div>
@@ -209,258 +148,8 @@ const StarRating = ({
   );
 };
 
-// Types
-interface ListingDetails {
-  _id?: string;
-  slug?: string;
-  inWatchList: boolean;
-  type: string;
-  subType: string;
-  rentInclusions: {
-    foodIncluded: boolean;
-    electricityIncluded: boolean;
-    maintenanceIncluded: boolean;
-  };
-  detailedRules: {
-    lockInPeriod: string;
-    noticePeriod: string;
-    maintenanceCharges: string;
-    registrationFees: string;
-    entryTiming: string;
-    exitTiming: string;
-    guestStayPolicy: string;
-    smokingAlcoholPolicy: string;
-  };
-  roomTypes: {
-    type: string;
-    monthlyRent: number;
-    availableRooms: number;
-    capacityPerRoom: number;
-    securityDeposit: number;
-    isAC?: boolean;
-  }[];
-  ownerId: {
-    _id: string;
-    fullName: string;
-    address?: { city: string; state: string };
-    createdAt: string;
-  };
-  pgName: string;
-  monthlyRent: number;
-  minRent: number;
-  securityDeposit: number;
-  numberOfRooms: number;
-  capacityPerRoom: number;
-  genderPreference: "male" | "female" | "unisex";
-  amenities: string[];
-  additionalDetails: string[];
-  rulesAndRegulations: string[];
-  images: { url: string }[];
-  primaryImage?: string;
-  videos?: { url: string }[];
-  location: {
-    area: string;
-    city: string;
-    state: string;
-    pincode: string;
-    nearbyPlaces?: string[];
-    coordinates: {
-      type: string;
-      coordinates: number[];
-    };
-  };
-  isActive?: boolean;
-  isApproved?: boolean;
-  isFeatured?: boolean;
-  planType?: string;
-  paymentStatus?: string;
-  mealTimings?: {
-    morning: { enabled: boolean; from: string; to: string };
-    noon: { enabled: boolean; from: string; to: string };
-    evening: { enabled: boolean; from: string; to: string };
-    night: { enabled: boolean; from: string; to: string };
-  };
-  createdAt: Date;
-}
-
-// Payment Breakdown Component for Booking Modal
-const BookingPaymentBreakdown = ({
-  selectedRoomType,
-  discountAmount,
-  couponCode,
-  paymentMethod,
-}: {
-  selectedRoomType: any;
-  discountAmount: number;
-  couponCode: string;
-  paymentMethod: "online" | "cash";
-}) => {
-  if (!selectedRoomType) return null;
-
-  const monthlyRent = selectedRoomType.monthlyRent;
-  const finalMonthlyRent = monthlyRent - discountAmount;
-  const bookingFee = Math.round(finalMonthlyRent * 0.1);
-  const firstMonthRent = Math.round(finalMonthlyRent * 0.9);
-  const securityDeposit = selectedRoomType.securityDeposit;
-  const totalAmount = bookingFee + securityDeposit + firstMonthRent;
-
-  const formatCurrency = (amount: number) =>
-    `₹${amount.toLocaleString("en-IN")}`;
-
-  return (
-    <div className="bg-gray-50 rounded-xl p-5 space-y-4">
-      <h4 className="font-semibold text-lg flex items-center gap-2">
-        <IndianRupee className="h-5 w-5 text-HG-500" />
-        Payment Breakdown
-      </h4>
-
-      {/* Original Amount & Discount */}
-      {discountAmount > 0 && (
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Original Monthly Rent</span>
-          <span className="line-through text-gray-400">
-            {formatCurrency(monthlyRent)}
-          </span>
-        </div>
-      )}
-
-      {discountAmount > 0 && (
-        <div className="flex justify-between text-sm text-green-600">
-          <span className="flex items-center gap-1">
-            <Tag className="h-3.5 w-3.5" />
-            Discount {couponCode && `(${couponCode})`}
-          </span>
-          <span>-{formatCurrency(discountAmount)}</span>
-        </div>
-      )}
-
-      <Separator />
-
-      {/* 3-Part Payment Details */}
-      <div className="space-y-3">
-        {/* Booking Fee */}
-        <div className="flex items-start justify-between p-3 bg-white rounded-lg border-2 border-HG-200">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-HG-100 rounded-lg">
-              <CreditCard className="h-4 w-4 text-HG-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Booking Fee (10%)</p>
-              <p className="text-xs text-gray-500">
-                {paymentMethod === "online"
-                  ? "Pay now to confirm booking"
-                  : "Pay to owner when visiting"}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-bold text-HG-600">{formatCurrency(bookingFee)}</p>
-            {paymentMethod === "online" && (
-              <Badge variant="outline" className="text-[10px] bg-HG-50 text-HG-700 border-HG-300">
-                Pay Now
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Security Deposit */}
-        <div className="flex items-start justify-between p-3 bg-white rounded-lg border border-gray-200">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Shield className="h-4 w-4 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Security Deposit</p>
-              <p className="text-xs text-gray-500">
-                Refundable at checkout
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-bold text-gray-900">{formatCurrency(securityDeposit)}</p>
-            <Badge variant="outline" className="text-[10px]">
-              {paymentMethod === "online" ? "Pay After Approval" : "Pay to Owner"}
-            </Badge>
-          </div>
-        </div>
-
-        {/* First Month Rent */}
-        <div className="flex items-start justify-between p-3 bg-white rounded-lg border border-gray-200">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Home className="h-4 w-4 text-green-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">First Month Rent (90%)</p>
-              <p className="text-xs text-gray-500">
-                Remaining rent after booking fee
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-bold text-gray-900">{formatCurrency(firstMonthRent)}</p>
-            <Badge variant="outline" className="text-[10px]">
-              {paymentMethod === "online" ? "Pay After Approval" : "Pay to Owner"}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Total */}
-      <div className="flex justify-between items-center pt-2">
-        <span className="font-semibold text-lg">Total Amount</span>
-        <span className="font-bold text-2xl text-HG-600">
-          {formatCurrency(totalAmount)}
-        </span>
-      </div>
-
-      {/* Payment Flow Info */}
-      <div className={`p-3 rounded-lg ${
-        paymentMethod === "online" ? "bg-HG-50 border border-HG-200" : "bg-yellow-50 border border-yellow-200"
-      }`}>
-        <div className="flex items-start gap-2">
-          <Info className={`h-4 w-4 mt-0.5 ${
-            paymentMethod === "online" ? "text-HG-600" : "text-yellow-600"
-          }`} />
-          <div className={`text-sm ${
-            paymentMethod === "online" ? "text-HG-700" : "text-yellow-700"
-          }`}>
-            {paymentMethod === "online" ? (
-              <>
-                <p className="font-medium">Online Payment Flow:</p>
-                <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
-                  <li>Pay booking fee ({formatCurrency(bookingFee)}) now</li>
-                  <li>Wait for owner approval</li>
-                  <li>Pay remaining ({formatCurrency(securityDeposit + firstMonthRent)}) after approval</li>
-                </ol>
-              </>
-            ) : (
-              <>
-                <p className="font-medium">Cash Payment Flow:</p>
-                <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
-                  <li>Submit booking request</li>
-                  <li>Wait for owner approval</li>
-                  <li>Pay full amount ({formatCurrency(totalAmount)}) to owner in cash</li>
-                </ol>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Infinite Scroll Listings Component (keep existing)
-function InfiniteScrollListings({
-  currentListingId,
-  currentListingSlug,
-}: {
-  currentListingId: string;
-  currentListingSlug?: string;
-}) {
+// Infinite Scroll Listings Component
+function InfiniteScrollListings({ currentListingId }: { currentListingId: string }) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -478,23 +167,17 @@ function InfiniteScrollListings({
 
   const fetchMoreListings = useCallback(async () => {
     if (loading || !hasMore) return;
-
     setLoading(true);
     try {
       const response = await axios.get(
         `/api/listing/getFeatured?page=${page}&per_page=12&exclude=${currentListingId}`
       );
-
       if (response.data.success) {
         const newListings = response.data.data;
-
         if (newListings.length === 0) {
           setHasMore(false);
         } else {
-          setListings((prev) => {
-            const combined = [...prev, ...newListings];
-            return removeDuplicates(combined);
-          });
+          setListings((prev) => removeDuplicates([...prev, ...newListings]));
           setPage((prev) => prev + 1);
         }
       }
@@ -508,13 +191,11 @@ function InfiniteScrollListings({
 
   const fetchInitialListings = useCallback(async () => {
     if (loading) return;
-
     setLoading(true);
     try {
       const featuredResponse = await axios.get(
         `/api/listing/getFeatured?page=1&per_page=12&exclude=${currentListingId}`
       );
-
       if (featuredResponse.data.success) {
         const featuredListings = featuredResponse.data.data;
         setListings(removeDuplicates(featuredListings.slice(0, 12)));
@@ -538,10 +219,8 @@ function InfiniteScrollListings({
       },
       { threshold: 0.1 }
     );
-
     const trigger = document.getElementById("scroll-trigger");
     if (trigger) observer.observe(trigger);
-
     return () => observer.disconnect();
   }, [fetchMoreListings, initialLoad, loading, hasMore]);
 
@@ -629,89 +308,29 @@ function InfiniteScrollListings({
 
 // ==================== MAIN COMPONENT ====================
 export default function ProductPage() {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showDirectionsModal, setShowDirectionsModal] = useState(false);
-  const [bookingStep, setBookingStep] = useState(1);
-  const [selectedRoomType, setSelectedRoomType] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [ownerPgs, setOwnerPgs] = useState<any[]>([]);
   const [ownerPgsLoading, setOwnerPgsLoading] = useState(false);
 
-  // Booking form state
-  const [bookingForm, setBookingForm] = useState({
-    moveInDate: "",
-    duration: "1",
-    fullName: "",
-    phoneNumber: "",
-    email: "",
-    address: {
-      street: "",
-      city: "",
-      state: "",
-      pincode: "",
-    },
-    aadhaarNumber: "",
-    additionalRequirements: "",
-    termsAccepted: false,
-    couponCode: "",
-    paymentMethod: "online" as "online" | "cash",
-  });
-
   // Review state
-  const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
   const [hoverRating, setHoverRating] = useState(0);
 
-  // Coupon state
-  const [couponData, setCouponData] = useState<{
-    name: string;
-    percentage: number;
-  } | null>(null);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
-
-  // Payment state
-  const [bookingInProgress, setBookingInProgress] = useState(false);
-  const [razorpayOrder, setRazorpayOrder] = useState<{
-    orderId: string;
-    amount: number;
-    bookingId: string;
-  } | null>(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
-
   // Listing state
-  const [listing, setListing] = useState<ListingDetails>({
+  const [listing, setListing] = useState<any>({
     inWatchList: false,
     type: "",
     subType: "",
-    rentInclusions: {
-      foodIncluded: false,
-      electricityIncluded: false,
-      maintenanceIncluded: false,
-    },
-    detailedRules: {
-      lockInPeriod: "",
-      noticePeriod: "",
-      maintenanceCharges: "",
-      registrationFees: "",
-      entryTiming: "",
-      exitTiming: "",
-      guestStayPolicy: "",
-      smokingAlcoholPolicy: "",
-    },
+    rentInclusions: { foodIncluded: false, electricityIncluded: false, maintenanceIncluded: false },
+    detailedRules: {},
     roomTypes: [],
-    ownerId: {
-      _id: "",
-      fullName: "",
-      createdAt: "",
-    },
+    ownerId: { _id: "", fullName: "", createdAt: "" },
     pgName: "",
     monthlyRent: 0,
     minRent: 0,
@@ -731,16 +350,8 @@ export default function ProductPage() {
       state: "",
       pincode: "",
       nearbyPlaces: [],
-      coordinates: {
-        type: "",
-        coordinates: [28.6139, 77.209],
-      },
+      coordinates: { type: "", coordinates: [28.6139, 77.209] },
     },
-    isActive: true,
-    isApproved: true,
-    isFeatured: false,
-    planType: "free",
-    paymentStatus: "pending",
     createdAt: new Date(),
   });
 
@@ -759,10 +370,7 @@ export default function ProductPage() {
       try {
         const response = await fetch(`/api/listing/${slug}`);
         const rawData = await response.json();
-
-        const res = isEncryptedResponse(rawData)
-          ? decryptResponse(rawData)
-          : rawData;
+        const res = isEncryptedResponse(rawData) ? decryptResponse(rawData) : rawData;
 
         if (res?.success) {
           if (!ignore) {
@@ -796,7 +404,6 @@ export default function ProductPage() {
   // Fetch owner's other PGs
   useEffect(() => {
     if (!listing?.ownerId?._id) return;
-
     let ignore = false;
     setOwnerPgsLoading(true);
 
@@ -819,48 +426,17 @@ export default function ProductPage() {
     return () => { ignore = true; };
   }, [listing?.ownerId?._id, listing?._id]);
 
-  // Image navigation
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % listing?.images?.length);
-  };
-
-  const previousImage = () => {
-    setCurrentImageIndex(
-      (prev) => (prev - 1 + listing?.images?.length) % listing?.images?.length
-    );
-  };
-
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    if (distance > minSwipeDistance && listing?.images?.length > 1) nextImage();
-    if (distance < -minSwipeDistance && listing?.images?.length > 1) previousImage();
-  };
-
   // Watchlist toggle
   const toggleWatchlist = async () => {
     if (loading || !listing?._id) return;
     setLoading(true);
-
     try {
       const res = await axios.put(`/api/listing/toggleWatchlist`, {
         id: listing._id,
         isWishlisted: listing?.inWatchList,
       });
-
       if (res?.data?.success) {
-        setListing((prev) => ({ ...prev, inWatchList: !prev.inWatchList }));
+        setListing((prev: any) => ({ ...prev, inWatchList: !prev.inWatchList }));
         toast.success(res.data.message || "Watchlist updated!");
       } else if (res.data.message === "Unauthorized") {
         router.push("/routes/auth/login");
@@ -880,11 +456,7 @@ export default function ProductPage() {
     const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: listing?.pgName,
-          text: `Check out ${listing?.pgName}`,
-          url,
-        });
+        await navigator.share({ title: listing?.pgName, text: `Check out ${listing?.pgName}`, url });
       } catch (err) {
         console.log("Share cancelled");
       }
@@ -894,291 +466,19 @@ export default function ProductPage() {
     }
   };
 
-  // Booking handlers
   const handleBookingClick = () => {
     if (!user) {
       setShowLoginModal(true);
     } else {
-      // Pre-fill user data
-      setBookingForm((prev) => ({
-        ...prev,
-        fullName: user.fullName || "",
-        email: user.email || "",
-        phoneNumber: user.phone || "",
-      }));
       setShowBookingModal(true);
     }
   };
 
-  const handleBookingClose = () => {
-    setShowBookingModal(false);
-    setBookingStep(1);
-    setSelectedRoomType(null);
-    setBookingForm({
-      moveInDate: "",
-      duration: "1",
-      fullName: "",
-      phoneNumber: "",
-      email: "",
-      address: { street: "", city: "", state: "", pincode: "" },
-      aadhaarNumber: "",
-      additionalRequirements: "",
-      termsAccepted: false,
-      couponCode: "",
-      paymentMethod: "online",
-    });
-    setCouponData(null);
-    setCouponError(null);
-    setRazorpayOrder(null);
-    setPaymentSuccess(false);
-    setCreatedBookingId(null);
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    setShowBookingModal(true);
   };
 
-  const handleFormChange = (field: string, value: any) => {
-    if (field.includes(".")) {
-      const [parent, child] = field.split(".");
-      if (parent === "address") {
-        setBookingForm((prev) => ({
-          ...prev,
-          address: { ...prev.address, [child]: value },
-        }));
-      }
-    } else {
-      setBookingForm((prev) => ({ ...prev, [field]: value }));
-    }
-  };
-
-  // Coupon validation
-  const validateCoupon = async (couponCode: string) => {
-    if (!couponCode.trim()) {
-      setCouponData(null);
-      setCouponError(null);
-      return;
-    }
-
-    try {
-      setCouponLoading(true);
-      setCouponError(null);
-
-      const response = await fetch("/api/coupon-validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ couponCode }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setCouponData(data.data);
-        setCouponError(null);
-      } else {
-        setCouponData(null);
-        setCouponError(data.message || "Invalid coupon code");
-      }
-    } catch (error) {
-      setCouponData(null);
-      setCouponError("Failed to validate coupon");
-    } finally {
-      setCouponLoading(false);
-    }
-  };
-
-  const handleCouponChange = (value: string) => {
-    setBookingForm((prev) => ({ ...prev, couponCode: value.toUpperCase() }));
-    if (couponData || couponError) {
-      setCouponData(null);
-      setCouponError(null);
-    }
-  };
-
-  const calculateDiscount = () => {
-    if (!couponData || !selectedRoomType) return 0;
-    return Math.round((selectedRoomType.monthlyRent * couponData.percentage) / 100);
-  };
-
-  const calculateFinalAmount = () => {
-    if (!selectedRoomType) return 0;
-    return selectedRoomType.monthlyRent - calculateDiscount();
-  };
-
-  const calculateBookingFee = () => {
-    return Math.round(calculateFinalAmount() * 0.1);
-  };
-
-  const calculateFirstMonthRent = () => {
-    return Math.round(calculateFinalAmount() * 0.9);
-  };
-
-  const calculateTotalAmount = () => {
-    if (!selectedRoomType) return 0;
-    return calculateBookingFee() + selectedRoomType.securityDeposit + calculateFirstMonthRent();
-  };
-
-  // Step validation
-  const validateStep1 = () => {
-    if (!selectedRoomType) {
-      toast.error("Please select a room type");
-      return false;
-    }
-    if (!bookingForm.moveInDate) {
-      toast.error("Please select a move-in date");
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep2 = () => {
-    if (!bookingForm.fullName.trim()) {
-      toast.error("Please enter your full name");
-      return false;
-    }
-    if (!bookingForm.phoneNumber.trim()) {
-      toast.error("Please enter your phone number");
-      return false;
-    }
-    if (!bookingForm.email.trim()) {
-      toast.error("Please enter your email address");
-      return false;
-    }
-    if (!bookingForm.address.street.trim()) {
-      toast.error("Please enter your street address");
-      return false;
-    }
-    if (!bookingForm.address.city.trim()) {
-      toast.error("Please enter your city");
-      return false;
-    }
-    if (!bookingForm.address.state.trim()) {
-      toast.error("Please enter your state");
-      return false;
-    }
-    if (!bookingForm.address.pincode.trim()) {
-      toast.error("Please enter your pincode");
-      return false;
-    }
-    return true;
-  };
-
-  const handleNextStep = () => {
-    if (bookingStep === 1 && validateStep1()) setBookingStep(2);
-    else if (bookingStep === 2 && validateStep2()) setBookingStep(3);
-  };
-
-  const handlePrevStep = () => {
-    if (bookingStep > 1) setBookingStep(bookingStep - 1);
-  };
-
-  // Submit booking
-  const handleBookingSubmit = async () => {
-    if (!user) {
-      toast.error("Please log in to submit booking");
-      return;
-    }
-
-    if (!selectedRoomType || !listing?._id) {
-      toast.error("Invalid booking data");
-      return;
-    }
-
-    if (!bookingForm.termsAccepted) {
-      toast.error("Please accept the terms and conditions");
-      return;
-    }
-
-    setBookingInProgress(true);
-
-    try {
-      const response = await axios.post("/api/booking", {
-        userId: user.id,
-        listingId: listing._id,
-        roomType: selectedRoomType.type,
-        moveInDate: bookingForm.moveInDate,
-        duration: bookingForm.duration,
-        fullName: bookingForm.fullName,
-        phoneNumber: bookingForm.phoneNumber,
-        email: bookingForm.email,
-        address: bookingForm.address,
-        aadhaarNumber: bookingForm.aadhaarNumber,
-        additionalRequirements: bookingForm.additionalRequirements,
-        termsAccepted: bookingForm.termsAccepted,
-        couponCode: bookingForm.couponCode || null,
-        paymentMethod: bookingForm.paymentMethod,
-      });
-
-      if (response.data.success) {
-        const bookingData = response.data.data;
-        setCreatedBookingId(bookingData.booking._id);
-
-        if (bookingForm.paymentMethod === "online" && bookingData.razorpayOrder) {
-          // Show Razorpay checkout for booking fee
-          setRazorpayOrder({
-            orderId: bookingData.razorpayOrder.orderId,
-            amount: bookingData.razorpayOrder.amount,
-            bookingId: bookingData.booking._id,
-          });
-          setBookingStep(4); // Payment step
-        } else {
-          // Cash payment - show success
-          setPaymentSuccess(true);
-          setBookingStep(5); // Success step
-        }
-      } else {
-        toast.error(response.data.message || "Failed to submit booking");
-      }
-    } catch (error) {
-      console.error("Booking error:", error);
-      toast.error("Failed to submit booking. Please try again.");
-    } finally {
-      setBookingInProgress(false);
-    }
-  };
-const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
-  if (!razorpayOrder) return;
-
-  try {
-    setBookingInProgress(true);
-
-    // ✅ Use fetch instead of axios
-    const verifyResponse = await fetch(
-      `/api/booking/${razorpayOrder.bookingId}/verify-payment`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentType: "booking_fee",
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature,
-        }),
-      }
-    );
-
-    const data = await verifyResponse.json();
-
-    if (data.success) {
-      setPaymentSuccess(true);
-      setBookingStep(5);
-      toast.success("Payment successful!");
-    } else {
-      toast.error(data.message || "Payment verification failed");
-    }
-  } catch (error) {
-    console.error("Payment verification error:", error);
-    toast.error("Payment verification failed. Please contact support.");
-  } finally {
-    setBookingInProgress(false);
-  }
-};
-
-  const handlePaymentFailure = () => {
-    toast.error("Payment failed. Please try again.");
-    setRazorpayOrder(null);
-    setBookingStep(3); // Go back to review step
-  };
-
-  // Visit form handlers
   const handleVisitClick = () => setShowVisitForm(true);
   const handleVisitFormClose = () => setShowVisitForm(false);
   const handleVisitFormSuccess = () => {
@@ -1188,22 +488,6 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
     setShowVisitForm(false);
   };
 
-  // Login success handler
-  const handleLoginSuccess = () => {
-    setShowLoginModal(false);
-    // Pre-fill user data after login
-    if (user) {
-      setBookingForm((prev) => ({
-        ...prev,
-        fullName: user.fullName || "",
-        email: user.email || "",
-        phoneNumber: user.phone || "",
-      }));
-    }
-    setShowBookingModal(true);
-  };
-
-  // Directions
   const openDirections = () => {
     const { coordinates } = listing?.location || {};
     if (coordinates?.coordinates) {
@@ -1215,36 +499,27 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
     }
   };
 
-  const handleDirectionClick = () => setShowDirectionsModal(true);
-
   // Review submit
   const handleInlineSubmit = async (e: any) => {
     e.preventDefault();
-
     if (!newReview.comment.trim()) {
       toast.error("Please write a review");
       return;
     }
-
     if (!listing?._id) {
       toast.error("Listing not found");
       return;
     }
 
     const loadingToast = toast.loading("Submitting review...");
-
     try {
       const res = await axios.post("/api/reviews", {
         listingId: listing._id,
         rating: newReview.rating,
         comment: newReview.comment.trim(),
       });
-
       if (res?.data?.success) {
-        setReviews([
-          res.data.data,
-          ...reviews.filter((r) => r.userId._id !== res.data.data.userId._id),
-        ]);
+        setReviews([res.data.data, ...reviews.filter((r) => r.userId._id !== res.data.data.userId._id)]);
         toast.success("Review submitted successfully!");
       } else {
         router.push("/routes/auth/login");
@@ -1255,7 +530,6 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
     } finally {
       toast.dismiss(loadingToast);
     }
-
     setNewReview({ rating: 5, comment: "" });
     setHoverRating(0);
     setShowReviewForm(false);
@@ -1273,12 +547,8 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
     return `${days} days ago`;
   };
 
-  const averageRating =
-    reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length || 0;
-
-  const isIOS =
-    typeof navigator !== "undefined" &&
-    /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const averageRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length || 0;
+  const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   // Loading state
   if (containerLoading.pgDetails) {
@@ -1292,7 +562,6 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
             </Button>
           </div>
         </nav>
-
         <main className="px-4 pt-32 md:pt-36 max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
             <div className="space-y-8">
@@ -1337,116 +606,33 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
 
       <main className="px-4 py-32 md:py-36 max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-6 lg:gap-12">
-          {/* Product Images */}
-          <div className="space-y-8">
-            <div
-              className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-            >
-              <BlurImage
-                openInNewTab={true}
-                className="object-cover w-full cursor-pointer"
-                src={listing?.images[currentImageIndex]?.url || ""}
-                width={600}
-                height={600}
-                alt="Main PG image"
-                priority={true}
-              />
-
-              {listing.images.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex"
-                    onClick={previousImage}
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex"
-                    onClick={nextImage}
-                  >
-                    <ArrowLeft className="w-4 h-4 rotate-180" />
-                  </Button>
-                </>
-              )}
-
-              <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
-                {currentImageIndex + 1} / {listing.images.length}
-              </div>
-            </div>
-
-            <div className="grid md:hidden grid-cols-5 gap-3 max-w-sm sm:max-w-none mx-auto">
-              {listing.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
-                    currentImageIndex === index
-                      ? "ring-[2.5px] ring-HG-500 shadow-md"
-                      : "hover:ring-2 hover:ring-gray-400"
-                  }`}
-                >
-                  <BlurImage
-                    className="object-cover w-full"
-                    src={image.url}
-                    width={200}
-                    height={200}
-                    alt="PG image"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Product Gallery */}
+          <ProductGallery images={listing?.images || []} pgName={listing?.pgName || ""} />
 
           {/* Product Details */}
           <div className="flex flex-col justify-between gap-5 pb-10 md:pb-0">
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h1 className="md:text-3xl font-semibold mb-1 md:mb-3 font-poppins">
-                {listing?.pgName}
-              </h1>
-
+              <h1 className="md:text-3xl font-semibold mb-1 md:mb-3 font-poppins">{listing?.pgName}</h1>
               <div className="flex flex-col items-start gap-3 mb-2 md:mb-3">
                 <div className="flex items-center gap-2 text-xs md:text-sm">
                   <StarRating rating={averageRating} />
                   <span className="text-sm text-gray-600 font-medium">
-                    {reviews?.length > 0
-                      ? `${averageRating.toFixed(1)} (${reviews.length} reviews)`
-                      : "0 reviews"}
+                    {reviews?.length > 0 ? `${averageRating.toFixed(1)} (${reviews.length} reviews)` : "0 reviews"}
                   </span>
                 </div>
                 <div className="text-xs md:text-sm text-gray-500 font-inter">
-                  Listed on{" "}
-                  {listing?.createdAt
-                    ? new Date(listing.createdAt).toLocaleDateString()
-                    : "N/A"}
+                  Listed on {listing?.createdAt ? new Date(listing.createdAt).toLocaleDateString() : "N/A"}
                 </div>
               </div>
-
               <p className="text-2xl md:text-4xl font-bold font-poppins text-HG-400 pt-1 md:pt-2 pb-4 md:pb-5">
-                ₹{listing?.minRent?.toLocaleString()}{" "}
-                <span className="text-sm md:text-base font-medium text-gray-600">
-                  /mo
-                </span>
+                ₹{listing?.minRent?.toLocaleString()} <span className="text-sm md:text-base font-medium text-gray-600">/mo</span>
               </p>
-
               <div className="grid grid-cols-2 gap-3 md:gap-5">
-                <Button
-                  onClick={handleVisitClick}
-                  className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center"
-                >
+                <Button onClick={handleVisitClick} className="border-2 border-HG-400 hover:bg-HG-400/40 hover:text-black hover:border-transparent transition duration-300 bg-transparent font-poppins text-HG-500 font-semibold uppercase gap-5 flex items-center">
                   <Calendar className="w-4 h-4 hidden md:block" />
                   Visit Now
                 </Button>
-                <Button
-                  onClick={handleBookingClick}
-                  className="py-3 font-semibold border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500"
-                >
+                <Button onClick={handleBookingClick} className="py-3 font-semibold border-2 border-transparent font-poppins text-white uppercase flex items-center gap-5 bg-HG-500/80 hover:bg-HG-500">
                   <Phone className="w-4 h-4 hidden md:block" />
                   Book Now
                 </Button>
@@ -1462,18 +648,12 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="font-bold text-sm md:text-lg font-poppins">
-                    {listing?.ownerId?.fullName}
-                  </h3>
+                  <h3 className="font-bold text-sm md:text-lg font-poppins">{listing?.ownerId?.fullName}</h3>
                   <p className="text-xs md:text-sm text-gray-600">
-                    Verified Seller • Member since{" "}
-                    {listing?.ownerId?.createdAt
-                      ? new Date(listing.ownerId.createdAt).toLocaleDateString()
-                      : "N/A"}
+                    Verified Seller • Member since {listing?.ownerId?.createdAt ? new Date(listing.ownerId.createdAt).toLocaleDateString() : "N/A"}
                   </p>
                 </div>
               </div>
-
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-gray-600">
                 <div className="flex items-center gap-2">
                   <MapPin className="md:w-4 md:h-4 w-3 h-3" />
@@ -1485,89 +665,45 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                 </div>
               </div>
             </div>
-
-            {/* Thumbnail Images - Desktop */}
-            <div className="hidden md:grid grid-cols-5 gap-4">
-              {listing.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
-                    currentImageIndex === index
-                      ? "ring-[3px] ring-HG-500 shadow-md"
-                      : "hover:ring-2 hover:ring-gray-400"
-                  }`}
-                >
-                  <BlurImage
-                    className="object-cover w-full"
-                    src={image.url}
-                    width={200}
-                    height={200}
-                    alt="PG images"
-                  />
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
-        {/* Tabs Section - Keep existing tabs content */}
+        {/* Tabs Section */}
         <div className="md:mt-20 bg-white rounded-2xl shadow-md overflow-hidden py-5 px-3 md:p-5">
           <Tabs defaultValue="details" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-HG-400/20 rounded-xl font-poppins">
-              <TabsTrigger value="details" className="rounded-lg text-xs md:text-sm">
-                Details
-              </TabsTrigger>
-              <TabsTrigger value="reviews" className="rounded-lg text-xs md:text-sm">
-                Reviews ({reviews.length})
-              </TabsTrigger>
-              <TabsTrigger value="location" className="rounded-lg text-xs md:text-sm">
-                Location
-              </TabsTrigger>
+              <TabsTrigger value="details" className="rounded-lg text-xs md:text-sm">Details</TabsTrigger>
+              <TabsTrigger value="reviews" className="rounded-lg text-xs md:text-sm">Reviews ({reviews.length})</TabsTrigger>
+              <TabsTrigger value="location" className="rounded-lg text-xs md:text-sm">Location</TabsTrigger>
             </TabsList>
 
-            {/* Keep all existing TabsContent... */}
             <div className="px-2 md:px-4 pt-8 font-inter">
-              {/* Details Tab Content - Keep existing */}
+              {/* Details Tab */}
               <TabsContent value="details" className="mt-0">
-                {/* ... existing details content ... */}
                 <div className="prose max-w-none space-y-10">
                   {/* Room Types */}
                   <div>
-                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">
-                      Room Types & Pricing
-                    </h3>
+                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">Room Types & Pricing</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {listing?.roomTypes?.length > 0 ? (
-                        listing.roomTypes.map((room, index) => {
+                        listing.roomTypes.map((room: any, index: number) => {
                           const IconComponent = roomTypeIcons[room?.type?.toLowerCase()] || Bed;
                           return (
-                            <div
-                              key={index}
-                              className="w-full max-w-[320px] border-4 border-HG-500 rounded-xl border-opacity-25 overflow-hidden hover:border-opacity-50 transition duration-300"
-                            >
+                            <div key={index} className="w-full max-w-[320px] border-4 border-HG-500 rounded-xl border-opacity-25 overflow-hidden hover:border-opacity-50 transition duration-300">
                               <div className="p-4 font-inter bg-white flex flex-col h-full">
                                 <div className="flex items-center gap-3 mb-4">
                                   <div className="p-2 bg-HG-100 rounded-lg">
                                     <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-HG-600" />
                                   </div>
-                                  <h4 className="font-semibold text-lg text-HG-900 capitalize">
-                                    {room?.type || "Type N/A"}
-                                  </h4>
+                                  <h4 className="font-semibold text-lg text-HG-900 capitalize">{room?.type || "Type N/A"}</h4>
                                 </div>
                                 <div className="mb-4">
                                   <div className="flex items-center gap-2 mb-1">
                                     <IndianRupee className="w-4 h-4 text-HG-400" />
-                                    <span className="text-2xl font-bold font-poppins text-HG-400">
-                                      ₹{room?.monthlyRent?.toLocaleString() ?? "N/A"}
-                                    </span>
+                                    <span className="text-2xl font-bold font-poppins text-HG-400">₹{room?.monthlyRent?.toLocaleString() ?? "N/A"}</span>
                                     <span className="text-base font-medium text-gray-600">/mo</span>
                                   </div>
-                                  <p className="text-sm text-gray-500">
-                                    Security: <span className="text-HG-400 font-semibold">
-                                      ₹{room?.securityDeposit?.toLocaleString() ?? "0"}
-                                    </span>
-                                  </p>
+                                  <p className="text-sm text-gray-500">Security: <span className="text-HG-400 font-semibold">₹{room?.securityDeposit?.toLocaleString() ?? "0"}</span></p>
                                 </div>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex items-center justify-between">
@@ -1580,11 +716,7 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                                   </div>
                                 </div>
                                 <div className="mt-auto pt-3 border-t border-gray-100">
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    (room?.availableRooms ?? 0) > 0
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}>
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(room?.availableRooms ?? 0) > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                                     {(room?.availableRooms ?? 0) > 0 ? "Available" : "Fully Occupied"}
                                   </span>
                                 </div>
@@ -1593,9 +725,7 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                           );
                         })
                       ) : (
-                        <p className="text-gray-500 col-span-full text-center py-8">
-                          No room types available.
-                        </p>
+                        <p className="text-gray-500 col-span-full text-center py-8">No room types available.</p>
                       )}
                     </div>
                   </div>
@@ -1603,23 +733,16 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                   {/* Amenities */}
                   {listing?.amenities && listing.amenities.length > 0 && (
                     <div>
-                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
-                        Amenities
-                      </h3>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">Amenities</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                        {listing.amenities.map((amenity, index) => {
+                        {listing.amenities.map((amenity: string, index: number) => {
                           const IconComponent = amenityIcons[amenity.toLowerCase()] || Home;
                           return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400"
-                            >
+                            <div key={index} className="flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:border-HG-400">
                               <div className="p-2 bg-HG-100 rounded-lg">
                                 <IconComponent className="w-5 h-5 text-HG-600" />
                               </div>
-                              <span className="text-sm font-medium text-gray-700 capitalize">
-                                {amenity}
-                              </span>
+                              <span className="text-sm font-medium text-gray-700 capitalize">{amenity}</span>
                             </div>
                           );
                         })}
@@ -1634,14 +757,10 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                 <div className="space-y-10">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-4">
-                      <div className="text-xl md:text-3xl font-bold font-poppins">
-                        {averageRating.toFixed(1)}
-                      </div>
+                      <div className="text-xl md:text-3xl font-bold font-poppins">{averageRating.toFixed(1)}</div>
                       <div>
                         <StarRating rating={averageRating} size="w-3 h-3 md:w-5 md:h-5" />
-                        <p className="text-xs md:text-sm text-gray-600 mt-1">
-                          {reviews.length} reviews
-                        </p>
+                        <p className="text-xs md:text-sm text-gray-600 mt-1">{reviews.length} reviews</p>
                       </div>
                     </div>
                     <Button onClick={() => setShowReviewForm(!showReviewForm)} className="md:px-5 text-xs md:text-sm">
@@ -1665,21 +784,13 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                                   onMouseLeave={() => setHoverRating(0)}
                                   className="p-1 transition-transform hover:scale-110"
                                 >
-                                  <Star
-                                    className={`md:w-8 md:h-8 transition-colors ${
-                                      star <= (hoverRating || newReview.rating)
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-gray-300"
-                                    }`}
-                                  />
+                                  <Star className={`md:w-8 md:h-8 transition-colors ${star <= (hoverRating || newReview.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
                                 </button>
                               ))}
                             </div>
                           </div>
                           <div>
-                            <Label htmlFor="review-comment" className="font-poppins text-sm md:text-base">
-                              Your Review
-                            </Label>
+                            <Label htmlFor="review-comment" className="font-poppins text-sm md:text-base">Your Review</Label>
                             <Textarea
                               id="review-comment"
                               value={newReview.comment}
@@ -1690,11 +801,7 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                             />
                           </div>
                           <div className="w-full items-center md:justify-end flex gap-5">
-                            <Button
-                              onClick={handleInlineSubmit}
-                              disabled={!newReview.comment.trim() || newReview.comment.length > 500}
-                              className="md:px-5 text-xs md:text-sm"
-                            >
+                            <Button onClick={handleInlineSubmit} disabled={!newReview.comment.trim() || newReview.comment.length > 500} className="md:px-5 text-xs md:text-sm">
                               Submit Review
                             </Button>
                           </div>
@@ -1714,12 +821,8 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-sm md:text-base font-inter">
-                                {review?.userId?.fullName}
-                              </h4>
-                              <span className="text-xs md:text-sm text-gray-500">
-                                • {review?.updatedAt ? timeAgo(new Date(review.updatedAt)) : ""}
-                              </span>
+                              <h4 className="font-semibold text-sm md:text-base font-inter">{review?.userId?.fullName}</h4>
+                              <span className="text-xs md:text-sm text-gray-500">• {review?.updatedAt ? timeAgo(new Date(review.updatedAt)) : ""}</span>
                             </div>
                             <StarRating size="w-3 h-3 md:w-4 md:h-4" rating={review?.rating} />
                             <p className="text-gray-700 mt-2 text-sm md:text-base">{review?.comment}</p>
@@ -1735,29 +838,18 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
               <TabsContent value="location" className="mt-0">
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg md:text-xl font-semibold font-poppins tracking-wide">
-                      PG Location
-                    </h3>
-                    <Button onClick={handleDirectionClick} className="md:px-5 text-xs md:text-sm">
-                      Get Directions
-                    </Button>
+                    <h3 className="text-lg md:text-xl font-semibold font-poppins tracking-wide">PG Location</h3>
+                    <Button onClick={() => setShowDirectionsModal(true)} className="md:px-5 text-xs md:text-sm">Get Directions</Button>
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 text-gray-400 mb-3 text-xs md:text-sm">
-                      {listing?.location?.area}
-                    </div>
+                    <div className="flex items-center gap-2 text-gray-400 mb-3 text-xs md:text-sm">{listing?.location?.area}</div>
                     <div className="flex items-center gap-2 text-gray-600 mb-4 text-sm md:text-base">
                       <MapPin className="md:w-5 md:h-5 h-3 w-3" />
-                      <span>
-                        {listing?.location?.city}, {listing?.location?.state}, {listing?.location?.pincode}
-                      </span>
+                      <span>{listing?.location?.city}, {listing?.location?.state}, {listing?.location?.pincode}</span>
                     </div>
                   </div>
                   <div className="w-full h-80 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-HG-500/40">
-                    <MapView
-                      lat={listing?.location?.coordinates?.coordinates[1] || 0}
-                      lng={listing?.location?.coordinates?.coordinates[0] || 0}
-                    />
+                    <MapView lat={listing?.location?.coordinates?.coordinates[1] || 0} lng={listing?.location?.coordinates?.coordinates[0] || 0} />
                   </div>
                 </div>
               </TabsContent>
@@ -1768,592 +860,47 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
         {/* Owner's Other PGs */}
         <div className="mt-10">
           <SectionHeading>Other PG's by {listing?.ownerId?.fullName}</SectionHeading>
-          <OwnerListingSection
-            listings={ownerPgs}
-            loading={ownerPgsLoading}
-            ownerName={listing?.ownerId?.fullName || "Owner"}
-          />
+          <OwnerListingSection listings={ownerPgs} loading={ownerPgsLoading} ownerName={listing?.ownerId?.fullName || "Owner"} />
         </div>
 
         {/* Infinite Scroll Listings */}
-        <InfiniteScrollListings
-          currentListingId={listing?._id || ""}
-          currentListingSlug={listing?.slug}
-        />
+        <InfiniteScrollListings currentListingId={listing?._id || ""} />
       </main>
 
-      {/* Visit Request Form Modal */}
+      {/* Modals */}
       {showVisitForm && listing?._id && (
-        <VisitRequestForm
-          listingId={listing._id}
-          pgName={listing?.pgName || ""}
-          onSuccess={handleVisitFormSuccess}
-          onCancel={handleVisitFormClose}
-        />
+        <VisitRequestForm listingId={listing._id} pgName={listing?.pgName || ""} onSuccess={handleVisitFormSuccess} onCancel={handleVisitFormClose} />
       )}
 
-      {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold font-poppins text-gray-900">Login Required</h3>
-              <button onClick={() => setShowLoginModal(false)} className="text-gray-500 hover:text-gray-700">
-                ✕
-              </button>
+              <button onClick={() => setShowLoginModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
             <div className="p-4">
-              <p className="text-gray-600 font-inter mb-4">
-                Please login or create an account to book this property.
-              </p>
+              <p className="text-gray-600 font-inter mb-4">Please login or create an account to book this property.</p>
               <AuthModal onSuccess={handleLoginSuccess} />
             </div>
           </div>
         </div>
       )}
 
-      {/* ==================== BOOKING MODAL WITH PAYMENT ==================== */}
-      {showBookingModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-white rounded-2xl max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-              <div>
-                <h3 className="text-2xl font-bold font-poppins text-gray-900">
-                  {bookingStep === 5 ? "Booking Confirmed!" : "Book Your Stay"}
-                </h3>
-                {bookingStep < 5 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    {[1, 2, 3, 4].map((step) => (
-                      <div key={step} className="flex items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                            bookingStep >= step
-                              ? "bg-HG-500 text-white"
-                              : "bg-gray-200 text-gray-500"
-                          }`}
-                        >
-                          {bookingStep > step ? <CheckCircle className="w-5 h-5" /> : step}
-                        </div>
-                        {step < 4 && (
-                          <div
-                            className={`w-8 h-1 ${
-                              bookingStep > step ? "bg-HG-500" : "bg-gray-200"
-                            }`}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button onClick={handleBookingClose} className="text-gray-500 hover:text-gray-700 text-xl">
-                ✕
-              </button>
-            </div>
+      <BookingModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        listing={listing}
+        user={user}
+      />
 
-            <div className="p-6">
-              {/* Property Summary */}
-              {bookingStep < 5 && (
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
-                      <BlurImage
-                        src={listing?.primaryImage || listing?.images[0]?.url || ""}
-                        alt={listing?.pgName || ""}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-lg text-gray-900">{listing?.pgName}</h4>
-                      <p className="text-gray-600 text-sm">
-                        {listing?.location?.area}, {listing?.location?.city}
-                      </p>
-                      <p className="text-HG-600 font-bold text-lg">
-                        ₹{listing?.minRent?.toLocaleString()}/month
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 1: Room Selection */}
-              {bookingStep === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Select Room Type</h4>
-                    <div className="space-y-3">
-                      {listing?.roomTypes?.map((roomType, index) => (
-                        <div
-                          key={index}
-                          onClick={() => roomType.availableRooms > 0 && setSelectedRoomType(roomType)}
-                          className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                            roomType.availableRooms === 0
-                              ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
-                              : selectedRoomType?.type === roomType.type
-                              ? "border-HG-500 bg-HG-50"
-                              : "border-gray-200 hover:border-HG-400"
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h5 className="font-medium text-gray-900 capitalize">{roomType.type}</h5>
-                              <p className="text-sm text-gray-600">
-                                {roomType.capacityPerRoom} person • {roomType.availableRooms} rooms available
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-HG-600">
-                                ₹{roomType.monthlyRent?.toLocaleString()}/month
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Deposit: ₹{roomType.securityDeposit?.toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Booking Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Move-in Date *
-                        </label>
-                        <input
-                          type="date"
-                          value={bookingForm.moveInDate}
-                          onChange={(e) => handleFormChange("moveInDate", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          min={new Date().toISOString().split("T")[0]}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Duration (months)
-                        </label>
-                        <select
-                          value={bookingForm.duration}
-                          onChange={(e) => handleFormChange("duration", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                        >
-                          <option value="1">1 Month</option>
-                          <option value="3">3 Months</option>
-                          <option value="6">6 Months</option>
-                          <option value="12">12 Months</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Personal Information */}
-              {bookingStep === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Personal Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-                        <input
-                          type="text"
-                          value={bookingForm.fullName}
-                          onChange={(e) => handleFormChange("fullName", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                        <input
-                          type="tel"
-                          value={bookingForm.phoneNumber}
-                          onChange={(e) => handleFormChange("phoneNumber", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your phone number"
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                        <input
-                          type="email"
-                          value={bookingForm.email}
-                          onChange={(e) => handleFormChange("email", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your email address"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Address Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
-                        <input
-                          type="text"
-                          value={bookingForm.address.street}
-                          onChange={(e) => handleFormChange("address.street", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your street address"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
-                        <input
-                          type="text"
-                          value={bookingForm.address.city}
-                          onChange={(e) => handleFormChange("address.city", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your city"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-                        <input
-                          type="text"
-                          value={bookingForm.address.state}
-                          onChange={(e) => handleFormChange("address.state", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your state"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode *</label>
-                        <input
-                          type="text"
-                          value={bookingForm.address.pincode}
-                          onChange={(e) => handleFormChange("address.pincode", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="Enter your pincode"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Aadhaar Number (Optional)</label>
-                        <input
-                          type="text"
-                          value={bookingForm.aadhaarNumber}
-                          onChange={(e) => handleFormChange("aadhaarNumber", e.target.value.replace(/\D/g, "").slice(0, 12))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                          placeholder="12-digit Aadhaar number"
-                          maxLength={12}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Additional Requirements</label>
-                    <textarea
-                      value={bookingForm.additionalRequirements}
-                      onChange={(e) => handleFormChange("additionalRequirements", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
-                      rows={3}
-                      placeholder="Any special requirements or preferences..."
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Payment Method & Review */}
-              {bookingStep === 3 && (
-                <div className="space-y-6">
-                  {/* Payment Method Selection */}
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Choose Payment Method</h4>
-                    <RadioGroup
-                      value={bookingForm.paymentMethod}
-                      onValueChange={(value) => handleFormChange("paymentMethod", value)}
-                      className="space-y-3"
-                    >
-                      <div
-                        className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          bookingForm.paymentMethod === "online"
-                            ? "border-HG-500 bg-HG-50"
-                            : "border-gray-200 hover:border-HG-300"
-                        }`}
-                        onClick={() => handleFormChange("paymentMethod", "online")}
-                      >
-                        <RadioGroupItem value="online" id="online" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="h-5 w-5 text-HG-600" />
-                            <Label htmlFor="online" className="font-semibold text-gray-900 cursor-pointer">
-                              Pay Online (Recommended)
-                            </Label>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Pay booking fee now, remaining after approval. Secure payment via Razorpay.
-                          </p>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="outline" className="text-[10px]">UPI</Badge>
-                            <Badge variant="outline" className="text-[10px]">Cards</Badge>
-                            <Badge variant="outline" className="text-[10px]">Net Banking</Badge>
-                            <Badge variant="outline" className="text-[10px]">Wallets</Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          bookingForm.paymentMethod === "cash"
-                            ? "border-HG-500 bg-HG-50"
-                            : "border-gray-200 hover:border-HG-300"
-                        }`}
-                        onClick={() => handleFormChange("paymentMethod", "cash")}
-                      >
-                        <RadioGroupItem value="cash" id="cash" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Wallet className="h-5 w-5 text-green-600" />
-                            <Label htmlFor="cash" className="font-semibold text-gray-900 cursor-pointer">
-                              Pay in Cash
-                            </Label>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Submit booking request and pay the full amount to owner when visiting.
-                          </p>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {/* Coupon Code */}
-                  <div>
-                    <h4 className="font-semibold text-lg mb-4">Have a Coupon?</h4>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={bookingForm.couponCode}
-                        onChange={(e) => handleCouponChange(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent uppercase"
-                        placeholder="Enter coupon code"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => validateCoupon(bookingForm.couponCode)}
-                        disabled={!bookingForm.couponCode.trim() || couponLoading}
-                        variant="outline"
-                      >
-                        {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
-                      </Button>
-                    </div>
-                    {couponError && <p className="text-red-500 text-sm mt-2">{couponError}</p>}
-                    {couponData && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
-                        <div className="flex items-center gap-2 text-green-800">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="font-medium">
-                            {couponData.name} - {couponData.percentage}% discount applied!
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Payment Breakdown */}
-                  <BookingPaymentBreakdown
-                    selectedRoomType={selectedRoomType}
-                    discountAmount={calculateDiscount()}
-                    couponCode={bookingForm.couponCode}
-                    paymentMethod={bookingForm.paymentMethod}
-                  />
-
-                  {/* Terms */}
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      checked={bookingForm.termsAccepted}
-                      onChange={(e) => handleFormChange("termsAccepted", e.target.checked)}
-                      className="mt-1 h-4 w-4 text-HG-600 focus:ring-HG-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="terms" className="text-sm text-gray-700">
-                      I agree to the terms and conditions, including the security deposit,
-                      notice period ({listing?.detailedRules?.noticePeriod || "1 month"}),
-                      and lock-in period ({listing?.detailedRules?.lockInPeriod || "None"}) requirements.
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Razorpay Payment */}
-              {bookingStep === 4 && razorpayOrder && (
-                <div className="space-y-6 text-center py-8">
-                  <div className="w-20 h-20 bg-HG-100 rounded-full flex items-center justify-center mx-auto">
-                    <CreditCard className="w-10 h-10 text-HG-600" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900">Complete Payment</h4>
-                  <p className="text-gray-600">
-                    Pay the booking fee of{" "}
-                    <span className="font-bold text-HG-600">
-                      ₹{razorpayOrder.amount.toLocaleString()}
-                    </span>{" "}
-                    to confirm your booking.
-                  </p>
-
-                  <div className="bg-gray-50 rounded-xl p-4 max-w-md mx-auto">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Booking Fee (10%)</span>
-                      <span className="font-medium">₹{razorpayOrder.amount.toLocaleString()}</span>
-                    </div>
-                    <Separator className="my-3" />
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <p>• Secure payment via Razorpay</p>
-                      <p>• Remaining payment after owner approval</p>
-                      <p>• Instant booking confirmation</p>
-                    </div>
-                  </div>
-
-                  <div className="max-w-md mx-auto">
-                    <RazorpayCheckout
-                      orderId={razorpayOrder.orderId}
-                      amount={razorpayOrder.amount}
-                      description={`Booking Fee for ${listing?.pgName}`}
-                      prefill={{
-                        name: bookingForm.fullName,
-                        email: bookingForm.email,
-                        contact: bookingForm.phoneNumber,
-                      }}
-                      onSuccess={handlePaymentSuccess}
-                      onFailure={handlePaymentFailure}
-                      onDismiss={() => {}}
-                      buttonText={`Pay ₹${razorpayOrder.amount.toLocaleString()}`}
-                      fullWidth
-                      loading={bookingInProgress}
-                    />
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setBookingStep(3);
-                      setRazorpayOrder(null);
-                    }}
-                    className="text-gray-500"
-                  >
-                    ← Go Back
-                  </Button>
-                </div>
-              )}
-
-              {/* Step 5: Success */}
-              {bookingStep === 5 && paymentSuccess && (
-                <div className="space-y-6 text-center py-8">
-                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-14 h-14 text-green-600" />
-                  </div>
-                  <h4 className="text-2xl font-bold text-gray-900">Booking Submitted!</h4>
-
-                  {bookingForm.paymentMethod === "online" ? (
-                    <div className="space-y-4">
-                      <p className="text-gray-600">
-                        Your booking fee has been received. The owner will review your request.
-                      </p>
-                      <div className="bg-HG-50 rounded-xl p-4 max-w-md mx-auto text-left">
-                        <h5 className="font-semibold text-HG-700 mb-2">Next Steps:</h5>
-                        <ol className="text-sm text-HG-600 space-y-2 list-decimal list-inside">
-                          <li>Owner reviews your booking request</li>
-                          <li>You'll receive a notification on approval</li>
-                          <li>Complete remaining payment (Deposit + First Month Rent)</li>
-                          <li>Move in on your selected date!</li>
-                        </ol>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-gray-600">
-                        Your booking request has been submitted. The owner will contact you shortly.
-                      </p>
-                      <div className="bg-yellow-50 rounded-xl p-4 max-w-md mx-auto text-left">
-                        <h5 className="font-semibold text-yellow-700 mb-2">Next Steps:</h5>
-                        <ol className="text-sm text-yellow-600 space-y-2 list-decimal list-inside">
-                          <li>Owner reviews your booking request</li>
-                          <li>Owner contacts you to arrange visit/payment</li>
-                          <li>Pay full amount in cash to owner</li>
-                          <li>Move in on your selected date!</li>
-                        </ol>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 justify-center pt-4">
-                    <Button
-                      onClick={handleBookingClose}
-                      variant="outline"
-                    >
-                      Close
-                    </Button>
-                    <Button
-                      onClick={() => router.push("/routes/dashboard/user/payments")}
-                      className="bg-HG-500 hover:bg-HG-600"
-                    >
-                      View My Bookings
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Buttons */}
-              {bookingStep < 4 && (
-                <div className="flex gap-4 mt-8">
-                  {bookingStep > 1 && (
-                    <Button onClick={handlePrevStep} variant="outline" className="flex-1">
-                      Previous
-                    </Button>
-                  )}
-                  {bookingStep < 3 ? (
-                    <Button onClick={handleNextStep} className="flex-1 bg-HG-500 hover:bg-HG-600">
-                      Next
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleBookingSubmit}
-                      disabled={!bookingForm.termsAccepted || bookingInProgress}
-                      className="flex-1 bg-HG-500 hover:bg-HG-600 disabled:bg-gray-300"
-                    >
-                      {bookingInProgress ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Processing...
-                        </>
-                      ) : bookingForm.paymentMethod === "online" ? (
-                        <>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Proceed to Pay ₹{calculateBookingFee().toLocaleString()}
-                        </>
-                      ) : (
-                        "Submit Booking Request"
-                      )}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Directions Modal */}
       {showDirectionsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-2xl max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="text-xl font-bold font-poppins text-gray-900">
-                Get Directions to {listing?.pgName}
-              </h3>
-              <button onClick={() => setShowDirectionsModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
-                ×
-              </button>
+              <h3 className="text-xl font-bold font-poppins text-gray-900">Get Directions to {listing?.pgName}</h3>
+              <button onClick={() => setShowDirectionsModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
             </div>
-
             <div className="p-4">
               <PGMapWithDistance
                 lat={listing?.location?.coordinates?.coordinates[1] || 0}
@@ -2362,16 +909,13 @@ const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
                 address={`${listing?.location?.area || ""}, ${listing?.location?.city || ""}, ${listing?.location?.state || ""} - ${listing?.location?.pincode || ""}`}
               />
             </div>
-
             <div className="p-4 border-t bg-gray-50">
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button onClick={openDirections} className="flex-1 bg-HG-500 hover:bg-HG-600 text-white">
                   <IconArrowUpRight className="w-5 h-5 mr-2" />
                   Open in {isIOS ? "Apple" : "Google"} Maps
                 </Button>
-                <Button onClick={() => setShowDirectionsModal(false)} variant="outline" className="flex-1">
-                  Close
-                </Button>
+                <Button onClick={() => setShowDirectionsModal(false)} variant="outline" className="flex-1">Close</Button>
               </div>
             </div>
           </div>
