@@ -129,9 +129,22 @@ export async function POST(
             ownerId: listing.ownerId,
             bookingId: booking._id,
             listingId: listing._id,
+            tenantId: booking.userId,
+            allocationId: null,
+            monthlyRentPaymentId: null,
+
+            commissionType: "booking_fee_receivable",
+            direction: "owner_owes_admin",
+            sourcePaymentMethod: "cash",
+
+            rentMonth: null,
+            monthNumber: 1,
+
+            baseAmount: booking.monthlyRent,
+            commissionRate: 0.1,
             amount: bookingFeeAmount,
+
             status: "pending",
-            type: "booking_fee",
             dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
             notes: `Cash payment - Commission due from owner. ${notes || ""}`.trim(),
           },
