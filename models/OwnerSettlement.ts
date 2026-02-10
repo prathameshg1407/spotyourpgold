@@ -14,27 +14,25 @@ const ownerSettlementSchema = new mongoose.Schema(
     settlementPeriod: {
       startDate: { type: Date, required: true },
       endDate: { type: Date, required: true },
-      month: { type: String, required: true }, // "2024-02" format
+      month: { type: String, required: true },
     },
 
     // ============ FIRST PAYMENT SUMMARY ============
-    // (Admin collected 10%, owes 90% to owner)
     firstPaymentSummary: {
       totalBookings: { type: Number, default: 0 },
       totalFirstMonthRent: { type: Number, default: 0 },
-      adminCommissionCollected: { type: Number, default: 0 }, // 10%
-      ownerPayoutDue: { type: Number, default: 0 }, // 90%
+      adminCommissionCollected: { type: Number, default: 0 },
+      ownerPayoutDue: { type: Number, default: 0 },
       ownerPayoutCompleted: { type: Number, default: 0 },
       bookingIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Booking" }],
     },
 
     // ============ MONTHLY RENT COMMISSION SUMMARY ============
-    // (Owner collected 100%, owes 10% to admin)
     monthlyRentSummary: {
       totalRentCollections: { type: Number, default: 0 },
       totalRentAmount: { type: Number, default: 0 },
       commissionRate: { type: Number, default: 0.10 },
-      commissionDueToAdmin: { type: Number, default: 0 }, // 10%
+      commissionDueToAdmin: { type: Number, default: 0 },
       commissionPaidToAdmin: { type: Number, default: 0 },
       rentPaymentIds: [
         { type: mongoose.Schema.Types.ObjectId, ref: "MonthlyRentPayment" },
@@ -42,12 +40,10 @@ const ownerSettlementSchema = new mongoose.Schema(
     },
 
     // ============ NET SETTLEMENT ============
-    // Positive = Admin pays owner
-    // Negative = Owner pays admin
     netSettlement: {
-      adminOwesToOwner: { type: Number, default: 0 }, // From first payments (90%)
-      ownerOwesToAdmin: { type: Number, default: 0 }, // From monthly rent (10%)
-      netAmount: { type: Number, default: 0 }, // Difference
+      adminOwesToOwner: { type: Number, default: 0 },
+      ownerOwesToAdmin: { type: Number, default: 0 },
+      netAmount: { type: Number, default: 0 },
       settledAmount: { type: Number, default: 0 },
       remainingAmount: { type: Number, default: 0 },
     },
@@ -71,11 +67,16 @@ const ownerSettlementSchema = new mongoose.Schema(
         amount: { type: Number, required: true },
         method: {
           type: String,
-          enum: ["cash", "bank_transfer", "upi", "cheque", "adjusted"],
+          enum: ["cash", "bank_transfer", "upi", "cheque", "adjusted", "razorpayx"],
         },
-        reference: { type: String },
+        reference: { type: String, default: "" },
+        // RazorpayX fields
+        razorpayxPayoutId: { type: String, default: "" },
+        razorpayxFundAccountId: { type: String, default: "" },
+        utrNumber: { type: String, default: "" },
+        // Audit
         processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        notes: { type: String },
+        notes: { type: String, default: "" },
       },
     ],
 
@@ -102,10 +103,11 @@ const ownerSettlementSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// ============ INDEXES ============
 ownerSettlementSchema.index({ ownerId: 1, "settlementPeriod.month": 1 });
 ownerSettlementSchema.index({ status: 1, createdAt: -1 });
 ownerSettlementSchema.index({ "settlementPeriod.month": 1 });
+ownerSettlementSchema.index({ "transactions.razorpayxPayoutId": 1 });
 
 const OwnerSettlement =
   mongoose.models.OwnerSettlement ||

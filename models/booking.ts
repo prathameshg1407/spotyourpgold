@@ -1,6 +1,6 @@
+// models/booking.ts
 import mongoose, { Document } from "mongoose";
 
-// Define the interface for the Booking document
 interface IBooking extends Document {
   userId: mongoose.Types.ObjectId;
   listingId: mongoose.Types.ObjectId;
@@ -30,13 +30,11 @@ interface IBooking extends Document {
     paidAt: Date | null;
     paidTo: "admin" | "owner" | "";
     paymentReference: string;
-    // Online payment fields
     razorpayOrderId: string;
     razorpayPaymentId: string;
-    // Cash payment - owner owes admin
     ownerCommissionStatus: "not_applicable" | "pending" | "paid";
     ownerCommissionPaidAt: Date | null;
-    ownerCommissionMethod: "cash" | "bank_transfer" | "upi" | "";
+    ownerCommissionMethod: "cash" | "bank_transfer" | "upi" | "razorpayx" | "";
     ownerCommissionReference: string;
   };
 
@@ -49,11 +47,15 @@ interface IBooking extends Document {
     paymentReference: string;
     razorpayOrderId: string;
     razorpayPaymentId: string;
-    // Online - admin transfers to owner
+    // Transfer to owner
     transferredToOwner: boolean;
     transferredAt: Date | null;
-    transferMethod: "bank_transfer" | "upi" | "";
+    transferMethod: "bank_transfer" | "upi" | "razorpayx" | "";
     transferReference: string;
+    // RazorpayX fields
+    razorpayxPayoutId: string;
+    razorpayxFundAccountId: string;
+    ownerPayoutUTR: string;
     // Refund tracking
     refundAmount: number;
     refundDate: Date | null;
@@ -70,13 +72,18 @@ interface IBooking extends Document {
     paymentReference: string;
     razorpayOrderId: string;
     razorpayPaymentId: string;
-    // Online - admin owes owner 90%
-    ownerPayoutStatus: "not_applicable" | "pending" | "processing" | "completed";
+    // Owner payout
+    ownerPayoutStatus: "not_applicable" | "pending" | "processing" | "completed" | "failed";
     ownerPayoutAmount: number;
     ownerPayoutDate: Date | null;
-    ownerPayoutMethod: "bank_transfer" | "upi" | "";
+    ownerPayoutMethod: "bank_transfer" | "upi" | "razorpayx" | "";
     ownerPayoutReference: string;
     ownerPayoutBy: mongoose.Types.ObjectId | null;
+    // RazorpayX fields
+    razorpayxPayoutId: string;
+    razorpayxFundAccountId: string;
+    ownerPayoutUTR: string;
+    ownerPayoutFailureReason: string;
   };
 
   // ============ COUPON/DISCOUNT ============
@@ -220,7 +227,6 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       paymentReference: { type: String, default: "" },
       razorpayOrderId: { type: String, default: "" },
       razorpayPaymentId: { type: String, default: "" },
-      // Cash - owner owes admin 10%
       ownerCommissionStatus: {
         type: String,
         enum: ["not_applicable", "pending", "paid"],
@@ -229,7 +235,7 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       ownerCommissionPaidAt: { type: Date, default: null },
       ownerCommissionMethod: {
         type: String,
-        enum: ["cash", "bank_transfer", "upi", ""],
+        enum: ["cash", "bank_transfer", "upi", "razorpayx", ""],
         default: "",
       },
       ownerCommissionReference: { type: String, default: "" },
@@ -252,15 +258,19 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       paymentReference: { type: String, default: "" },
       razorpayOrderId: { type: String, default: "" },
       razorpayPaymentId: { type: String, default: "" },
-      // Online - admin transfers to owner
+      // Transfer to owner
       transferredToOwner: { type: Boolean, default: false },
       transferredAt: { type: Date, default: null },
       transferMethod: {
         type: String,
-        enum: ["bank_transfer", "upi", ""],
+        enum: ["bank_transfer", "upi", "razorpayx", ""],
         default: "",
       },
       transferReference: { type: String, default: "" },
+      // RazorpayX fields
+      razorpayxPayoutId: { type: String, default: "" },
+      razorpayxFundAccountId: { type: String, default: "" },
+      ownerPayoutUTR: { type: String, default: "" },
       // Refund
       refundAmount: { type: Number, default: 0 },
       refundDate: { type: Date, default: null },
@@ -285,17 +295,17 @@ const bookingSchema = new mongoose.Schema<IBooking>(
       paymentReference: { type: String, default: "" },
       razorpayOrderId: { type: String, default: "" },
       razorpayPaymentId: { type: String, default: "" },
-      // Online - admin pays 90% to owner
+      // Owner payout
       ownerPayoutStatus: {
         type: String,
-        enum: ["not_applicable", "pending", "processing", "completed"],
+        enum: ["not_applicable", "pending", "processing", "completed", "failed"],
         default: "not_applicable",
       },
       ownerPayoutAmount: { type: Number, default: 0 },
       ownerPayoutDate: { type: Date, default: null },
       ownerPayoutMethod: {
         type: String,
-        enum: ["bank_transfer", "upi", ""],
+        enum: ["bank_transfer", "upi", "razorpayx", ""],
         default: "",
       },
       ownerPayoutReference: { type: String, default: "" },
@@ -304,6 +314,11 @@ const bookingSchema = new mongoose.Schema<IBooking>(
         ref: "User",
         default: null,
       },
+      // RazorpayX fields
+      razorpayxPayoutId: { type: String, default: "" },
+      razorpayxFundAccountId: { type: String, default: "" },
+      ownerPayoutUTR: { type: String, default: "" },
+      ownerPayoutFailureReason: { type: String, default: "" },
     },
 
     // ============ COUPON/DISCOUNT ============
@@ -360,32 +375,26 @@ bookingSchema.pre("save", function (this: IBooking, next) {
 
   // Set payment destination and commission tracking based on payment method
   if (this.paymentMethod === "cash") {
-    // Cash: User pays owner directly
     this.bookingFee.paidTo = "owner";
     this.securityDeposit.paidTo = "owner";
     this.firstMonthRent.paidTo = "owner";
 
-    // Owner owes 10% booking fee to admin
     if (this.bookingFee.status === "paid" && this.bookingFee.ownerCommissionStatus === "not_applicable") {
       this.bookingFee.ownerCommissionStatus = "pending";
     }
 
-    // No payout needed (owner already has the money)
     this.firstMonthRent.ownerPayoutStatus = "not_applicable";
     this.firstMonthRent.ownerPayoutAmount = 0;
   } else {
-    // Online: User pays admin
     this.bookingFee.paidTo = "admin";
     this.securityDeposit.paidTo = "admin";
     this.firstMonthRent.paidTo = "admin";
 
-    // Admin owes 90% to owner
     this.firstMonthRent.ownerPayoutAmount = this.firstMonthRent.amount;
     if (this.firstMonthRent.status === "paid" && this.firstMonthRent.ownerPayoutStatus === "not_applicable") {
       this.firstMonthRent.ownerPayoutStatus = "pending";
     }
 
-    // No commission to collect (admin already keeps 10%)
     this.bookingFee.ownerCommissionStatus = "not_applicable";
   }
 
@@ -403,7 +412,7 @@ bookingSchema.pre("save", function (this: IBooking, next) {
   next();
 });
 
-// Indexes
+// ============ INDEXES ============
 bookingSchema.index({ userId: 1, createdAt: -1 });
 bookingSchema.index({ listingId: 1, status: 1 });
 bookingSchema.index({ ownerId: 1, status: 1 });
@@ -415,6 +424,7 @@ bookingSchema.index({ "securityDeposit.status": 1 });
 bookingSchema.index({ "securityDeposit.transferredToOwner": 1, paymentMethod: 1 });
 bookingSchema.index({ "firstMonthRent.status": 1 });
 bookingSchema.index({ "firstMonthRent.ownerPayoutStatus": 1, ownerId: 1 });
+bookingSchema.index({ "firstMonthRent.razorpayxPayoutId": 1 });
 
 const Booking =
   mongoose.models.Booking || mongoose.model<IBooking>("Booking", bookingSchema);

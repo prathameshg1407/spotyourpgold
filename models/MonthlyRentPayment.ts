@@ -1,3 +1,4 @@
+// models/MonthlyRentPayment.ts
 import mongoose, { Document } from "mongoose";
 
 interface IMonthlyRentPayment extends Document {
@@ -27,15 +28,18 @@ interface IMonthlyRentPayment extends Document {
     razorpayPaymentId: string;
     paidToAdmin: boolean;
     paidToAdminAt: Date | null;
-    // Admin keeps 10%
     adminCommission: number;
-    // Admin owes 90% to owner
     ownerPayoutAmount: number;
-    ownerPayoutStatus: "not_applicable" | "pending" | "processing" | "completed";
+    ownerPayoutStatus: "not_applicable" | "pending" | "processing" | "completed" | "failed";
     ownerPayoutDate: Date | null;
-    ownerPayoutMethod: "bank_transfer" | "upi" | "";
+    ownerPayoutMethod: "bank_transfer" | "upi" | "razorpayx" | "";
     ownerPayoutReference: string;
     ownerPayoutBy: mongoose.Types.ObjectId | null;
+    // RazorpayX fields
+    razorpayxPayoutId: string;
+    razorpayxFundAccountId: string;
+    ownerPayoutUTR: string;
+    ownerPayoutFailureReason: string;
   };
 
   // ============ CASH PAYMENT (User → Owner → Admin) ============
@@ -43,11 +47,10 @@ interface IMonthlyRentPayment extends Document {
     collectedByOwner: boolean;
     collectedAt: Date | null;
     paymentProof: string;
-    // Owner owes 10% to admin
     adminCommissionOwed: number;
     adminCommissionStatus: "not_applicable" | "pending" | "paid" | "overdue";
     adminCommissionPaidAt: Date | null;
-    adminCommissionMethod: "cash" | "bank_transfer" | "upi" | "";
+    adminCommissionMethod: "cash" | "bank_transfer" | "upi" | "razorpayx" | "";
     adminCommissionReference: string;
   };
 
@@ -146,13 +149,13 @@ const monthlyRentPaymentSchema = new mongoose.Schema<IMonthlyRentPayment>(
       ownerPayoutAmount: { type: Number, default: 0 },
       ownerPayoutStatus: {
         type: String,
-        enum: ["not_applicable", "pending", "processing", "completed"],
+        enum: ["not_applicable", "pending", "processing", "completed", "failed"],
         default: "not_applicable",
       },
       ownerPayoutDate: { type: Date, default: null },
       ownerPayoutMethod: {
         type: String,
-        enum: ["bank_transfer", "upi", ""],
+        enum: ["bank_transfer", "upi", "razorpayx", ""],
         default: "",
       },
       ownerPayoutReference: { type: String, default: "" },
@@ -161,6 +164,11 @@ const monthlyRentPaymentSchema = new mongoose.Schema<IMonthlyRentPayment>(
         ref: "User",
         default: null,
       },
+      // RazorpayX fields
+      razorpayxPayoutId: { type: String, default: "" },
+      razorpayxFundAccountId: { type: String, default: "" },
+      ownerPayoutUTR: { type: String, default: "" },
+      ownerPayoutFailureReason: { type: String, default: "" },
     },
 
     // ============ CASH PAYMENT ============
@@ -177,7 +185,7 @@ const monthlyRentPaymentSchema = new mongoose.Schema<IMonthlyRentPayment>(
       adminCommissionPaidAt: { type: Date, default: null },
       adminCommissionMethod: {
         type: String,
-        enum: ["cash", "bank_transfer", "upi", ""],
+        enum: ["cash", "bank_transfer", "upi", "razorpayx", ""],
         default: "",
       },
       adminCommissionReference: { type: String, default: "" },
@@ -230,7 +238,6 @@ monthlyRentPaymentSchema.pre("save", function (next) {
   const COMMISSION_RATE = 0.1;
 
   if (this.paymentMethod === "online" && this.paymentStatus === "paid") {
-    // Online: Admin keeps 10%, owes 90% to owner
     this.onlinePayment.adminCommission = Math.round(this.rentAmount * COMMISSION_RATE);
     this.onlinePayment.ownerPayoutAmount = Math.round(this.rentAmount * (1 - COMMISSION_RATE));
 
@@ -238,24 +245,21 @@ monthlyRentPaymentSchema.pre("save", function (next) {
       this.onlinePayment.ownerPayoutStatus = "pending";
     }
 
-    // Reset cash fields
     this.cashPayment.adminCommissionStatus = "not_applicable";
   } else if (this.paymentMethod === "cash" && this.paymentStatus === "paid") {
-    // Cash: Owner owes 10% to admin
     this.cashPayment.adminCommissionOwed = Math.round(this.rentAmount * COMMISSION_RATE);
 
     if (this.cashPayment.adminCommissionStatus === "not_applicable") {
       this.cashPayment.adminCommissionStatus = "pending";
     }
 
-    // Reset online fields
     this.onlinePayment.ownerPayoutStatus = "not_applicable";
   }
 
   next();
 });
 
-// Indexes
+// ============ INDEXES ============
 monthlyRentPaymentSchema.index({ bookingId: 1, rentMonth: 1 });
 monthlyRentPaymentSchema.index({ allocationId: 1, rentMonth: 1 });
 monthlyRentPaymentSchema.index({ ownerId: 1, paymentStatus: 1 });
@@ -263,6 +267,7 @@ monthlyRentPaymentSchema.index({ tenantId: 1, paymentStatus: 1 });
 monthlyRentPaymentSchema.index({ dueDate: 1, paymentStatus: 1 });
 monthlyRentPaymentSchema.index({ paymentMethod: 1, paymentStatus: 1 });
 monthlyRentPaymentSchema.index({ "onlinePayment.ownerPayoutStatus": 1, ownerId: 1 });
+monthlyRentPaymentSchema.index({ "onlinePayment.razorpayxPayoutId": 1 });
 monthlyRentPaymentSchema.index({ "cashPayment.adminCommissionStatus": 1, ownerId: 1 });
 monthlyRentPaymentSchema.index({ rentMonth: 1, ownerId: 1 });
 

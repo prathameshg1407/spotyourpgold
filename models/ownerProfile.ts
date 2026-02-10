@@ -1,3 +1,4 @@
+// models/OwnerProfile.ts
 import mongoose from "mongoose";
 
 const documentsSchema = new mongoose.Schema(
@@ -16,13 +17,50 @@ const documentsSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// ============ UPDATED PAYMENT DETAILS SCHEMA ============
 const paymentDetailsSchema = new mongoose.Schema(
   {
-    accountNumber: { type: String },
-    ifscCode: { type: String },
-    accountHolderName: { type: String },
-    bankName: { type: String },
-    upiId: { type: String },
+    // Bank Account Details
+    accountNumber: { type: String, default: "" },
+    accountNumberLast4: { type: String, default: "" },
+    ifscCode: { type: String, default: "" },
+    accountHolderName: { type: String, default: "" },
+    bankName: { type: String, default: "" },
+    branchName: { type: String, default: "" },
+    accountType: {
+      type: String,
+      enum: ["savings", "current", ""],
+      default: "savings",
+    },
+
+    // UPI
+    upiId: { type: String, default: "" },
+
+    // ============ RAZORPAYX INTEGRATION ============
+    razorpayxContactId: { type: String, default: "" },
+    razorpayxFundAccountId: { type: String, default: "" },
+
+    // ============ VERIFICATION ============
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "failed", "not_added"],
+      default: "not_added",
+    },
+    verifiedAt: { type: Date, default: null },
+    verificationMethod: {
+      type: String,
+      enum: ["penny_drop", "manual", "razorpayx", ""],
+      default: "",
+    },
+    verificationFailureReason: { type: String, default: "" },
+
+    // ============ AUDIT ============
+    lastUpdatedAt: { type: Date, default: null },
+    lastUpdatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { _id: false }
 );
@@ -42,13 +80,42 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// ============ PAYOUT PREFERENCES SCHEMA ============
+const payoutPreferencesSchema = new mongoose.Schema(
+  {
+    autoPayoutEnabled: { type: Boolean, default: false },
+    minimumPayoutAmount: { type: Number, default: 100 },
+    payoutSchedule: {
+      type: String,
+      enum: ["immediate", "daily", "weekly", "monthly"],
+      default: "immediate",
+    },
+    preferredPayoutDay: { type: Number, default: 1 }, // 1-31 for monthly, 1-7 for weekly
+    notifyOnPayout: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
+// ============ PAYOUT SUMMARY SCHEMA ============
+const payoutSummarySchema = new mongoose.Schema(
+  {
+    totalPayoutsReceived: { type: Number, default: 0 },
+    totalPayoutAmount: { type: Number, default: 0 },
+    lastPayoutDate: { type: Date, default: null },
+    lastPayoutAmount: { type: Number, default: 0 },
+    pendingPayoutAmount: { type: Number, default: 0 },
+    failedPayoutsCount: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const ownerProfileSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // ✅ Only declare unique HERE, not in index below
+      unique: true,
     },
 
     phone: {
@@ -63,8 +130,8 @@ const ownerProfileSchema = new mongoose.Schema(
 
     aadhaarNumber: {
       type: String,
-      required: false, // ✅ OPTIONAL
-      default: "", // ✅ Default to empty string
+      required: false,
+      default: "",
     },
 
     address: {
@@ -76,24 +143,40 @@ const ownerProfileSchema = new mongoose.Schema(
       type: documentsSchema,
     },
 
+    // ============ UPDATED PAYMENT DETAILS ============
     paymentDetails: {
       type: paymentDetailsSchema,
+      default: () => ({}),
+    },
+
+    // ============ NEW: PAYOUT PREFERENCES ============
+    payoutPreferences: {
+      type: payoutPreferencesSchema,
+      default: () => ({}),
+    },
+
+    // ============ NEW: PAYOUT SUMMARY ============
+    payoutSummary: {
+      type: payoutSummarySchema,
+      default: () => ({}),
     },
   },
   { timestamps: true }
 );
 
-// ✅ REMOVED duplicate userId index
-
-// ✅ Sparse unique index for aadhaarNumber (allows multiple empty values)
+// Sparse unique index for aadhaarNumber
 ownerProfileSchema.index(
   { aadhaarNumber: 1 },
-  { 
-    unique: true, 
-    sparse: true, // Only enforce uniqueness when value exists
-    partialFilterExpression: { aadhaarNumber: { $ne: "" } } // Extra safety
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { aadhaarNumber: { $ne: "" } },
   }
 );
+
+// ============ NEW INDEXES FOR RAZORPAYX ============
+ownerProfileSchema.index({ "paymentDetails.razorpayxFundAccountId": 1 });
+ownerProfileSchema.index({ "paymentDetails.verificationStatus": 1 });
 
 const OwnerProfile =
   mongoose.models.OwnerProfile ||

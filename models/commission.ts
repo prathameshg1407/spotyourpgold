@@ -1,3 +1,4 @@
+// models/Commission.ts
 import mongoose, { Document } from "mongoose";
 
 interface ICommission extends Document {
@@ -10,12 +11,12 @@ interface ICommission extends Document {
 
   // Commission Type
   commissionType:
-    | "booking_fee_revenue"           // 10% admin received (ONLINE)
-    | "booking_fee_receivable"        // 10% owner owes admin (CASH)
-    | "first_month_payout"            // 90% admin owes owner (ONLINE)
-    | "security_deposit_payout"       // Security deposit admin owes owner (ONLINE)
-    | "monthly_rent_payout"           // 90% admin owes owner (ONLINE monthly)
-    | "monthly_rent_commission";      // 10% owner owes admin (CASH monthly)
+    | "booking_fee_revenue"
+    | "booking_fee_receivable"
+    | "first_month_payout"
+    | "security_deposit_payout"
+    | "monthly_rent_payout"
+    | "monthly_rent_commission";
 
   // Payment flow direction
   direction: "admin_received" | "admin_owes_owner" | "owner_owes_admin";
@@ -33,15 +34,21 @@ interface ICommission extends Document {
   amount: number;
 
   // Status
-  status: "pending" | "processing" | "completed" | "overdue" | "waived";
+  status: "pending" | "processing" | "completed" | "overdue" | "waived" | "failed";
 
   // Settlement details
   dueDate: Date;
   settledAt: Date | null;
   settledBy: mongoose.Types.ObjectId | null;
-  settlementMethod: "cash" | "bank_transfer" | "upi" | "razorpay" | "auto" | "";
+  settlementMethod: "cash" | "bank_transfer" | "upi" | "razorpay" | "razorpayx" | "auto" | "";
   settlementReference: string;
   settlementProof: string;
+
+  // RazorpayX fields
+  razorpayxPayoutId: string;
+  razorpayxFundAccountId: string;
+  utrNumber: string;
+  payoutFailureReason: string;
 
   // Additional
   notes: string;
@@ -95,12 +102,12 @@ const commissionSchema = new mongoose.Schema<ICommission>(
     commissionType: {
       type: String,
       enum: [
-        "booking_fee_revenue",        // Admin received 10% (online)
-        "booking_fee_receivable",     // Owner owes 10% (cash)
-        "first_month_payout",         // Admin owes 90% (online)
-        "security_deposit_payout",    // Admin owes deposit (online)
-        "monthly_rent_payout",        // Admin owes 90% (online monthly)
-        "monthly_rent_commission",    // Owner owes 10% (cash monthly)
+        "booking_fee_revenue",
+        "booking_fee_receivable",
+        "first_month_payout",
+        "security_deposit_payout",
+        "monthly_rent_payout",
+        "monthly_rent_commission",
       ],
       required: true,
     },
@@ -147,7 +154,7 @@ const commissionSchema = new mongoose.Schema<ICommission>(
     // ============ STATUS ============
     status: {
       type: String,
-      enum: ["pending", "processing", "completed", "overdue", "waived"],
+      enum: ["pending", "processing", "completed", "overdue", "waived", "failed"],
       default: "pending",
     },
 
@@ -167,7 +174,7 @@ const commissionSchema = new mongoose.Schema<ICommission>(
     },
     settlementMethod: {
       type: String,
-      enum: ["cash", "bank_transfer", "upi", "razorpay", "auto", ""],
+      enum: ["cash", "bank_transfer", "upi", "razorpay", "razorpayx", "auto", ""],
       default: "",
     },
     settlementReference: {
@@ -175,6 +182,24 @@ const commissionSchema = new mongoose.Schema<ICommission>(
       default: "",
     },
     settlementProof: {
+      type: String,
+      default: "",
+    },
+
+    // ============ RAZORPAYX FIELDS ============
+    razorpayxPayoutId: {
+      type: String,
+      default: "",
+    },
+    razorpayxFundAccountId: {
+      type: String,
+      default: "",
+    },
+    utrNumber: {
+      type: String,
+      default: "",
+    },
+    payoutFailureReason: {
       type: String,
       default: "",
     },
@@ -190,7 +215,7 @@ const commissionSchema = new mongoose.Schema<ICommission>(
   }
 );
 
-// Indexes
+// ============ INDEXES ============
 commissionSchema.index({ ownerId: 1, status: 1, commissionType: 1 });
 commissionSchema.index({ bookingId: 1, commissionType: 1 });
 commissionSchema.index({ commissionType: 1, status: 1 });
@@ -200,6 +225,7 @@ commissionSchema.index({ sourcePaymentMethod: 1, status: 1 });
 commissionSchema.index({ rentMonth: 1, ownerId: 1 });
 commissionSchema.index({ monthlyRentPaymentId: 1 });
 commissionSchema.index({ allocationId: 1, rentMonth: 1 });
+commissionSchema.index({ razorpayxPayoutId: 1 });
 
 const Commission =
   mongoose.models.Commission ||
