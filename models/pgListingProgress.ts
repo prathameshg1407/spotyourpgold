@@ -66,9 +66,9 @@ export interface IPGListingProgress extends Document {
     };
 
     // Images and Videos
-    images?: string[];
+    images?: (string | { url: string; description?: string })[];
     videos?: string[];
-    existingImageUrls?: string[];
+    existingImageUrls?: (string | { url: string; description?: string })[];
     existingVideoUrls?: string[];
 
     // Additional fields
@@ -179,9 +179,17 @@ const PGListingProgressSchema = new Schema<IPGListingProgress>(
       },
 
       // Images and Videos
-      images: [String],
+      images: [
+        {
+          type: Schema.Types.Mixed, // Allow both string and object
+        },
+      ],
       videos: [String],
-      existingImageUrls: [String],
+      existingImageUrls: [
+        {
+          type: Schema.Types.Mixed, // Allow both string and object
+        },
+      ],
       existingVideoUrls: [String],
 
       // Additional fields

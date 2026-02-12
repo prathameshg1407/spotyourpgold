@@ -14,8 +14,8 @@ export const useImageUpload = (
     const validFiles: File[] = [];
     let errorMessage = "";
 
-    const existingCount = formData.existingImageUrls.length;
-    const currentCount = formData.images.length;
+    const existingCount = formData.existingImages?.length || 0;
+    const currentCount = formData.images?.length || 0;
     const totalCount = existingCount + currentCount;
 
     // Check if adding these files would exceed the limit
@@ -30,6 +30,7 @@ export const useImageUpload = (
     }
 
     try {
+      const processedFiles: { file: File; description: string }[] = [];
       // Process files with compression
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -63,7 +64,7 @@ export const useImageUpload = (
             break;
           }
 
-          validFiles.push(compressedFile);
+          processedFiles.push({ file: compressedFile, description: "" });
         } catch (compressionError) {
           errorMessage = `Failed to compress image ${file.name}`;
           break;
@@ -79,15 +80,11 @@ export const useImageUpload = (
         return;
       }
 
-      // Trim to fit max 12
-      const allowedCount = 12 - totalCount;
-      const trimmedFiles = validFiles.slice(0, allowedCount);
-
       setErrors((prev: any) => ({ ...prev, images: false, general: "" }));
 
       setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...trimmedFiles],
+        images: [...(prev.images || []), ...processedFiles],
       }));
     } catch (error) {
       setErrors((prev: any) => ({

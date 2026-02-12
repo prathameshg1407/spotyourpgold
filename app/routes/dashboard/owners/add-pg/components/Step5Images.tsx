@@ -18,6 +18,8 @@ interface Step5ImagesProps extends StepProps {
   existingVideoUrls: string[];
   handleRemoveExistingImage: (index: number) => void;
   handleRemoveExistingVideo: (index: number) => void;
+  handleImageDescriptionChange: (index: number, description: string) => void;
+  handleExistingImageDescriptionChange: (index: number, description: string) => void;
 }
 
 export const Step5Images: React.FC<Step5ImagesProps> = ({
@@ -32,6 +34,8 @@ export const Step5Images: React.FC<Step5ImagesProps> = ({
   existingVideoUrls,
   handleRemoveExistingImage,
   handleRemoveExistingVideo,
+  handleImageDescriptionChange,
+  handleExistingImageDescriptionChange,
 }) => {
   return (
     <form>
@@ -45,7 +49,7 @@ export const Step5Images: React.FC<Step5ImagesProps> = ({
             </Label>
             <p className="text-gray-600 text-[14px] font-inter">
               Upload 1–12 high-quality images of your PG. First image will be
-              primary.
+              primary. Add descriptions if needed.
             </p>
           </div>
 
@@ -181,52 +185,77 @@ export const Step5Images: React.FC<Step5ImagesProps> = ({
               {(existingImageUrls?.length || 0) + formData.images.length}/12)
             </Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {existingImageUrls?.map((url, index) => (
-                <div
-                  key={`existing-${index}`}
-                  className="relative group overflow-hidden rounded-lg border border-gray-200"
-                >
-                  <BlurImage
-                    src={url}
-                    alt={`PG Image ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                    width={400}
-                    height={400}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExistingImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  {index === 0 && (
-                    <div className="absolute bottom-2 left-2 bg-HG-500 text-white text-xs px-2 py-0.5 rounded-full font-inter">
-                      Primary
-                    </div>
-                  )}
-                </div>
-              ))}
+              {/* Existing Images */}
+              {existingImageUrls?.map((item: any, index: number) => {
+                const url = typeof item === 'string' ? item : item.url;
+                const description = typeof item === 'string' ? '' : (item.description || '');
 
-              {formData.images.map((file, index) => (
+                return (
+                  <div
+                    key={`existing-${index}`}
+                    className="relative group overflow-hidden rounded-lg border border-gray-200 flex flex-col"
+                  >
+                    <div className="relative">
+                      <BlurImage
+                        src={url}
+                        alt={`PG Image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-t-lg"
+                        width={400}
+                        height={400}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExistingImage(index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-2 left-2 bg-HG-500 text-white text-xs px-2 py-0.5 rounded-full font-inter">
+                          Primary
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Add description..."
+                      value={description}
+                      onChange={(e) => handleExistingImageDescriptionChange(index, e.target.value)}
+                      className="w-full text-xs p-2 border-t outline-none focus:bg-gray-50"
+                    />
+                  </div>
+                );
+              })}
+
+              {/* New Images */}
+              {formData.images.map((imgItem, index) => (
                 <div
                   key={`new-${index}`}
-                  className="relative group overflow-hidden rounded-lg border border-gray-200"
+                  className="relative group overflow-hidden rounded-lg border border-gray-200 flex flex-col"
                 >
-                  <BlurImage
-                    src={URL.createObjectURL(file)}
-                    alt={`PG Image ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg"
-                    width={400}
-                    height={400}
+                  <div className="relative">
+                    <BlurImage
+                      src={URL.createObjectURL(imgItem.file)}
+                      alt={`PG Image ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-t-lg"
+                      width={400}
+                      height={400}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Add description..."
+                    value={imgItem.description}
+                    onChange={(e) => handleImageDescriptionChange(index, e.target.value)}
+                    className="w-full text-xs p-2 border-t outline-none focus:bg-gray-50"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>

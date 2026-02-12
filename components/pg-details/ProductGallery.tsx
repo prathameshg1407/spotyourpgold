@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BlurImage } from "@/components/BlurImage";
 
 interface ProductGalleryProps {
-  images: { url: string }[];
+  images: { url: string; description?: string }[];
   pgName: string;
 }
 
@@ -84,6 +84,15 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
         <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
           {currentImageIndex + 1} / {images.length}
         </div>
+        
+        {/* Description Overlay */}
+        {images[currentImageIndex]?.description && (
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3 text-white backdrop-blur-sm">
+             <p className="text-sm font-inter line-clamp-2 md:text-base">
+               {images[currentImageIndex].description}
+             </p>
+          </div>
+        )}
       </div>
 
       {/* Mobile Thumbnails */}

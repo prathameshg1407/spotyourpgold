@@ -133,13 +133,36 @@ export async function PUT(
       });
     }
 
-    // ✅ Split images into existing and new base64
-    const newBase64Images = images.filter((img: string) =>
-      img.startsWith("data:image")
-    );
-    const existingImageUrls = images.filter((img: string) =>
-      img.startsWith("https://")
-    );
+    // ✅ Normalize and split images
+    const newImagesToUpload: { base64: string; description: string }[] = [];
+    const existingImagesToKeep: { url: string; public_id: string; description: string }[] = [];
+
+    images.forEach((img: any) => {
+      if (typeof img === "string") {
+        if (img.startsWith("data:image")) {
+          newImagesToUpload.push({ base64: img, description: "" });
+        } else if (img.startsWith("http")) {
+          existingImagesToKeep.push({
+            url: img,
+            public_id: extractPublicId(img),
+            description: "",
+          });
+        }
+      } else if (typeof img === "object") {
+        if (img.base64) {
+          newImagesToUpload.push({
+            base64: img.base64,
+            description: img.description || "",
+          });
+        } else if (img.url) {
+          existingImagesToKeep.push({
+            url: img.url,
+            public_id: img.public_id || extractPublicId(img.url),
+            description: img.description || "",
+          });
+        }
+      }
+    });
 
     // ✅ Split videos into existing and new base64
     const newBase64Videos = videos.filter((video: string) =>
@@ -151,13 +174,13 @@ export async function PUT(
 
     // ✅ Upload only new images
     uploadedImages = await Promise.all(
-      newBase64Images.map(async (img: string) => {
+      newImagesToUpload.map(async (item) => {
         const { url, public_id } = await uploadToCloudinary(
-          img,
+          item.base64,
           "sypg/listing-images",
           "sypgListingImages"
         );
-        return { url, public_id };
+        return { url, public_id, description: item.description };
       })
     );
 
@@ -177,7 +200,7 @@ export async function PUT(
 
     // ✅ Extract public_ids from reused existing URLs
     const reusedImagePublicIds = new Set(
-      existingImageUrls.map((url: string) => extractPublicId(url))
+      existingImagesToKeep.map((img) => img.public_id)
     );
     const reusedVideoPublicIds = new Set(
       existingVideoUrls.map((url: string) => extractPublicId(url))
@@ -185,12 +208,14 @@ export async function PUT(
 
     // ✅ Delete only unused old images and videos
     await Promise.all([
-      ...existingListing.images.map(async (img: any) => {
-        if (!reusedImagePublicIds.has(img.public_id)) {
+      ...(existingListing.images || []).map(async (img: any) => {
+        // Handle both string images (legacy) and object images
+        const publicId = typeof img === 'string' ? extractPublicId(img) : img.public_id;
+        if (!reusedImagePublicIds.has(publicId)) {
           try {
-            await deleteFromCloudinary(img.public_id);
+            await deleteFromCloudinary(publicId);
           } catch (err) {
-            console.warn(`Failed to delete ${img.public_id}:`, err);
+            console.warn(`Failed to delete ${publicId}:`, err);
           }
         }
       }),
@@ -207,11 +232,12 @@ export async function PUT(
 
     // ✅ Combine reused and new images
     const finalImages = [
-      ...existingImageUrls.map((url) => ({
-        url,
-        public_id: extractPublicId(url),
+      ...existingImagesToKeep.map((img) => ({
+        url: img.url,
+        public_id: img.public_id,
+        description: img.description,
       })),
-      ...uploadedImages,
+      ...uploadedImages, // Already contains { url, public_id, description }
     ];
 
     // ✅ Combine reused and new videos

@@ -262,8 +262,8 @@ function InfiniteScrollListings({ currentListingId }: { currentListingId: string
             key={`${listing._id}-${index}`}
             id={listing._id}
             slug={listing.slug}
-            image={listing.primaryImage || listing.images?.[0]?.url}
-            images={listing.images?.map((img: any) => img.url) || []}
+            image={listing.primaryImage || listing.images?.[0] || ""}
+            images={listing.images || []}
             area={listing.location?.area}
             pgName={listing.pgName}
             primaryLine={listing.primaryLine}

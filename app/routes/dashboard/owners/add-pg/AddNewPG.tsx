@@ -2452,8 +2452,12 @@ export default function AddNewPG() {
               },
             },
             images: [],
-            existingImageUrls: Array.isArray(listing?.images)
-              ? listing.images.map((img: { url: string }) => img.url)
+            existingImages: Array.isArray(listing?.images)
+              ? listing.images.map((img: { url: string; public_id: string; description?: string }) => ({
+                  url: img.url,
+                  public_id: img.public_id,
+                  description: img.description || "",
+                }))
               : [],
             videos: [],
             existingVideoUrls: Array.isArray(listing?.videos)
@@ -2550,9 +2554,9 @@ export default function AddNewPG() {
 
   const handleRemoveExistingImage = (index: number) => {
     setFormData((prev) => {
-      const updated = [...(prev.existingImageUrls || [])];
+      const updated = [...(prev.existingImages || [])];
       updated.splice(index, 1);
-      return { ...prev, existingImageUrls: updated };
+      return { ...prev, existingImages: updated };
     });
   };
 
@@ -2561,6 +2565,32 @@ export default function AddNewPG() {
       const updated = [...(prev.existingVideoUrls || [])];
       updated.splice(index, 1);
       return { ...prev, existingVideoUrls: updated };
+    });
+  };
+
+  const handleImageDescriptionChange = (index: number, description: string) => {
+    setFormData((prev) => {
+      const updatedImages = [...prev.images];
+      updatedImages[index] = { ...updatedImages[index], description };
+      return { ...prev, images: updatedImages };
+    });
+  };
+
+  const handleExistingImageDescriptionChange = (
+    index: number,
+    description: string
+  ) => {
+    setFormData((prev) => {
+      const updatedExisting = [...(prev.existingImages || [])];
+      // Handle both string (legacy) and object formats
+      const item = updatedExisting[index];
+      if (typeof item === 'string') {
+         // @ts-ignore
+         updatedExisting[index] = { url: item, public_id: '', description };
+      } else {
+         updatedExisting[index] = { ...item, description };
+      }
+      return { ...prev, existingImages: updatedExisting };
     });
   };
 
@@ -2578,13 +2608,13 @@ export default function AddNewPG() {
     try {
       // Convert images to base64 with size validation
       const newImagesBase64 = await Promise.all(
-        (formData.images || []).map(async (file: any) => {
-          const base64 = await toBase64(file);
+        (formData.images || []).map(async (item: { file: File; description: string }) => {
+          const base64 = await toBase64(item.file);
           const estimatedSize = (base64.length * 3) / 4;
           if (estimatedSize > 2 * 1024 * 1024) {
-            throw new Error(`Image ${file.name} is too large after conversion`);
+            throw new Error(`Image ${item.file.name} is too large after conversion`);
           }
-          return base64;
+          return { base64, description: item.description };
         })
       );
 
@@ -2601,7 +2631,7 @@ export default function AddNewPG() {
       );
 
       const allImages = [
-        ...(formData.existingImageUrls || []),
+        ...(formData.existingImages || []),
         ...newImagesBase64,
       ];
       const allVideos = [
@@ -2732,10 +2762,12 @@ export default function AddNewPG() {
             handleVideoUpload={handleVideoUpload}
             removeImage={removeImage}
             removeVideo={removeVideo}
-            existingImageUrls={formData?.existingImageUrls}
+            existingImageUrls={formData?.existingImages?.map(i => typeof i === 'string' ? i : i.url) || []} // Backwards compat for display if strictly needed by types, but Step5Images now handles objects
             existingVideoUrls={formData?.existingVideoUrls}
             handleRemoveExistingImage={handleRemoveExistingImage}
             handleRemoveExistingVideo={handleRemoveExistingVideo}
+            handleImageDescriptionChange={handleImageDescriptionChange}
+            handleExistingImageDescriptionChange={handleExistingImageDescriptionChange}
           />
         );
       case 6:

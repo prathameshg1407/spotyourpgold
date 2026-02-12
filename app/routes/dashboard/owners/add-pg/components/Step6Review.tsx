@@ -155,28 +155,44 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
         >
           <h3 className="text-lg font-semibold text-HG-500">Uploaded Images</h3>
           <div className="text-sm text-gray-700 overflow-hidden">
-            {formData.existingImageUrls?.length > 0 ||
-            formData.images.length > 0 ? (
+            {(formData.existingImages?.length || 0) > 0 ||
+            (formData.images?.length || 0) > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {formData.existingImageUrls?.map((img, idx) => (
-                  <BlurImage
-                    key={`existing-${idx}`}
-                    src={img}
-                    alt={`Image ${idx + 1}`}
-                    className="w-full h-28 border object-cover rounded-lg"
-                    width={400}
-                    height={400}
-                  />
+                {formData.existingImages?.map((img, idx) => (
+                  <div key={`existing-${idx}`} className="relative group">
+                    <BlurImage
+                      src={img.url}
+                      alt={`Image ${idx + 1}`}
+                      className="w-full h-28 border object-cover rounded-lg"
+                      width={400}
+                      height={400}
+                    />
+                    {img.description && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <p className="text-white text-xs text-center px-1">
+                          {img.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 ))}
-                {formData.images.map((file, idx) => (
-                  <BlurImage
-                    key={`new-${idx}`}
-                    src={URL.createObjectURL(file)}
-                    alt={`Image ${idx + 1}`}
-                    className="w-full h-28 border object-cover rounded-lg"
-                    width={400}
-                    height={400}
-                  />
+                {formData.images.map((item, idx) => (
+                  <div key={`new-${idx}`} className="relative group">
+                    <BlurImage
+                      src={URL.createObjectURL(item.file)}
+                      alt={`Image ${idx + 1}`}
+                      className="w-full h-28 border object-cover rounded-lg"
+                      width={400}
+                      height={400}
+                    />
+                    {item.description && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <p className="text-white text-xs text-center px-1">
+                          {item.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (
