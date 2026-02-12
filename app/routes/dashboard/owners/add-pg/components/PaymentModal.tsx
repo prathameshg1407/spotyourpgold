@@ -50,7 +50,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {paymentStatus === "pending" && !isSubmitting && !showPaymentDetails && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-1.5">
-              <div className="text-3xl font-poppins font-bold text-HG-500">₹500</div>
+              <div className="text-3xl font-poppins font-bold text-HG-500">₹999</div>
               <p className="text-[13px] text-gray-600">One-time listing fee</p>
             </div>
 

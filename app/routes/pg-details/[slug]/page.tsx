@@ -148,13 +148,19 @@ const StarRating = ({ rating, size = "w-4 h-4" }: { rating: number; size?: strin
   );
 };
 
-// Infinite Scroll Listings Component
-function InfiniteScrollListings({ currentListingId }: { currentListingId: string }) {
+// Nearby Listings Component (Static 12)
+function NearbyListings({
+  currentListingId,
+  lat,
+  lng,
+}: {
+  currentListingId: string;
+  lat?: number;
+  lng?: number;
+}) {
   const [listings, setListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [initialLoad, setInitialLoad] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const removeDuplicates = (listingsArray: any[]) => {
     const seen = new Set();
@@ -165,83 +171,53 @@ function InfiniteScrollListings({ currentListingId }: { currentListingId: string
     });
   };
 
-  const fetchMoreListings = useCallback(async () => {
-    if (loading || !hasMore) return;
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `/api/listing/getFeatured?page=${page}&per_page=12&exclude=${currentListingId}`
-      );
-      if (response.data.success) {
-        const newListings = response.data.data;
-        if (newListings.length === 0) {
-          setHasMore(false);
-        } else {
-          setListings((prev) => removeDuplicates([...prev, ...newListings]));
-          setPage((prev) => prev + 1);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching more listings:", error);
-    } finally {
-      setLoading(false);
-      setInitialLoad(true);
-    }
-  }, [page, loading, hasMore, currentListingId]);
-
-  const fetchInitialListings = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const featuredResponse = await axios.get(
-        `/api/listing/getFeatured?page=1&per_page=12&exclude=${currentListingId}`
-      );
-      if (featuredResponse.data.success) {
-        const featuredListings = featuredResponse.data.data;
-        setListings(removeDuplicates(featuredListings.slice(0, 12)));
-        setPage(2);
-        setHasMore(featuredListings.length === 12);
-      }
-    } catch (error) {
-      console.error("Error fetching listings:", error);
-    } finally {
-      setLoading(false);
-      setInitialLoad(true);
-    }
-  }, [loading, currentListingId]);
-
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && initialLoad && !loading && hasMore) {
-          fetchMoreListings();
+    if (!lat || !lng || hasFetched) return;
+
+    const fetchNearby = async () => {
+      setLoading(true);
+      try {
+        const endpoint = "/api/listing/search";
+        const params = new URLSearchParams({
+          page: "1",
+          per_page: "12",
+          exclude: currentListingId,
+          lat: lat.toString(),
+          lng: lng.toString(),
+          radius: "10",
+        });
+
+        const response = await axios.get(`${endpoint}?${params.toString()}`);
+        
+        if (response.data.success) {
+          setListings(removeDuplicates(response.data.data).slice(0, 12)); 
         }
-      },
-      { threshold: 0.1 }
-    );
-    const trigger = document.getElementById("scroll-trigger");
-    if (trigger) observer.observe(trigger);
-    return () => observer.disconnect();
-  }, [fetchMoreListings, initialLoad, loading, hasMore]);
+      } catch (error) {
+        console.error("Error fetching nearby listings:", error);
+      } finally {
+        setLoading(false);
+        setHasFetched(true);
+      }
+    };
 
-  useEffect(() => {
-    if (!initialLoad) fetchInitialListings();
-  }, [fetchInitialListings, initialLoad]);
+    fetchNearby();
+  }, [currentListingId, lat, lng, hasFetched]);
 
-  if (!initialLoad && loading) {
+  if (loading) {
     return (
       <div className="mt-16">
-        <SectionHeading>More PG Accommodations</SectionHeading>
+        <SectionHeading>Nearby PG Accommodations</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-          {[...Array(12)].map((_, index) => (
-            <div key={index} className="animate-pulse">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={`skeleton-nearby-${index}`}
+              className="w-full max-w-[320px] mx-auto animate-pulse"
+            >
               <div className="border-4 border-gray-200 rounded-xl overflow-hidden">
-                <div className="bg-gray-300 h-44 w-full" />
-                <div className="p-4 bg-white space-y-2">
-                  <div className="bg-gray-300 h-3 rounded w-1/2" />
-                  <div className="bg-gray-300 h-5 rounded" />
-                  <div className="bg-gray-300 h-4 rounded w-3/4" />
-                  <div className="bg-gray-300 h-6 rounded w-1/2" />
+                <div className="bg-gray-300 h-44 w-full"></div>
+                <div className="p-4 bg-white">
+                  <div className="bg-gray-300 h-3 rounded mb-2 w-1/2"></div>
+                  <div className="bg-gray-300 h-5 rounded mb-2"></div>
                 </div>
               </div>
             </div>
@@ -251,13 +227,19 @@ function InfiniteScrollListings({ currentListingId }: { currentListingId: string
     );
   }
 
-  if (listings.length === 0 && !loading) return null;
+  if (listings.length === 0) {
+    return (
+      <div className="mt-16 text-center py-8">
+        <p className="text-gray-500">No other PGs found nearby.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-16">
-      <SectionHeading>More PG Accommodations</SectionHeading>
+      <SectionHeading>Nearby PG Accommodations</SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-        {listings.slice(0, 12).map((listing: any, index: number) => (
+        {listings.map((listing: any, index: number) => (
           <PgCard
             key={`${listing._id}-${index}`}
             id={listing._id}
@@ -272,36 +254,12 @@ function InfiniteScrollListings({ currentListingId }: { currentListingId: string
             genderPreference={listing.genderPreference}
             isWishlisted={listing.inWatchList}
             type={listing.type}
-            distance={listing.distance}
+            distance={listing.distance} 
             amenities={listing.amenities || []}
             rentInclusions={listing.rentInclusions || {}}
           />
         ))}
       </div>
-
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-          {[...Array(12)].map((_, index) => (
-            <div key={index} className="animate-pulse">
-              <div className="border-4 border-gray-200 rounded-xl overflow-hidden">
-                <div className="bg-gray-300 h-44 w-full" />
-                <div className="p-4 bg-white space-y-2">
-                  <div className="bg-gray-300 h-3 rounded w-1/2" />
-                  <div className="bg-gray-300 h-5 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div id="scroll-trigger" className="h-4 mt-8" />
-
-      {!hasMore && listings.length > 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No more listings to show</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -317,6 +275,9 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(false);
   const [ownerPgs, setOwnerPgs] = useState<any[]>([]);
   const [ownerPgsLoading, setOwnerPgsLoading] = useState(false);
+
+  // New State for Direction Flow
+  const [isDirectionFlow, setIsDirectionFlow] = useState(false);
 
   // Review state
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
@@ -360,6 +321,22 @@ export default function ProductPage() {
   const params = useParams();
   const slug = params.slug as string;
   const router = useRouter();
+
+  // --- Session Storage Helpers ---
+  const getVisitRequestKey = (listingId: string) => `visit_request_${listingId}`;
+
+  const hasSubmittedVisitRequest = (listingId: string) => {
+    if (typeof window === "undefined") return false;
+    const key = getVisitRequestKey(listingId);
+    return sessionStorage.getItem(key) === "true";
+  };
+
+  const markVisitRequestSubmitted = (listingId: string) => {
+    if (typeof window === "undefined") return;
+    const key = getVisitRequestKey(listingId);
+    sessionStorage.setItem(key, "true");
+  };
+  // -------------------------------
 
   // Fetch listing data
   useEffect(() => {
@@ -479,13 +456,42 @@ export default function ProductPage() {
     setShowBookingModal(true);
   };
 
-  const handleVisitClick = () => setShowVisitForm(true);
-  const handleVisitFormClose = () => setShowVisitForm(false);
+  // ✅ Updated: Normal Visit Button Click (No direction flow)
+  const handleVisitClick = () => {
+    setIsDirectionFlow(false);
+    setShowVisitForm(true);
+  };
+
+  // ✅ Updated: Visit Form Cancel (Cancel flow)
+  const handleVisitFormClose = () => {
+    setShowVisitForm(false);
+    setIsDirectionFlow(false); // Reset flow
+  };
+
+  // ✅ Updated: Visit Form Success
   const handleVisitFormSuccess = () => {
     if (listing?._id) {
-      sessionStorage.setItem(`visit_request_${listing._id}`, "true");
+      markVisitRequestSubmitted(listing._id);
     }
     setShowVisitForm(false);
+
+    // If this was triggered by "Get Directions", open the map now
+    if (isDirectionFlow) {
+      setShowDirectionsModal(true);
+      setIsDirectionFlow(false); // Reset flow
+    }
+  };
+
+  // ✅ Updated: Handle Get Directions Click
+  const handleDirectionClick = () => {
+    if (listing?._id && hasSubmittedVisitRequest(listing._id)) {
+      // If request already submitted, show map immediately
+      setShowDirectionsModal(true);
+    } else {
+      // Otherwise, open visit form first and mark flow
+      setIsDirectionFlow(true);
+      setShowVisitForm(true);
+    }
   };
 
   const openDirections = () => {
@@ -839,7 +845,8 @@ export default function ProductPage() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg md:text-xl font-semibold font-poppins tracking-wide">PG Location</h3>
-                    <Button onClick={() => setShowDirectionsModal(true)} className="md:px-5 text-xs md:text-sm">Get Directions</Button>
+                    {/* ✅ Updated: Call handleDirectionClick instead of direct modal open */}
+                    <Button onClick={handleDirectionClick} className="md:px-5 text-xs md:text-sm">Get Directions</Button>
                   </div>
                   <div>
                     <div className="flex items-center gap-2 text-gray-400 mb-3 text-xs md:text-sm">{listing?.location?.area}</div>
@@ -859,17 +866,26 @@ export default function ProductPage() {
 
         {/* Owner's Other PGs */}
         <div className="mt-10">
-          <SectionHeading>Other PG's by {listing?.ownerId?.fullName}</SectionHeading>
+          <SectionHeading>Other PGs by {listing?.ownerId?.fullName}</SectionHeading>
           <OwnerListingSection listings={ownerPgs} loading={ownerPgsLoading} ownerName={listing?.ownerId?.fullName || "Owner"} />
         </div>
 
-        {/* Infinite Scroll Listings */}
-        <InfiniteScrollListings currentListingId={listing?._id || ""} />
+        {/* Nearby Listings */}
+        <NearbyListings 
+          currentListingId={listing?._id || ""} 
+          lat={listing?.location?.coordinates?.coordinates[1]}
+          lng={listing?.location?.coordinates?.coordinates[0]}
+        />
       </main>
 
       {/* Modals */}
       {showVisitForm && listing?._id && (
-        <VisitRequestForm listingId={listing._id} pgName={listing?.pgName || ""} onSuccess={handleVisitFormSuccess} onCancel={handleVisitFormClose} />
+        <VisitRequestForm 
+          listingId={listing._id} 
+          pgName={listing?.pgName || ""} 
+          onSuccess={handleVisitFormSuccess} 
+          onCancel={handleVisitFormClose} 
+        />
       )}
 
       {showLoginModal && (
