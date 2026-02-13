@@ -868,7 +868,7 @@ function AllListingsContent() {
                 id={pg._id}
                 slug={pg.slug}
                 image={pg.primaryImage}
-                images={pg.images?.map((img: any) => img.url) || []}
+                images={pg.images || []}
                 area={pg.location?.area}
                 pgName={pg.pgName}
                 primaryLine={pg.primaryLine}

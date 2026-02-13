@@ -257,11 +257,11 @@ export const getNavigationItems = (role: UserRole): NavItem[] => {
         },
         
         // ============ PAYMENTS & COMMISSIONS ============
-        {
-          name: "Cash Payments",
-          href: "/routes/dashboard/admin/cash-payments",
-          icon: "DollarSign",
-        },
+        // {
+        //   name: "Cash Payments",
+        //   href: "/routes/dashboard/admin/cash-payments",
+        //   icon: "DollarSign",
+        // },
         {
           name: "Owner Payouts",
           href: "/routes/dashboard/admin/owner-payouts",

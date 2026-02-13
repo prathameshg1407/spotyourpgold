@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+   skipTrailingSlashRedirect: true, 
   images: {
     domains: ['flowbite.com', 'images.unsplash.com', "res.cloudinary.com", "placehold.co"],
   },

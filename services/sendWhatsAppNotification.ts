@@ -1,417 +1,743 @@
-// services/sendWhatsAppNotification.ts
 "use server";
 
-const AISENSY_API_URL = "https://backend.aisensy.com/campaign/t1/api/v2";
-const AISENSY_API_KEY = process.env.AISENSY_API_KEY;
+import { connectToDB } from "@/services/connectdb";
+import NotificationLog from "@/models/notificationLog";
+
+const AISENSY_PROJECT_ID = process.env.AISENSY_PROJECT_ID;
+const AISENSY_API_PASSWORD = process.env.AISENSY_PROJECT_API_PWD;
+const AISENSY_API_URL = `https://apis.aisensy.com/project-apis/v1/project/${AISENSY_PROJECT_ID}/messages`;
+
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 1000;
 
 // ============================================
-// RENT REMINDER
+// DEBUG CONFIGURATION
 // ============================================
-interface WhatsAppRentReminderParams {
-  to: string;
-  tenantName: string;
-  pgName: string;
-  amount: number;
-  dueDate: string;
-  daysRemaining: number;
-}
+const DEBUG_MODE = true; // Set to false in production
 
-export const sendWhatsAppRentReminder = async ({
-  to,
-  tenantName,
-  pgName,
-  amount,
-  dueDate,
-  daysRemaining,
-}: WhatsAppRentReminderParams) => {
-  try {
-    if (!AISENSY_API_KEY) {
-      console.error("AiSensy API key is missing");
-      return { success: false, message: "API key missing" };
+const debugLog = (category: string, message: string, data?: any) => {
+  if (DEBUG_MODE) {
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`[${category}] ${message}`);
+    if (data) {
+      console.log(JSON.stringify(data, null, 2));
     }
-
-    // Format phone number
-    const formattedPhone = to.replace(/[^0-9]/g, "");
-    const phoneWithCountryCode = formattedPhone.startsWith("91")
-      ? formattedPhone
-      : `91${formattedPhone}`;
-
-    // Generate status text based on days remaining
-    let statusText: string;
-    if (daysRemaining < 0) {
-      statusText = `Overdue by ${Math.abs(daysRemaining)} day${Math.abs(daysRemaining) > 1 ? "s" : ""}`;
-    } else if (daysRemaining === 0) {
-      statusText = "Due Today";
-    } else {
-      statusText = `Due in ${daysRemaining} day${daysRemaining > 1 ? "s" : ""}`;
-    }
-
-    const amountFormatted = `₹${amount.toLocaleString("en-IN")}`;
-
-    // Single template: rent_payment_reminder
-    // Params: {{1}}=name, {{2}}=pgName, {{3}}=amount, {{4}}=dueDate, {{5}}=status
-    const payload = {
-      apiKey: AISENSY_API_KEY,
-      campaignName: "Rent Payment Reminder",
-      destination: phoneWithCountryCode,
-      userName: tenantName,
-      templateParams: [
-        tenantName,
-        pgName,
-        amountFormatted,
-        dueDate,
-        statusText,
-      ],
-      source: "SpotYourPG",
-      media: {},
-      buttons: [],
-      carouselCards: [],
-      location: {},
-    };
-
-    console.log("Sending WhatsApp rent reminder:", {
-      phone: phoneWithCountryCode,
-      template: "rent_payment_reminder",
-      params: payload.templateParams,
-    });
-
-    const response = await fetch(AISENSY_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("AiSensy API Error:", result);
-      return {
-        success: false,
-        message: result.message || "Failed to send WhatsApp message",
-        error: result,
-      };
-    }
-
-    console.log("WhatsApp rent reminder sent successfully:", result);
-    return {
-      success: true,
-      message: "WhatsApp reminder sent successfully",
-      data: result,
-    };
-  } catch (error: any) {
-    console.error("Error sending WhatsApp rent reminder:", error);
-    return {
-      success: false,
-      message: error.message || "Failed to send WhatsApp reminder",
-    };
+    console.log(`${"=".repeat(60)}\n`);
   }
 };
 
 // ============================================
-// GENERIC NOTIFICATION
+// TYPES
 // ============================================
-interface WhatsAppNotificationParams {
-  to: string;
-  campaignName: string;
-  templateParams: string[];
-  userName?: string;
+interface WhatsAppResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  error?: any;
+  messageId?: string;
 }
 
-export const sendWhatsAppNotification = async ({
-  to,
-  campaignName,
-  templateParams,
-  userName = "User",
-}: WhatsAppNotificationParams) => {
+interface NotificationLogData {
+  userId?: string;
+  phoneNumber: string;
+  templateName: string;
+  templateParams: any[];
+  status: "success" | "failed" | "pending";
+  response?: any;
+  error?: any;
+  retryCount?: number;
+  messageId?: string;
+}
+
+// ============================================
+// UTILITIES
+// ============================================
+const formatPhoneNumber = (phone: string): string => {
+  debugLog("FORMAT_PHONE", `Input phone: "${phone}"`);
+  
+  if (!phone) {
+    debugLog("FORMAT_PHONE", "❌ Phone is null/undefined");
+    return "";
+  }
+  
+  const cleaned = phone.replace(/\D/g, "");
+  debugLog("FORMAT_PHONE", `Cleaned phone: "${cleaned}"`);
+  
+  let formatted = "";
+  
+  if (cleaned.length === 10) {
+    formatted = `91${cleaned}`;
+    debugLog("FORMAT_PHONE", `10 digits detected, adding 91: "${formatted}"`);
+  } else if (cleaned.length === 12 && cleaned.startsWith("91")) {
+    formatted = cleaned;
+    debugLog("FORMAT_PHONE", `Already has 91 prefix: "${formatted}"`);
+  } else if (cleaned.length === 11 && cleaned.startsWith("0")) {
+    formatted = `91${cleaned.substring(1)}`;
+    debugLog("FORMAT_PHONE", `Leading 0 detected, replacing with 91: "${formatted}"`);
+  } else {
+    formatted = cleaned;
+    debugLog("FORMAT_PHONE", `⚠️ Unusual format, returning as is: "${formatted}"`);
+  }
+  
+  return formatted;
+};
+
+const formatCurrency = (amount: number): string => {
+  return `₹${amount.toLocaleString("en-IN")}`;
+};
+
+const formatDate = (date: Date | string): string => {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  return dateObj.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ============================================
+// LOGGING
+// ============================================
+const logNotification = async (data: NotificationLogData) => {
   try {
-    if (!AISENSY_API_KEY) {
-      console.error("AiSensy API key is missing");
-      return { success: false, message: "API key missing" };
-    }
-
-    const formattedPhone = to.replace(/[^0-9]/g, "");
-    const phoneWithCountryCode = formattedPhone.startsWith("91")
-      ? formattedPhone
-      : `91${formattedPhone}`;
-
-    const payload = {
-      apiKey: AISENSY_API_KEY,
-      campaignName,
-      destination: phoneWithCountryCode,
-      userName,
-      templateParams,
-      source: "SpotYourPG",
-      media: {},
-      buttons: [],
-      carouselCards: [],
-      location: {},
-    };
-
-    console.log("Sending WhatsApp notification:", {
-      phone: phoneWithCountryCode,
-      campaign: campaignName,
-      params: templateParams,
+    await connectToDB();
+    await NotificationLog.create({
+      ...data,
+      createdAt: new Date(),
     });
+    debugLog("NOTIFICATION_LOG", "✅ Notification logged to database", {
+      templateName: data.templateName,
+      phoneNumber: data.phoneNumber,
+      status: data.status,
+      messageId: data.messageId,
+    });
+  } catch (error) {
+    console.error("Failed to log notification:", error);
+  }
+};
+
+// ============================================
+// CORE SEND FUNCTION
+// ============================================
+const sendWithRetry = async (
+  payload: any,
+  retryCount = 0
+): Promise<WhatsAppResponse> => {
+  try {
+    console.log(`\n[WhatsApp Debug] Attempt ${retryCount + 1}`);
+    
+    // Log full payload on first attempt
+    if (retryCount === 0 && DEBUG_MODE) {
+      debugLog("PAYLOAD", "Full request payload", payload);
+      debugLog("API_CONFIG", "API Configuration", {
+        url: AISENSY_API_URL,
+        hasProjectId: !!AISENSY_PROJECT_ID,
+        hasPassword: !!AISENSY_API_PASSWORD,
+        projectId: AISENSY_PROJECT_ID,
+        passwordLength: AISENSY_API_PASSWORD?.length,
+      });
+    }
 
     const response = await fetch(AISENSY_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-AiSensy-Project-API-Pwd": AISENSY_API_PASSWORD!,
       },
       body: JSON.stringify(payload),
     });
 
     const result = await response.json();
 
-    if (!response.ok) {
-      console.error("AiSensy API Error:", result);
-      return {
-        success: false,
-        message: result.message || "Failed to send",
-        error: result,
-      };
+    console.log(`[WhatsApp] Response Status: ${response.status}`);
+    
+    if (DEBUG_MODE) {
+      debugLog("API_RESPONSE", `Status: ${response.status}`, result);
+      
+      // Log specific delivery info
+      if (result.messages && result.messages[0]) {
+        console.log(`[WhatsApp] Message ID: ${result.messages[0].id}`);
+      }
+      if (result.contacts && result.contacts[0]) {
+        console.log(`[WhatsApp] Contact Status:`, result.contacts[0]);
+      }
     }
 
-    console.log("WhatsApp notification sent successfully:", result);
+    if (!response.ok) {
+      debugLog("API_ERROR", `HTTP ${response.status} Error`, result);
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`Authentication failed: ${result.error?.message || result.message || 'Invalid credentials'}`);
+      }
+      
+      if (response.status === 422) {
+        throw new Error(`Validation Error: ${result.error?.message || result.message || 'Invalid template or parameters'}`);
+      }
+      
+      throw new Error(result.error?.message || result.message || `HTTP ${response.status}`);
+    }
+
     return {
       success: true,
       message: "Message sent successfully",
       data: result,
+      messageId: result.messages?.[0]?.id,
     };
   } catch (error: any) {
-    console.error("Error sending WhatsApp notification:", error);
+    console.error(`[WhatsApp Error] Attempt ${retryCount + 1}:`, error.message);
+
+    const isAuthError = error.message?.includes('Authentication failed');
+    const isValidationError = error.message?.includes('Validation Error');
+    
+    if (isAuthError || isValidationError || retryCount >= MAX_RETRY_ATTEMPTS) {
+      throw error;
+    }
+
+    console.log(`[WhatsApp] Retrying in ${RETRY_DELAY * (retryCount + 1)}ms...`);
+    await delay(RETRY_DELAY * (retryCount + 1));
+    return sendWithRetry(payload, retryCount + 1);
+  }
+};
+
+// ============================================
+// MAIN NOTIFICATION FUNCTION
+// ============================================
+export const sendWhatsAppNotification = async ({
+  to,
+  templateName,
+  templateParams,
+  userId,
+}: {
+  to: string;
+  templateName: string;
+  templateParams: string[];
+  userId?: string;
+}): Promise<WhatsAppResponse> => {
+  debugLog("WHATSAPP_NOTIFICATION", "Starting notification", {
+    to,
+    templateName,
+    paramCount: templateParams.length,
+    userId,
+  });
+
+  if (!AISENSY_PROJECT_ID || !AISENSY_API_PASSWORD) {
+    console.error("[WhatsApp Error] Missing AiSensy credentials in environment");
+    return { 
+      success: false, 
+      message: "WhatsApp service not configured" 
+    };
+  }
+
+  if (!to || !templateName || !templateParams) {
+    debugLog("VALIDATION", "Missing required parameters", { to, templateName, templateParams });
     return {
       success: false,
-      message: error.message || "Failed to send",
+      message: "Missing required parameters",
+    };
+  }
+
+  const formattedPhone = formatPhoneNumber(to);
+  
+  if (!formattedPhone || formattedPhone.length < 10) {
+    debugLog("VALIDATION", `Invalid phone number: "${to}" -> "${formattedPhone}"`);
+    await logNotification({
+      userId,
+      phoneNumber: to,
+      templateName,
+      templateParams,
+      status: "failed",
+      error: "Invalid phone number format",
+    });
+    return { success: false, message: "Invalid phone number" };
+  }
+
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: formattedPhone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: {
+        code: "en"
+      },
+      components: [
+        {
+          type: "body",
+          parameters: templateParams.map(param => ({
+            type: "text",
+            text: String(param)
+          }))
+        }
+      ]
+    }
+  };
+
+  try {
+    console.log(`\n[WhatsApp] Sending "${templateName}" to ${formattedPhone}`);
+    console.log(`[WhatsApp] Template Parameters:`, templateParams);
+    
+    const result = await sendWithRetry(payload);
+    
+    await logNotification({
+      userId,
+      phoneNumber: formattedPhone,
+      templateName,
+      templateParams,
+      status: "success",
+      response: result.data,
+      messageId: result.messageId,
+    });
+
+    console.log(`[WhatsApp Success] Message sent! ID: ${result.messageId}`);
+    
+    return result;
+  } catch (error: any) {
+    console.error(`[WhatsApp Failed] ${templateName}:`, error.message);
+    
+    await logNotification({
+      userId,
+      phoneNumber: formattedPhone,
+      templateName,
+      templateParams,
+      status: "failed",
+      error: error.message || String(error),
+      retryCount: MAX_RETRY_ATTEMPTS,
+    });
+
+    return {
+      success: false,
+      message: error.message || "Failed to send WhatsApp message",
+      error: error.message,
     };
   }
 };
 
 // ============================================
-// BOOKING CONFIRMATION
+// BOOKING NOTIFICATIONS - WITH DEBUGGING
 // ============================================
-interface BookingConfirmationParams {
-  to: string;
-  tenantName: string;
-  pgName: string;
-  roomType: string;
-  moveInDate: string;
-  amount: number;
-}
 
-export const sendBookingConfirmationWhatsApp = async ({
-  to,
+export const sendNewBookingRequestToOwner = async ({
+  ownerPhone,
+  ownerName,
+  ownerId,
+  pgLocation,
   tenantName,
+  tenantPhone,
+  roomType,
+  moveInDate,
+  bookingFee,
+  paymentMethod,
+}: {
+  ownerPhone: string;
+  ownerName: string;
+  ownerId?: string;
+  pgLocation: string;
+  tenantName: string;
+  tenantPhone: string;
+  roomType: string;
+  moveInDate: Date | string;
+  bookingFee: number;
+  paymentMethod: "online" | "cash";
+}) => {
+  debugLog("OWNER_NOTIFICATION", "Input Data", {
+    ownerPhone,
+    ownerName,
+    ownerId,
+    pgLocation,
+    tenantName,
+    tenantPhone,
+    roomType,
+    moveInDate,
+    bookingFee,
+    paymentMethod,
+  });
+
+  const templateParams = [
+    ownerName,
+    pgLocation,
+    tenantName,
+    tenantPhone,
+    roomType,
+    formatDate(moveInDate),
+    String(bookingFee),
+    paymentMethod === "online" ? "online" : "cash"
+  ];
+
+  debugLog("OWNER_NOTIFICATION", "Template Parameters", templateParams);
+
+  return sendWhatsAppNotification({
+    to: ownerPhone,
+    templateName: "new_booking_alert",
+    templateParams,
+    userId: ownerId,
+  });
+};
+
+export const sendBookingConfirmationToTenant = async ({
+  tenantPhone,
+  tenantName,
+  tenantId,
   pgName,
   roomType,
   moveInDate,
-  amount,
-}: BookingConfirmationParams) => {
-  // Template: booking_confirmation
-  // Params: {{1}}=name, {{2}}=pgName, {{3}}=roomType, {{4}}=moveInDate, {{5}}=amount
+  totalAmount,
+  bookingId,
+  paymentMethod,
+}: {
+  tenantPhone: string;
+  tenantName: string;
+  tenantId?: string;
+  pgName: string;
+  roomType: string;
+  moveInDate: Date | string;
+  totalAmount: number;
+  bookingId: string;
+  paymentMethod: "online" | "cash";
+}) => {
+  debugLog("TENANT_NOTIFICATION", "Input Data", {
+    tenantPhone,
+    tenantName,
+    tenantId,
+    pgName,
+    roomType,
+    moveInDate,
+    totalAmount,
+    bookingId,
+    paymentMethod,
+  });
+
+  const templateParams = [
+    tenantName,
+    pgName,
+    "SpotYourPG Team",
+    tenantPhone,
+    roomType,
+    formatDate(moveInDate),
+    String(totalAmount),
+    paymentMethod === "online" ? "online" : "cash",
+  ];
+
+  debugLog("TENANT_NOTIFICATION", "Template Parameters", templateParams);
+
   return sendWhatsAppNotification({
-    to,
-    campaignName: "Booking Confirmation",
-    userName: tenantName,
+    to: tenantPhone,
+    templateName: "new_booking_alert",
+    templateParams,
+    userId: tenantId,
+  });
+};
+
+// Rest of the notification functions remain the same but with debugging added...
+
+export const sendBookingApprovedToTenant = async ({
+  tenantPhone,
+  tenantName,
+  tenantId,
+  pgName,
+  roomType,
+  moveInDate,
+  ownerName,
+  ownerPhone,
+}: {
+  tenantPhone: string;
+  tenantName: string;
+  tenantId?: string;
+  pgName: string;
+  roomType: string;
+  moveInDate: Date | string;
+  ownerName: string;
+  ownerPhone: string;
+}) => {
+  debugLog("APPROVAL_NOTIFICATION", "Input Data", {
+    tenantPhone,
+    tenantName,
+    pgName,
+    roomType,
+    moveInDate,
+    ownerName,
+    ownerPhone,
+  });
+
+  return sendWhatsAppNotification({
+    to: tenantPhone,
+    templateName: "new_booking_alert",
     templateParams: [
       tenantName,
       pgName,
+      ownerName,
+      ownerPhone,
       roomType,
-      moveInDate,
-      `₹${amount.toLocaleString("en-IN")}`,
+      formatDate(moveInDate),
+      "Approved",
+      "Confirmed",
     ],
+    userId: tenantId,
   });
 };
 
-// ============================================
-// BOOKING APPROVED
-// ============================================
-interface BookingApprovedParams {
-  to: string;
-  tenantName: string;
-  pgName: string;
-  roomType: string;
-  moveInDate: string;
-}
-
-export const sendBookingApprovedWhatsApp = async ({
-  to,
+export const sendBookingRejectedToTenant = async ({
+  tenantPhone,
   tenantName,
+  tenantId,
   pgName,
-  roomType,
-  moveInDate,
-}: BookingApprovedParams) => {
-  // Template: booking_approved
-  // Params: {{1}}=name, {{2}}=pgName, {{3}}=roomType, {{4}}=moveInDate
-  return sendWhatsAppNotification({
-    to,
-    campaignName: "Booking Approved",
-    userName: tenantName,
-    templateParams: [tenantName, pgName, roomType, moveInDate],
-  });
-};
-
-// ============================================
-// BOOKING REJECTED
-// ============================================
-interface BookingRejectedParams {
-  to: string;
+  reason,
+}: {
+  tenantPhone: string;
   tenantName: string;
+  tenantId?: string;
   pgName: string;
   reason?: string;
-}
-
-export const sendBookingRejectedWhatsApp = async ({
-  to,
-  tenantName,
-  pgName,
-  reason = "Please contact the PG owner for more details",
-}: BookingRejectedParams) => {
-  // Template: booking_rejected
-  // Params: {{1}}=name, {{2}}=pgName, {{3}}=reason
-  return sendWhatsAppNotification({
-    to,
-    campaignName: "Booking Rejected",
-    userName: tenantName,
-    templateParams: [tenantName, pgName, reason],
+}) => {
+  debugLog("REJECTION_NOTIFICATION", "Input Data", {
+    tenantPhone,
+    tenantName,
+    pgName,
+    reason,
   });
-};
 
-// ============================================
-// PAYMENT RECEIVED
-// ============================================
-interface PaymentReceivedParams {
-  to: string;
-  tenantName: string;
-  pgName: string;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: string;
-}
-
-export const sendPaymentReceivedWhatsApp = async ({
-  to,
-  tenantName,
-  pgName,
-  amount,
-  paymentDate,
-  paymentMethod,
-}: PaymentReceivedParams) => {
-  // Template: payment_received
-  // Params: {{1}}=name, {{2}}=pgName, {{3}}=amount, {{4}}=date, {{5}}=method
   return sendWhatsAppNotification({
-    to,
-    campaignName: "Payment Received",
-    userName: tenantName,
+    to: tenantPhone,
+    templateName: "new_booking_alert",
     templateParams: [
       tenantName,
       pgName,
-      `₹${amount.toLocaleString("en-IN")}`,
-      paymentDate,
-      paymentMethod,
+      "SpotYourPG Team",
+      "support@spotyourpg.com",
+      "N/A",
+      "N/A",
+      "0",
+      reason || "Booking Rejected",
     ],
+    userId: tenantId,
   });
 };
 
-// ============================================
-// VISIT SCHEDULED
-// ============================================
-interface VisitScheduledParams {
-  to: string;
-  userName: string;
-  pgName: string;
-  visitDate: string;
-  visitTime: string;
-  address: string;
-}
-
-export const sendVisitScheduledWhatsApp = async ({
+export const sendPaymentReceivedNotification = async ({
   to,
   userName,
+  userId,
+  amount,
+  paymentType,
+  pgName,
+  transactionId,
+}: {
+  to: string;
+  userName: string;
+  userId?: string;
+  amount: number;
+  paymentType: string;
+  pgName: string;
+  transactionId: string;
+}) => {
+  debugLog("PAYMENT_NOTIFICATION", "Input Data", {
+    to,
+    userName,
+    amount,
+    paymentType,
+    pgName,
+    transactionId,
+  });
+
+  return sendWhatsAppNotification({
+    to,
+    templateName: "new_booking_alert",
+    templateParams: [
+      userName,
+      pgName,
+      "Payment Received",
+      transactionId,
+      paymentType,
+      formatDate(new Date()),
+      String(amount),
+      "Paid",
+    ],
+    userId,
+  });
+};
+
+export const sendRentReminderToTenant = async ({
+  tenantPhone,
+  tenantName,
+  tenantId,
+  pgName,
+  amount,
+  dueDate,
+  daysRemaining,
+}: {
+  tenantPhone: string;
+  tenantName: string;
+  tenantId?: string;
+  pgName: string;
+  amount: number;
+  dueDate: Date | string;
+  daysRemaining: number;
+}) => {
+  let statusText: string;
+  if (daysRemaining < 0) {
+    statusText = `Overdue by ${Math.abs(daysRemaining)} days`;
+  } else if (daysRemaining === 0) {
+    statusText = "Due Today";
+  } else {
+    statusText = `Due in ${daysRemaining} days`;
+  }
+
+  debugLog("RENT_REMINDER", "Input Data", {
+    tenantPhone,
+    tenantName,
+    pgName,
+    amount,
+    dueDate,
+    daysRemaining,
+    statusText,
+  });
+
+  return sendWhatsAppNotification({
+    to: tenantPhone,
+    templateName: "new_booking_alert",
+    templateParams: [
+      tenantName,
+      pgName,
+      "Rent Reminder",
+      tenantPhone,
+      "Monthly Rent",
+      formatDate(dueDate),
+      String(amount),
+      statusText,
+    ],
+    userId: tenantId,
+  });
+};
+
+export const sendVisitScheduledNotification = async ({
+  to,
+  userName,
+  userId,
   pgName,
   visitDate,
   visitTime,
   address,
-}: VisitScheduledParams) => {
-  // Template: visit_scheduled
-  // Params: {{1}}=name, {{2}}=pgName, {{3}}=date, {{4}}=time, {{5}}=address
-  return sendWhatsAppNotification({
+  ownerPhone,
+}: {
+  to: string;
+  userName: string;
+  userId?: string;
+  pgName: string;
+  visitDate: Date | string;
+  visitTime: string;
+  address: string;
+  ownerPhone: string;
+}) => {
+  debugLog("VISIT_NOTIFICATION", "Input Data", {
     to,
-    campaignName: "Visit Scheduled",
     userName,
-    templateParams: [userName, pgName, visitDate, visitTime, address],
+    pgName,
+    visitDate,
+    visitTime,
+    address,
+    ownerPhone,
+  });
+
+  return sendWhatsAppNotification({
+    to,
+    templateName: "new_booking_alert",
+    templateParams: [
+      userName,
+      pgName,
+      "Visit Scheduled",
+      ownerPhone,
+      address,
+      formatDate(visitDate),
+      visitTime,
+      "Confirmed",
+    ],
+    userId,
   });
 };
 
-// Add this function to the existing file:
-
-// ============================================
-// COMMISSION SETTLEMENT NOTIFICATION
-// ============================================
-interface CommissionSettlementParams {
-  to: string;
-  ownerName: string;
-  commissionAmount: number;
-  settlementMethod: string;
-  referenceNumber: string;
-  settlementDate: string;
-}
-
-export const sendCommissionSettlementWhatsApp = async ({
-  to,
-  ownerName,
-  commissionAmount,
-  settlementMethod,
-  referenceNumber,
-  settlementDate,
-}: CommissionSettlementParams) => {
-  // Template: commission_settlement
-  // Params: {{1}}=name, {{2}}=amount, {{3}}=method, {{4}}=reference, {{5}}=date
-  return sendWhatsAppNotification({
-    to,
-    campaignName: "Commission Settlement",
-    userName: ownerName,
-    templateParams: [
-      ownerName,
-      `₹${commissionAmount.toLocaleString("en-IN")}`,
-      settlementMethod,
-      referenceNumber || "N/A",
-      settlementDate,
-    ],
-  });
+export const sendBulkWhatsAppNotifications = async (
+  notifications: Array<{
+    to: string;
+    templateName: string;
+    templateParams: string[];
+    userId?: string;
+  }>
+): Promise<Array<WhatsAppResponse>> => {
+  debugLog("BULK_NOTIFICATIONS", `Processing ${notifications.length} notifications`);
+  
+  const results: Array<WhatsAppResponse> = [];
+  
+  const BATCH_SIZE = 10;
+  const BATCH_DELAY = 2000;
+  
+  for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
+    const batch = notifications.slice(i, i + BATCH_SIZE);
+    
+    console.log(`[Bulk] Processing batch ${Math.floor(i/BATCH_SIZE) + 1} with ${batch.length} notifications`);
+    
+    const batchPromises = batch.map((notification) =>
+      sendWhatsAppNotification(notification)
+    );
+    
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+        console.log(`[Bulk] Notification ${i + index + 1}: Success`);
+      } else {
+        results.push({
+          success: false,
+          message: "Failed to send notification",
+          error: result.reason,
+        });
+        console.log(`[Bulk] Notification ${i + index + 1}: Failed - ${result.reason}`);
+      }
+    });
+    
+    if (i + BATCH_SIZE < notifications.length) {
+      console.log(`[Bulk] Waiting ${BATCH_DELAY}ms before next batch...`);
+      await delay(BATCH_DELAY);
+    }
+  }
+  
+  console.log(`[Bulk] Completed. Success: ${results.filter(r => r.success).length}/${notifications.length}`);
+  
+  return results;
 };
 
 // ============================================
-// COMMISSION DUE REMINDER
+// TEST FUNCTION
 // ============================================
-interface CommissionDueReminderParams {
-  to: string;
-  ownerName: string;
-  totalAmount: number;
-  pendingCount: number;
-  dueDate: string;
-}
-
-export const sendCommissionDueReminderWhatsApp = async ({
-  to,
-  ownerName,
-  totalAmount,
-  pendingCount,
-  dueDate,
-}: CommissionDueReminderParams) => {
-  // Template: commission_due_reminder
-  // Params: {{1}}=name, {{2}}=amount, {{3}}=count, {{4}}=dueDate
-  return sendWhatsAppNotification({
-    to,
-    campaignName: "Commission Due Reminder",
-    userName: ownerName,
+export const testWhatsAppConnection = async (phoneNumber: string = "919999999999") => {
+  console.log("\n" + "=".repeat(60));
+  console.log("TESTING WHATSAPP CONNECTION");
+  console.log("=".repeat(60));
+  
+  console.log("Environment Variables:");
+  console.log(`AISENSY_PROJECT_ID: ${AISENSY_PROJECT_ID ? '✅ Set' : '❌ Missing'}`);
+  console.log(`AISENSY_API_PASSWORD: ${AISENSY_API_PASSWORD ? '✅ Set' : '❌ Missing'}`);
+  
+  const result = await sendWhatsAppNotification({
+    to: phoneNumber,
+    templateName: "new_booking_alert",
     templateParams: [
-      ownerName,
-      `₹${totalAmount.toLocaleString("en-IN")}`,
-      pendingCount.toString(),
-      dueDate,
+      "Test User",
+      "Test Location",
+      "Test Tenant",
+      "9999999999",
+      "Single",
+      formatDate(new Date()),
+      "1000",
+      "online"
     ],
+    userId: "test123",
   });
+  
+  console.log("\nTest Result:", result);
+  console.log("=".repeat(60) + "\n");
+  
+  return result;
 };

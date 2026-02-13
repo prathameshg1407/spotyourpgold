@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Booking from "@/models/booking";
 import Commission from "@/models/commission";
-import Notification from "@/models/notification";
 import { authUser } from "@/actions/authUser";
 
-// Admin delete booking request
-export async function DELETE(
+// GET single booking details (VIEW ONLY for Admin)
+export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDB();
 
-    // Verify admin authentication
     const user = await authUser();
     if (!user || user.role !== "admin") {
       return NextResponse.json(
@@ -24,10 +22,10 @@ export async function DELETE(
 
     const { id: bookingId } = await params;
 
-    // Get booking details before deletion
     const booking = await Booking.findById(bookingId)
-      .populate("userId", "fullName email")
-      .populate("listingId", "pgName ownerId");
+      .populate("userId", "fullName email phoneNumber")
+      .populate("listingId", "pgName location primaryImage rooms")
+      .populate("ownerId", "fullName email phone bankDetails");
 
     if (!booking) {
       return NextResponse.json(
@@ -36,69 +34,21 @@ export async function DELETE(
       );
     }
 
-    // Delete associated commission if exists
-    await Commission.deleteMany({ bookingId: booking._id });
-
-    // Delete associated notifications
-    await Notification.deleteMany({
-      relatedId: booking._id,
-      relatedType: "booking",
-    });
-
-    // Delete the booking
-    await Booking.findByIdAndDelete(bookingId);
-
-    // Create notification for user about booking deletion
-    await Notification.create({
-      userId: booking.userId._id,
-      type: "booking_cancelled",
-      title: "Booking Request Deleted",
-      message: `Your booking request for ${booking.listingId.pgName} has been deleted by admin.`,
-      relatedId: booking._id,
-      relatedType: "booking",
-      priority: "high",
-      metadata: {
-        listingName: booking.listingId.pgName,
-        reason: "Admin deletion",
-        deletedBy: user.fullName,
-      },
-    });
-
-    // Create notification for owner about booking deletion
-    await Notification.create({
-      userId: booking.listingId.ownerId,
-      type: "general",
-      title: "Booking Request Deleted",
-      message: `A booking request for ${booking.listingId.pgName} has been deleted by admin.`,
-      relatedId: booking._id,
-      relatedType: "booking",
-      priority: "medium",
-      metadata: {
-        listingName: booking.listingId.pgName,
-        tenantName: booking.fullName,
-        reason: "Admin deletion",
-        deletedBy: user.fullName,
-      },
-    });
+    // Get related commissions
+    const commissions = await Commission.find({ bookingId: booking._id })
+      .sort({ createdAt: -1 });
 
     return NextResponse.json({
       success: true,
-      message: "Booking request deleted successfully",
       data: {
-        bookingId: booking._id,
-        listingName: booking.listingId.pgName,
-        tenantName: booking.fullName,
-        deletedBy: user.fullName,
+        booking,
+        commissions,
       },
     });
   } catch (error) {
-    console.error("Admin delete booking error:", error);
+    console.error("Get booking error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to delete booking request",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "Failed to fetch booking" },
       { status: 500 }
     );
   }

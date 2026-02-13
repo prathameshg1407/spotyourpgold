@@ -1,12 +1,10 @@
-// app/routes/dashboard/owners/add-pg/components/Step2Location.tsx
-
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/app/routes/auth/form-input";
-import { MapPin, Loader2, Navigation, Plus, X, AlertCircle } from "lucide-react";
+import { MapPin, Loader2, Navigation, Plus, X, AlertCircle, Search } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -18,6 +16,7 @@ import L from "leaflet";
 import type { StepProps } from "../types";
 import { toast } from "sonner";
 import { safeString, safeArray } from "../utils/formDataHelpers";
+import Script from "next/script"; // Import Next.js Script
 
 // Custom marker icon
 const createMarkerIcon = () => {
@@ -90,6 +89,10 @@ export default function Step2Location({
   const [mapKey, setMapKey] = useState(0);
   const [lastGeocodingTime, setLastGeocodingTime] = useState(0);
   const [geolocationSupported, setGeolocationSupported] = useState(true);
+  
+  // Google Places Ref
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   // Rate limiting for Nominatim (1 request per second)
   const MIN_REQUEST_INTERVAL = 1000;
@@ -126,6 +129,93 @@ export default function Step2Location({
       setGeolocationSupported(false);
     }
   }, []);
+
+  // Initialize Google Autocomplete
+  const initAutocomplete = useCallback(() => {
+    if (!searchInputRef.current || !window.google || !window.google.maps || !window.google.maps.places) {
+      return;
+    }
+
+    // Prevent double initialization
+    if (autocompleteRef.current) return;
+
+    // console.log("🚀 Initializing Google Autocomplete..."); // Debug log
+
+    try {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+        types: ["geocode", "establishment"],
+        componentRestrictions: { country: "in" },
+        fields: ["geometry", "address_components", "formatted_address"],
+      });
+
+      autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+    } catch (error) {
+      console.error("Google Autocomplete Init Error:", error);
+    }
+  }, []); // Dependencies
+
+  // 2. Effect to Check if Script is Already Loaded (The Fix)
+  useEffect(() => {
+    // Check if Google Maps is already available globally
+    if (typeof window !== "undefined" && window.google && window.google.maps && window.google.maps.places) {
+      initAutocomplete();
+    }
+  }, [initAutocomplete]);
+
+  const handlePlaceSelect = () => {
+    const place = autocompleteRef.current?.getPlace();
+
+    if (!place || !place.geometry || !place.geometry.location) {
+      toast.error("Please select a location from the dropdown");
+      return;
+    }
+
+    const lat = place.geometry.location.lat();
+    const lng = place.geometry.location.lng();
+
+    // Extract address components from Google
+    let area = "";
+    let city = "";
+    let state = "";
+    let pincode = "";
+
+    if (place.address_components) {
+      place.address_components.forEach((component) => {
+        const types = component.types;
+        if (types.includes("sublocality") || types.includes("neighborhood")) {
+          area = component.long_name;
+        }
+        if (types.includes("locality")) {
+          city = component.long_name;
+        }
+        if (types.includes("administrative_area_level_1")) {
+          state = component.long_name;
+        }
+        if (types.includes("postal_code")) {
+          pincode = component.long_name;
+        }
+      });
+    }
+
+    // Fallback if area is empty, use formatted address first part
+    if (!area && place.formatted_address) {
+      area = place.formatted_address.split(",")[0];
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        coordinates: { lat, lng },
+        area: area || prev.location.area,
+        city: city || prev.location.city,
+        state: state || prev.location.state,
+        pincode: pincode || prev.location.pincode,
+      },
+    }));
+
+    toast.success("Location updated from search!");
+  };
 
   const addNearbyPlace = useCallback(() => {
     const place = nearbyPlacesInput.trim();
@@ -170,139 +260,106 @@ export default function Step2Location({
     }
   }, [addNearbyPlace]);
 
-  // Reverse geocoding: Coordinates → Address
-// Reverse geocoding: Coordinates → Address
-const getAddressFromCoords = useCallback(
-  async (lat: number, lng: number) => {
-    try {
-      // Validate coordinates
-      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        throw new Error("Invalid coordinates");
-      }
-
-      // Rate limiting
-      const now = Date.now();
-      const timeSinceLastRequest = now - lastGeocodingTime;
-      if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
-        );
-      }
-      setLastGeocodingTime(Date.now());
-
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        {
-          headers: {
-            "User-Agent": "SpotYourPG/1.0 (spotyourpg.com)",
-          },
+  // Reverse geocoding: Coordinates → Address (Nominatim fallback)
+  const getAddressFromCoords = useCallback(
+    async (lat: number, lng: number) => {
+      try {
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          throw new Error("Invalid coordinates");
         }
-      );
 
-      if (!response.ok) {
-        throw new Error("Geocoding failed");
-      }
+        const now = Date.now();
+        const timeSinceLastRequest = now - lastGeocodingTime;
+        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+          );
+        }
+        setLastGeocodingTime(Date.now());
 
-      const data = await response.json();
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+          {
+            headers: {
+              "User-Agent": "SpotYourPG/1.0 (spotyourpg.com)",
+            },
+          }
+        );
 
-      if (data && data.address) {
-        const addr = data.address;
-        
-        // Build comprehensive area string with more details
-        const areaComponents = [
-          addr.house_number,
-          addr.road,
-          addr.neighbourhood,
-          addr.suburb,
-          addr.hamlet,
-          addr.village,
-          addr.town,
-          addr.city_district,
-          addr.municipality,
-        ].filter(Boolean);
+        if (!response.ok) {
+          throw new Error("Geocoding failed");
+        }
 
-        // If we have components, join them, otherwise use display_name
-        const area = areaComponents.length > 0 
-          ? areaComponents.join(", ")
-          : data.display_name || "";
+        const data = await response.json();
 
-        // Get city with multiple fallbacks
-        const city = addr.city 
-          || addr.town 
-          || addr.village 
-          || addr.municipality
-          || addr.county
-          || "";
+        if (data && data.address) {
+          const addr = data.address;
+          
+          const areaComponents = [
+            addr.house_number,
+            addr.road,
+            addr.neighbourhood,
+            addr.suburb,
+            addr.hamlet,
+            addr.village,
+            addr.town,
+            addr.city_district,
+            addr.municipality,
+          ].filter(Boolean);
 
-        // Get state
-        const state = addr.state || addr.region || "";
+          const area = areaComponents.length > 0 
+            ? areaComponents.join(", ")
+            : data.display_name || "";
 
-        // Get pincode
-        const pincode = addr.postcode || "";
+          const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
+          const state = addr.state || addr.region || "";
+          const pincode = addr.postcode || "";
 
-        console.log("📍 Reverse Geocoding Result:", {
-          lat,
-          lng,
-          area,
-          city,
-          state,
-          pincode,
-          fullAddress: data.display_name,
-        });
+          setFormData((prev) => ({
+            ...prev,
+            location: {
+              ...prev.location,
+              coordinates: { lat, lng },
+              area: area,
+              city: city,
+              state: state,
+              pincode: pincode,
+            },
+          }));
 
+          toast.success("Address updated from map location");
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            location: {
+              ...prev.location,
+              coordinates: { lat, lng },
+            },
+          }));
+          toast.warning("Coordinates updated. Could not fetch full address.");
+        }
+      } catch (error) {
+        console.error("Reverse geocoding error:", error);
         setFormData((prev) => ({
           ...prev,
           location: {
             ...prev.location,
             coordinates: { lat, lng },
-            area: area, // ✅ Now properly populated
-            city: city,
-            state: state,
-            pincode: pincode,
           },
         }));
-
-        toast.success("Address updated from map location");
-      } else {
-        // No address data found
-        console.warn("No address data found for coordinates:", { lat, lng });
-        
-        setFormData((prev) => ({
-          ...prev,
-          location: {
-            ...prev.location,
-            coordinates: { lat, lng },
-          },
-        }));
-        
-        toast.warning("Coordinates updated. Could not fetch full address.");
+        toast.warning("Coordinates updated. Please fill address manually.");
       }
-    } catch (error) {
-      console.error("Reverse geocoding error:", error);
-      
-      // Still update coordinates even if address fetch fails
-      setFormData((prev) => ({
-        ...prev,
-        location: {
-          ...prev.location,
-          coordinates: { lat, lng },
-        },
-      }));
-      
-      toast.warning("Coordinates updated. Please fill address manually.");
-    }
-  },
-  [setFormData, lastGeocodingTime]
-);
+    },
+    [setFormData, lastGeocodingTime]
+  );
 
-  // Forward geocoding: Address → Coordinates
+  // Forward geocoding: Address → Coordinates (Nominatim)
   const getCoordsFromAddress = useCallback(async () => {
     const area = safeString(location.area);
     const city = safeString(location.city);
     const state = safeString(location.state);
     const pincode = safeString(location.pincode);
 
-    // Try different query combinations (fallback strategy)
     const queryLevels = [
       [area, city, state, pincode],
       [city, state, pincode],
@@ -313,7 +370,6 @@ const getAddressFromCoords = useCallback(
     setIsLoading(true);
 
     try {
-      // Rate limiting
       const now = Date.now();
       const timeSinceLastRequest = now - lastGeocodingTime;
       if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
@@ -359,8 +415,6 @@ const getAddressFromCoords = useCallback(
           return;
         }
       }
-
-      // If we reach here, no location was found
       toast.error("Could not find location. Try entering coordinates manually.");
     } catch (error) {
       console.error("Geocoding error:", error);
@@ -370,7 +424,6 @@ const getAddressFromCoords = useCallback(
     }
   }, [location, setFormData, lastGeocodingTime]);
 
-  // Map marker drag/click handler
   const handleMapLocationChange = useCallback(
     (lat: number, lng: number) => {
       getAddressFromCoords(lat, lng);
@@ -378,7 +431,6 @@ const getAddressFromCoords = useCallback(
     [getAddressFromCoords]
   );
 
-  // Get geolocation error message
   const getGeolocationErrorMessage = (error: GeolocationPositionError): string => {
     switch (error.code) {
       case error.PERMISSION_DENIED:
@@ -392,7 +444,6 @@ const getAddressFromCoords = useCallback(
     }
   };
 
-  // Get current GPS location
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
@@ -427,7 +478,6 @@ const getAddressFromCoords = useCallback(
     );
   }, [getAddressFromCoords]);
 
-  // Auto-detect location on mount (optional)
   useEffect(() => {
     if ("geolocation" in navigator && !coordinates.lat && !coordinates.lng) {
       navigator.geolocation.getCurrentPosition(
@@ -443,9 +493,7 @@ const getAddressFromCoords = useCallback(
             },
           }));
 
-          getAddressFromCoords(lat, lng).catch(() => {
-            // Ignore errors on auto-detect
-          });
+          getAddressFromCoords(lat, lng).catch(() => {});
         },
         (err) => {
           console.log("Auto-location detection skipped:", err.code);
@@ -458,36 +506,34 @@ const getAddressFromCoords = useCallback(
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, []);
 
-  // Update map when coordinates change
- // Update the useEffect that updates the map
-useEffect(() => {
-  const { lat, lng } = coordinates;
+  useEffect(() => {
+    const { lat, lng } = coordinates;
 
-  if (
-    lat &&
-    lng &&
-    !isNaN(lat) &&
-    !isNaN(lng) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
-  ) {
-    const timeoutId = setTimeout(() => {
-      setMapKey((prev) => prev + 1);
-    }, 500); // Increased delay to 500ms
+    if (
+      lat &&
+      lng &&
+      !isNaN(lat) &&
+      !isNaN(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      const timeoutId = setTimeout(() => {
+        setMapKey((prev) => prev + 1);
+      }, 500);
 
-    return () => clearTimeout(timeoutId);
-  }
-}, [coordinates.lat, coordinates.lng]);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [coordinates.lat, coordinates.lng]);
+
   const mapCenter: [number, number] = useMemo(() => [
     coordinates.lat || 28.6139,
     coordinates.lng || 77.209,
   ], [coordinates.lat, coordinates.lng]);
 
-  // Is add button disabled
   const isAddButtonDisabled = useMemo(
     () => !nearbyPlacesInput.trim(),
     [nearbyPlacesInput]
@@ -495,7 +541,14 @@ useEffect(() => {
 
   return (
     <form className="space-y-6">
-      {/* Geolocation Warning */}
+      {/* 3. Keep Script for direct page loads, but ensure ID matches Navbar if possible */}
+      <Script
+        id="google-maps-script" // Adding an ID helps Next.js deduplicate
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        onLoad={initAutocomplete}
+        strategy="lazyOnload"
+      />
+
       {!geolocationSupported && (
         <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -509,7 +562,25 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Manual Coordinates Section */}
+      {/* ✅ NEW: Google Search Bar for Property Location */}
+      <div className="space-y-3 pb-5 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800">
+          Search Property Location
+        </h3>
+        <p className="text-sm text-gray-600">
+          Search for your PG area or a nearby landmark to automatically set the address and coordinates.
+        </p>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent"
+            placeholder="Search for an area, landmark, or street..."
+          />
+        </div>
+      </div>
+
       <div className="space-y-4 text-left pb-5 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">
           Location Coordinates
@@ -717,7 +788,7 @@ useEffect(() => {
           ) : (
             <MapPin className="w-4 h-4" />
           )}
-          Find on Map
+          Find on Map (from Address)
         </Button>
         <Button
           type="button"
@@ -765,11 +836,10 @@ useEffect(() => {
       <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded space-y-1">
         <p className="font-semibold">📍 How to use:</p>
         <ul className="list-disc list-inside space-y-1 ml-2">
+          <li><strong>Use &quot;Search Property Location&quot;</strong> to find a place and auto-fill details (Recommended)</li>
           <li>Enter coordinates manually above for exact precision</li>
-          <li>Click anywhere on map or drag marker to select location</li>
-          <li>Use &quot;Find on Map&quot; to locate typed address</li>
+          <li>Click anywhere on map or drag marker to adjust location</li>
           <li>Use &quot;Current Location&quot; for GPS-based location</li>
-          <li>Coordinates sync automatically with map interactions</li>
         </ul>
       </div>
     </form>

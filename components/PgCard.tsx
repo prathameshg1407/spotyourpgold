@@ -35,7 +35,7 @@ import { getListingUrl } from "@/lib/listingUrl";
 type PgCardProps = {
   id: string;
   slug?: string; // Add slug prop for SEO-friendly URLs
-  image: string;
+  image: string | { url: string; description?: string };
   area: string;
   pgName: string;
   primaryLine?: string; // Add primary line prop
@@ -44,7 +44,7 @@ type PgCardProps = {
   genderPreference?: string;
   link?: string;
   isWishlisted?: boolean;
-  images?: string[]; // Add images array for swipeable functionality
+  images?: (string | { url: string; description?: string })[]; // Add images array for swipeable functionality
   type?: string; // Add type prop (matches database field name)
   distance?: number; // Add distance prop for nearby listings
   amenities?: string[]; // Add amenities array
@@ -134,10 +134,19 @@ const PgCard = ({
 
   // Combine primary image with additional images for swipeable functionality (max 3)
   // Filter out duplicates and ensure we have unique images
-  const allImages = [image, ...images]
+  const normalizeImage = (img: string | { url: string; description?: string }): { url: string; description: string } => {
+    if (typeof img === "string") return { url: img, description: "" };
+    return { url: img.url, description: img.description || "" };
+  };
+
+  const allImages: { url: string; description: string }[] = [image, ...images]
     .filter(Boolean)
-    .filter((img, index, arr) => arr.indexOf(img) === index) // Remove duplicates
+    .map(normalizeImage)
+    .filter(
+      (img, index, arr) => arr.findIndex((t) => t.url === img.url) === index
+    ) // Remove duplicates based on URL
     .slice(0, 3);
+
   const hasMultipleImages = allImages.length > 1;
 
   // Trigger animation after state update
@@ -340,7 +349,7 @@ const PgCard = ({
             >
               <BlurImage
                 className="object-cover w-full h-44"
-                src={allImages[prevImageIndex] || ""}
+                src={allImages[prevImageIndex]?.url || ""}
                 width={400}
                 height={176}
                 alt={pgName}
@@ -352,7 +361,7 @@ const PgCard = ({
           <div
             key={`img-${currentImageIndex}`}
             data-image-key={`img-${currentImageIndex}`}
-            className="absolute inset-0 transition-all duration-500 ease-in-out"
+            className="absolute inset-0 transition-all duration-500 ease-in-out group"
             style={{
               transform:
                 isTransitioning && !shouldAnimate && slideDirection === "left"
@@ -367,11 +376,18 @@ const PgCard = ({
           >
             <BlurImage
               className="object-cover w-full h-44"
-              src={allImages[currentImageIndex] || ""}
+              src={allImages[currentImageIndex]?.url || ""}
               width={400}
               height={176}
               alt={pgName}
             />
+            {allImages[currentImageIndex]?.description && (
+              <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-start">
+                <p className="text-white text-xs font-medium line-clamp-2 text-left">
+                  {allImages[currentImageIndex].description}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

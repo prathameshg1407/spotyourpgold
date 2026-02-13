@@ -72,8 +72,8 @@ export interface PGFormData {
   amenities: string[];
   customAmenities: string;
 
-  images: File[];
-  existingImageUrls: string[];
+  images: { file: File; description: string }[];
+  existingImages: { url: string; public_id: string; description?: string }[];
   videos: File[];
   existingVideoUrls: string[];
 

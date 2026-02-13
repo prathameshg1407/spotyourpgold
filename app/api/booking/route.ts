@@ -3,32 +3,18 @@ import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import Booking from "@/models/booking";
 import Listing from "@/models/listing";
+import User from "@/models/user";
 import Notification from "@/models/notification";
 import Coupon from "@/models/coupon";
-import User from "@/models/user";
-
-// Helper to get commission rate for an owner
-async function getOwnerCommissionRate(ownerId: string): Promise<number> {
-  const owner = await User.findById(ownerId).select("commissionSettings");
-  if (owner?.commissionSettings?.isCustomRateActive && owner.commissionSettings.customRate !== null) {
-    return owner.commissionSettings.customRate;
-  }
-  return 0.10; // Default 10%
-}
-
-// Helper to calculate first month commission split
-function calculateFirstMonthSplit(firstMonthRent: number, commissionRate: number) {
-  const adminAmount = Math.round(firstMonthRent * commissionRate); // 10% to admin
-  const ownerAmount = firstMonthRent - adminAmount; // 90% to owner
-  
-  return {
-    commissionRate,
-    adminAmount,
-    ownerAmount,
-  };
-}
+import { createRazorpayOrder } from "@/lib/razorpay";
+import {
+  sendNewBookingRequestToOwner,
+  sendBookingConfirmationToTenant,
+} from "@/services/sendWhatsAppNotification";
 
 export async function POST(req: NextRequest) {
+  const session = await mongoose.startSession();
+
   try {
     await connectToDB();
 
@@ -47,6 +33,7 @@ export async function POST(req: NextRequest) {
       additionalRequirements,
       termsAccepted,
       couponCode,
+      paymentMethod = "online",
     } = body;
 
     // Validate required fields
@@ -71,9 +58,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get listing details
-    const listing = await Listing.findById(listingId);
+    session.startTransaction();
+
+    // Get listing details with owner information
+    const listing = await Listing.findById(listingId)
+      .populate("ownerId", "fullName email phone")
+      .session(session);
+      
     if (!listing) {
+      await session.abortTransaction();
       return NextResponse.json(
         { success: false, message: "Listing not found" },
         { status: 404 }
@@ -84,12 +77,17 @@ export async function POST(req: NextRequest) {
     const selectedRoom = listing.roomTypes.find(
       (room: any) => room.type === roomType
     );
-    if (!selectedRoom) {
+    if (!selectedRoom || selectedRoom.availableRooms < 1) {
+      await session.abortTransaction();
       return NextResponse.json(
-        { success: false, message: "Selected room type not found" },
+        { success: false, message: "Selected room type not available" },
         { status: 400 }
       );
     }
+
+    // Calculate amounts
+    const monthlyRent = selectedRoom.monthlyRent;
+    const securityDeposit = selectedRoom.securityDeposit;
 
     // Validate and apply coupon if provided
     let discountAmount = 0;
@@ -99,58 +97,28 @@ export async function POST(req: NextRequest) {
       const coupon = await Coupon.findOne({
         name: couponCode.toUpperCase(),
         isActive: true,
-      });
+      }).session(session);
 
-      if (!coupon) {
-        return NextResponse.json(
-          { success: false, message: "Invalid coupon code" },
-          { status: 400 }
-        );
+      if (coupon) {
+        if (!coupon.validUntil || new Date() <= new Date(coupon.validUntil)) {
+          if (!coupon.maxUsage || coupon.usageCount < coupon.maxUsage) {
+            discountAmount = Math.round((monthlyRent * coupon.percentage) / 100);
+            appliedCoupon = coupon;
+          }
+        }
       }
-
-      if (coupon.validUntil && new Date() > new Date(coupon.validUntil)) {
-        return NextResponse.json(
-          { success: false, message: "Coupon has expired" },
-          { status: 400 }
-        );
-      }
-
-      if (coupon.validFrom && new Date() < new Date(coupon.validFrom)) {
-        return NextResponse.json(
-          { success: false, message: "Coupon is not yet valid" },
-          { status: 400 }
-        );
-      }
-
-      if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
-        return NextResponse.json(
-          { success: false, message: "Coupon usage limit exceeded" },
-          { status: 400 }
-        );
-      }
-
-      discountAmount = Math.round(
-        (selectedRoom.monthlyRent * coupon.percentage) / 100
-      );
-      appliedCoupon = coupon;
     }
 
-    // Calculate amounts
-    const originalAmount = selectedRoom.monthlyRent;
-    const firstMonthRent = originalAmount - discountAmount; // After discount
-    const securityDeposit = selectedRoom.securityDeposit;
+    // Calculate final amounts
+    const finalMonthlyRent = monthlyRent - discountAmount;
+    const bookingFeeAmount = Math.round(finalMonthlyRent * 0.1);
+    const firstMonthRentAmount = Math.round(finalMonthlyRent * 0.9);
 
-    // Get owner's commission rate
-    const commissionRate = await getOwnerCommissionRate(listing.ownerId.toString());
-
-    // Calculate first month commission split
-    const commissionSplit = calculateFirstMonthSplit(firstMonthRent, commissionRate);
-
-    // Create booking request
+    // Create booking
     const booking = new Booking({
       userId: new mongoose.Types.ObjectId(userId),
       listingId: new mongoose.Types.ObjectId(listingId),
-      ownerId: listing.ownerId, // Store owner ID for easy queries
+      ownerId: listing.ownerId._id,
       roomType,
       moveInDate: new Date(moveInDate),
       duration,
@@ -161,71 +129,178 @@ export async function POST(req: NextRequest) {
       aadhaarNumber: aadhaarNumber || "",
       additionalRequirements: additionalRequirements || "",
       termsAccepted,
+      paymentMethod,
+      monthlyRent: finalMonthlyRent,
       
-      // Amounts
-      amount: firstMonthRent, // First month rent after discount
-      securityDeposit,
-      originalAmount,
+      // Payment Structure
+      bookingFee: {
+        amount: bookingFeeAmount,
+        status: "pending",
+      },
+      
+      securityDeposit: {
+        amount: securityDeposit,
+        status: "pending",
+      },
+      
+      firstMonthRent: {
+        amount: firstMonthRentAmount,
+        status: "pending",
+      },
+      
+      // Discount details
+      originalAmount: monthlyRent,
       discountAmount,
       couponCode: couponCode || null,
       
-      // First month commission split (calculated but not processed yet)
-      firstMonthCommission: {
-        commissionRate: commissionSplit.commissionRate,
-        adminAmount: commissionSplit.adminAmount,
-        ownerAmount: commissionSplit.ownerAmount,
-        adminAmountStatus: "pending",
-        ownerPayoutStatus: "pending",
-      },
-      
-      // Status
+      // Totals
+      totalDue: bookingFeeAmount + securityDeposit + firstMonthRentAmount,
+      totalPaid: 0,
       status: "pending",
-      paymentStatus: "pending",
-      paymentMethod: "cash",
     });
 
-    await booking.save();
+    await booking.save({ session });
 
-    // Increment coupon usage count if coupon was applied
+    // Increment coupon usage if applied
     if (appliedCoupon) {
-      await Coupon.findByIdAndUpdate(appliedCoupon._id, {
-        $inc: { usageCount: 1 },
-      });
+      await Coupon.findByIdAndUpdate(
+        appliedCoupon._id,
+        { $inc: { usageCount: 1 } },
+        { session }
+      );
+    }
+
+    let razorpayOrder = null;
+
+    // Create Razorpay order only for online payment
+    if (paymentMethod === "online") {
+      try {
+        razorpayOrder = await createRazorpayOrder({
+          amount: bookingFeeAmount,
+          receipt: `BOOKING_FEE_${booking._id}`,
+          notes: {
+            bookingId: booking._id.toString(),
+            userId: userId,
+            listingId: listingId,
+            paymentType: "booking_fee",
+            pgName: listing.pgName,
+          },
+        });
+
+        // Store Razorpay order ID
+        booking.bookingFee.razorpayOrderId = razorpayOrder.id;
+        await booking.save({ session });
+      } catch (error) {
+        await session.abortTransaction();
+        console.error("Razorpay order creation error:", error);
+        return NextResponse.json(
+          { success: false, message: "Failed to create payment order" },
+          { status: 500 }
+        );
+      }
     }
 
     // Create notification for owner
-    await Notification.create({
-      userId: listing.ownerId,
-      type: "booking_request",
-      title: "New Booking Request",
-      message: `You have a new booking request for ${listing.pgName} from ${fullName}.`,
-      relatedId: booking._id,
-      relatedType: "booking",
-      priority: "high",
-      metadata: {
-        listingName: listing.pgName,
-        tenantName: fullName,
-        tenantPhone: phoneNumber,
-        firstMonthRent,
-        adminCommission: commissionSplit.adminAmount,
-        ownerPayout: commissionSplit.ownerAmount,
-      },
-    });
+    await Notification.create(
+      [
+        {
+          userId: listing.ownerId._id,
+          type: "booking_request",
+          title: "New Booking Request",
+          message: `New ${paymentMethod === "cash" ? "cash" : "online"} booking request for ${
+            listing.pgName
+          } from ${fullName}.`,
+          relatedId: booking._id,
+          relatedType: "booking",
+          priority: "high",
+          metadata: {
+            listingName: listing.pgName,
+            tenantName: fullName,
+            tenantPhone: phoneNumber,
+            paymentMethod,
+            bookingFee: bookingFeeAmount,
+            securityDeposit,
+            firstMonthRent: firstMonthRentAmount,
+            totalAmount: booking.totalDue,
+          },
+        },
+      ],
+      { session }
+    );
+
+    // Commit transaction before sending WhatsApp (non-critical operation)
+    await session.commitTransaction();
+
+    // Send WhatsApp notifications (non-blocking)
+    const sendNotifications = async () => {
+      try {
+        // Send to owner
+        if (listing.ownerId?.phone) {
+          await sendNewBookingRequestToOwner({
+            ownerPhone: listing.ownerId.phone,
+            ownerName: listing.ownerId.fullName || "Owner",
+            ownerId: listing.ownerId._id.toString(),
+            pgLocation: listing.location?.area || listing.location?.city || "Your PG",
+            tenantName: fullName,
+            tenantPhone: phoneNumber,
+            roomType: roomType,
+            moveInDate: moveInDate,
+            bookingFee: bookingFeeAmount,
+            paymentMethod: paymentMethod,
+          });
+          console.log("[WhatsApp] Owner notification sent successfully");
+        }
+
+        // Send to tenant
+        await sendBookingConfirmationToTenant({
+          tenantPhone: phoneNumber,
+          tenantName: fullName,
+          tenantId: userId,
+          pgName: listing.pgName,
+          roomType: roomType,
+          moveInDate: moveInDate,
+          totalAmount: booking.totalDue,
+          bookingId: booking._id.toString(),
+          paymentMethod: paymentMethod,
+        });
+        console.log("[WhatsApp] Tenant confirmation sent successfully");
+      } catch (error) {
+        console.error("[WhatsApp] Failed to send notifications:", error);
+        // Don't throw - notifications are non-critical
+      }
+    };
+
+    // Send notifications asynchronously
+    sendNotifications();
 
     return NextResponse.json({
       success: true,
       message: "Booking request submitted successfully",
       data: {
-        ...booking.toObject(),
-        // Include split info in response
-        commissionSplit: {
-          adminReceives: commissionSplit.adminAmount,
-          ownerReceives: commissionSplit.ownerAmount,
-          totalFirstMonth: firstMonthRent,
+        booking: {
+          _id: booking._id,
+          status: booking.status,
+          paymentBreakdown: {
+            bookingFee: booking.bookingFee,
+            securityDeposit: booking.securityDeposit,
+            firstMonthRent: booking.firstMonthRent,
+          },
+          totalDue: booking.totalDue,
+          totalPaid: booking.totalPaid,
         },
+        razorpayOrder:
+          paymentMethod === "online"
+            ? {
+                orderId: razorpayOrder?.id,
+                amount: bookingFeeAmount,
+                currency: "INR",
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+              }
+            : null,
       },
     });
   } catch (error) {
+    await session.abortTransaction();
     console.error("Booking creation error:", error);
     return NextResponse.json(
       {
@@ -235,15 +310,21 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    session.endSession();
   }
 }
 
+// GET - Fetch user bookings
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
     if (!userId) {
       return NextResponse.json(
@@ -252,15 +333,52 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const bookings = await Booking.find({
-      userId: new mongoose.Types.ObjectId(userId),
-    })
-      .populate("listingId", "pgName location images roomTypes")
-      .sort({ createdAt: -1 });
+    const query: any = { userId: new mongoose.Types.ObjectId(userId) };
+    
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    const totalCount = await Booking.countDocuments(query);
+    
+    const bookings = await Booking.find(query)
+      .populate({
+        path: "listingId",
+        select: "pgName location primaryImage roomTypes amenities",
+      })
+      .populate({
+        path: "ownerId",
+        model: "User",
+        select: "fullName email phone",
+      })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    // Format bookings with payment breakdown
+    const formattedBookings = bookings.map((booking) => ({
+      ...booking.toObject(),
+      paymentBreakdown: {
+        bookingFee: booking.bookingFee || {},
+        securityDeposit: booking.securityDeposit || {},
+        firstMonthRent: booking.firstMonthRent || {},
+      },
+      canPayRemaining:
+        booking.status === "confirmed" &&
+        booking.bookingFee?.status === "paid" &&
+        (booking.securityDeposit?.status === "pending" ||
+          booking.firstMonthRent?.status === "pending"),
+    }));
 
     return NextResponse.json({
       success: true,
-      data: bookings,
+      data: formattedBookings,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     });
   } catch (error) {
     console.error("Get bookings error:", error);
@@ -272,5 +390,94 @@ export async function GET(req: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+// DELETE - Cancel booking
+export async function DELETE(req: NextRequest) {
+  const session = await mongoose.startSession();
+
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const bookingId = searchParams.get("id");
+    const userId = searchParams.get("userId");
+
+    if (!bookingId || !userId) {
+      return NextResponse.json(
+        { success: false, message: "Booking ID and User ID are required" },
+        { status: 400 }
+      );
+    }
+
+    session.startTransaction();
+
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      userId: userId,
+    }).session(session);
+
+    if (!booking) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { success: false, message: "Booking not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only allow cancellation if booking is pending and no payment made
+    if (booking.status !== "pending" || booking.totalPaid > 0) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only pending bookings without payment can be cancelled",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update booking status
+    booking.status = "cancelled";
+    booking.cancelledAt = new Date();
+    booking.cancellationReason = "Cancelled by user";
+    await booking.save({ session });
+
+    // Create notification for owner
+    await Notification.create(
+      [
+        {
+          userId: booking.ownerId,
+          type: "booking_cancelled",
+          title: "Booking Cancelled",
+          message: `Booking for ${booking.fullName} has been cancelled.`,
+          relatedId: booking._id,
+          relatedType: "booking",
+          priority: "medium",
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    return NextResponse.json({
+      success: true,
+      message: "Booking cancelled successfully",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Delete booking error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to cancel booking",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  } finally {
+    session.endSession();
   }
 }

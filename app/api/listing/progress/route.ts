@@ -36,8 +36,8 @@ interface ProgressDocument {
     detailedRules?: any;
     amenities?: string[];
     customAmenities?: string;
-    images?: string[];
-    existingImageUrls?: string[];
+    images?: (string | { url: string; description?: string })[];
+    existingImageUrls?: (string | { url: string; description?: string })[];
     videos?: string[];
     existingVideoUrls?: string[];
     foodIncluded?: boolean;
@@ -60,7 +60,7 @@ interface ProgressDocument {
 }
 
 // Helper function to sanitize images array
-function sanitizeImages(images: unknown): string[] {
+function sanitizeImages(images: unknown): (string | { url: string; description?: string })[] {
   if (!images) return [];
   
   if (typeof images === 'string') {
@@ -75,11 +75,16 @@ function sanitizeImages(images: unknown): string[] {
   
   return images
     .map((img) => {
-      if (typeof img === 'string' && img.length > 0) return img;
-      if (img && typeof img === 'object' && 'url' in img && img.url) return img.url as string;
+      if (typeof img === 'string' && img.length > 0) return { url: img, description: "" };
+      if (img && typeof img === 'object' && 'url' in img && img.url) {
+        return {
+           url: img.url as string,
+           description: (img.description as string) || ""
+        };
+      }
       return null;
     })
-    .filter((url): url is string => typeof url === 'string' && url.length > 0);
+    .filter((item): item is { url: string; description: string } => item !== null);
 }
 
 // Helper function to convert lat/lng to GeoJSON format (for SAVING)

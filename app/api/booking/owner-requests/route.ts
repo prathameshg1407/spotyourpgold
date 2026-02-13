@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
+import mongoose from "mongoose";
 import Booking from "@/models/booking";
 import Listing from "@/models/listing";
-import User from "@/models/user";
 import { authUser } from "@/actions/authUser";
 
-// Get booking requests for owner
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-    // Check if user is authenticated
     const user = await authUser();
-    if (!user) {
+    if (!user || (user.role !== "owner" && user.role !== "admin")) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -25,9 +23,7 @@ export async function GET(req: NextRequest) {
     const perPage = Math.min(Number(searchParams.get("per_page") || "20"), 50);
 
     // Get owner's listings
-    const ownerListings = await Listing.find({ ownerId: user.id }).select(
-      "_id"
-    );
+    const ownerListings = await Listing.find({ ownerId: user.id }).select("_id");
     const listingIds = ownerListings.map((listing) => listing._id);
 
     if (listingIds.length === 0) {
@@ -46,10 +42,9 @@ export async function GET(req: NextRequest) {
       query.status = status;
     }
 
-    // Get total count
     const total = await Booking.countDocuments(query);
 
-    // Get bookings with pagination
+    // Get bookings
     const bookings = await Booking.find(query)
       .populate("userId", "fullName email phoneNumber")
       .populate("listingId", "pgName location primaryImage")
@@ -69,11 +64,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Get owner booking requests error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "Internal server error" },
       { status: 500 }
     );
   }

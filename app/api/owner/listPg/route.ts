@@ -164,16 +164,19 @@ export async function POST(req: Request) {
     }
 
     // ✅ Upload images to Cloudinary
-    uploadedImages = await Promise.all(
-      images.map(async (img: string) => {
-        const { url, public_id } = await uploadToCloudinary(
-          img,
-          "sypg/listing-images",
-          "sypgListingImages"
+        uploadedImages = await Promise.all(
+            images.map(async (img: any) => {
+                const imageString = typeof img === 'string' ? img : img.base64;
+                const description = typeof img === 'string' ? '' : img.description;
+
+                const { url, public_id } = await uploadToCloudinary(
+                    imageString,
+                    "sypg/listing-images",
+                    "sypgListingImages"
+                );
+                return { url, public_id, description };
+            })
         );
-        return { url, public_id };
-      })
-    );
 
     // ✅ Upload videos to Cloudinary (if any)
     if (videos.length > 0) {

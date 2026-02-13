@@ -153,6 +153,7 @@ const listingSchema = new mongoose.Schema(
       {
         url: { type: String, required: true },
         public_id: { type: String, required: true },
+        description: { type: String, required: false },
       },
     ],
     primaryImage: { type: String },

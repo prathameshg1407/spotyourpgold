@@ -84,6 +84,47 @@ export async function POST(req: NextRequest) {
 
     await visitRequest.save();
 
+    // ✅ Notify Owner via WhatsApp
+    try {
+      const Listing = (await import("@/models/listing")).default;
+      const User = (await import("@/models/user")).default;
+      
+      const listing = await Listing.findById(listingId).populate("ownerId", "fullName phone");
+      
+      if (listing && listing.ownerId?.phone) {
+        const { sendWhatsAppMessage } = await import("@/lib/whatsapp");
+        
+        // Format date
+        const formattedDate = new Date(preferredDate).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+
+        // Prepare WhatsApp params
+        // Template: Hello {{1}}, You have a new visit request for {{2}}. Visitor: {{3}}, Phone: {{4}}, Date: {{5}}, Time: {{6}}
+        const templateParams = [
+          listing.ownerId.fullName || "Owner", // 1. Owner Name
+          listing.pgName || "Your Property",   // 2. PG Name
+          name,                                // 3. Visitor Name
+          phone,                               // 4. Visitor Phone
+          formattedDate,                       // 5. Date
+          preferredTime                        // 6. Time
+        ];
+
+        // Send message
+        await sendWhatsAppMessage({
+          destination: listing.ownerId.phone,
+          userName: listing.ownerId.fullName || "Owner",
+          campaignName: "New Visit Request", // MUST MATCH AISENSY DASHBOARD
+          templateParams,
+        });
+      }
+    } catch (notifyError) {
+      console.error("Failed to send WhatsApp notification:", notifyError);
+      // Don't modify response, notification failure shouldn't fail the request
+    }
+
     return NextResponse.json({
       success: true,
       message:

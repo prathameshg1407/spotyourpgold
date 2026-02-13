@@ -33,7 +33,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Download,
   Receipt,
@@ -49,211 +51,171 @@ import {
   Eye,
   RefreshCw,
   AlertTriangle,
-  Wifi,
   WifiOff,
+  Home,
+  Shield,
+  Loader2,
 } from "lucide-react";
 import { useUserStore } from "@/store/userStore";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
 
+// Import payment components
+import RazorpayCheckout, {
+  RazorpaySuccessResponse,
+} from "@/components/payments/RazorpayCheckout";
+import PaymentBreakdown from "@/components/payments/PaymentBreakdown";
+import PaymentSteps, {
+  CompactPaymentSteps,
+  PaymentProgress,
+} from "@/components/payments/PaymentSteps";
+
 // ==================== Types ====================
-interface PaymentLocation {
-  area: string;
-  city: string;
+interface PaymentItem {
+  label: string;
+  amount: number;
+  status: "pending" | "paid" | "failed" | "refunded";
+  paidAt?: string | null;
+  paymentReference?: string;
 }
 
-interface PaymentImage {
-  url: string;
+interface PaymentBreakdownData {
+  bookingFee: PaymentItem;
+  securityDeposit: PaymentItem;
+  firstMonthRent: PaymentItem;
 }
 
-interface PaymentListing {
+interface PaymentProgress {
+  bookingFeePaid: boolean;
+  approved: boolean;
+  remainingPaid: boolean;
+  isComplete: boolean;
+}
+
+interface BookingPayment {
   _id: string;
+  type: "booking";
+  listingId: {
+    _id: string;
+    pgName: string;
+    location: { area: string; city: string };
+    images: { url: string }[];
+  } | null;
   pgName: string;
-  location: PaymentLocation;
-  images: PaymentImage[];
-}
-
-interface PaymentAddress {
-  street: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
-
-type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
-type PaymentStatus = "pending" | "pending_cash_payment" | "completed_cash" | "failed" | "refunded";
-type PaymentMethod = "cash" | "online";
-
-interface PaymentRecord {
-  _id: string;
-  listingId: PaymentListing | null;
   roomType: string;
   moveInDate: string;
   duration: string;
-  amount: number;
+  status: string;
+  paymentMethod: "online" | "cash";
+  createdAt: string;
+  paymentBreakdown: PaymentBreakdownData;
   originalAmount: number;
   discountAmount: number;
-  securityDeposit: number;
   couponCode: string | null;
-  status: BookingStatus;
-  paymentStatus: PaymentStatus;
-  paymentMethod: PaymentMethod;
-  createdAt: string;
-  cashCollectedAt: string | null;
-  adminVerifiedAt: string | null;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  address: PaymentAddress;
+  totalDue: number;
+  totalPaid: number;
+  pendingAmount: number;
+  paymentProgress: PaymentProgress;
+  canPayBookingFee: boolean;
+  canPayRemaining: boolean;
+}
+
+interface MonthlyRent {
+  _id: string;
+  type: "monthly_rent";
+  pgName: string;
+  rentMonth: string;
+  monthNumber: number;
+  amount: number;
+  dueDate: string;
+  status: string;
+  paidAmount: number;
+  paidAt: string | null;
+  paymentMethod: string;
+  lateFee: number;
+  totalDue: number;
+}
+
+interface PaymentSummary {
+  totalBookingFeesPaid: number;
+  totalSecurityDepositsPaid: number;
+  totalFirstMonthRentPaid: number;
+  totalMonthlyRentPaid: number;
+  totalMonthlyRentPending: number;
+  totalPaid: number;
+  totalPending: number;
+  overdueCount: number;
 }
 
 interface RentDueInfo {
+  rentId: string;
   nextDueDate: string;
   daysRemaining: number;
   amount: number;
   isOverdue: boolean;
+  monthNumber: number;
 }
 
 interface PaymentApiResponse {
   success: boolean;
-  data: PaymentRecord[];
-  rentDueInfo?: RentDueInfo;
+  data: {
+    bookings: BookingPayment[];
+    monthlyRents: MonthlyRent[];
+    summary: PaymentSummary;
+    rentDueInfo: RentDueInfo | null;
+    hasActiveAllocation: boolean;
+  };
   message?: string;
 }
 
-interface ApiError {
-  message: string;
-  code?: string;
-}
-
 // ==================== Constants ====================
-const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { 
-  color: string; 
-  icon: React.ReactNode; 
-  label: string 
-}> = {
-  pending: {
-    color: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    icon: <Clock className="h-3 w-3" />,
-    label: "Pending",
-  },
-  pending_cash_payment: {
-    color: "bg-orange-100 text-orange-800 border-orange-300",
-    icon: <AlertCircle className="h-3 w-3" />,
-    label: "Awaiting Cash",
-  },
-  completed_cash: {
-    color: "bg-green-100 text-green-800 border-green-300",
-    icon: <CheckCircle className="h-3 w-3" />,
-    label: "Paid (Cash)",
-  },
-  failed: {
-    color: "bg-red-100 text-red-800 border-red-300",
-    icon: <XCircle className="h-3 w-3" />,
-    label: "Failed",
-  },
-  refunded: {
-    color: "bg-purple-100 text-purple-800 border-purple-300",
-    icon: <Receipt className="h-3 w-3" />,
-    label: "Refunded",
-  },
-};
-
-const BOOKING_STATUS_CONFIG: Record<BookingStatus, { color: string; label: string }> = {
+const BOOKING_STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending" },
-  confirmed: { color: "bg-green-100 text-green-800", label: "Confirmed" },
+  confirmed: { color: "bg-blue-100 text-blue-800", label: "Confirmed" },
+  active: { color: "bg-green-100 text-green-800", label: "Active" },
   cancelled: { color: "bg-red-100 text-red-800", label: "Cancelled" },
-  completed: { color: "bg-blue-100 text-blue-800", label: "Completed" },
+  completed: { color: "bg-gray-100 text-gray-800", label: "Completed" },
 };
 
-const FILTER_OPTIONS = [
-  { value: "all", label: "All Payments" },
-  { value: "completed_cash", label: "Completed" },
-  { value: "pending", label: "Pending" },
-  { value: "pending_cash_payment", label: "Awaiting Cash" },
-  { value: "failed", label: "Failed" },
-  { value: "refunded", label: "Refunded" },
-] as const;
+const RENT_STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ElementType }> = {
+  upcoming: { color: "bg-gray-100 text-gray-600", label: "Upcoming", icon: Clock },
+  pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending", icon: Clock },
+  paid: { color: "bg-green-100 text-green-800", label: "Paid", icon: CheckCircle },
+  overdue: { color: "bg-red-100 text-red-800", label: "Overdue", icon: AlertCircle },
+  partially_paid: { color: "bg-orange-100 text-orange-800", label: "Partial", icon: AlertTriangle },
+};
 
 // ==================== Utility Functions ====================
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
 };
 
-const formatDate = (dateString: string, options?: Intl.DateTimeFormatOptions): string => {
+const formatDate = (dateString: string): string => {
   try {
-    const defaultOptions: Intl.DateTimeFormatOptions = {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    };
-    return new Date(dateString).toLocaleDateString('en-IN', options || defaultOptions);
-  } catch {
-    return 'Invalid Date';
-  }
-};
-
-const formatTime = (dateString: string): string => {
-  try {
-    return new Date(dateString).toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   } catch {
-    return '';
+    return "Invalid Date";
   }
 };
 
 const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<ApiError>;
-    if (axiosError.response?.data?.message) {
-      return axiosError.response.data.message;
-    }
-    if (axiosError.code === 'ERR_NETWORK') {
-      return 'Network error. Please check your connection.';
-    }
-    if (axiosError.response?.status === 401) {
-      return 'Session expired. Please login again.';
-    }
-    if (axiosError.response?.status === 403) {
-      return 'You do not have permission to access this resource.';
-    }
-    if (axiosError.response?.status === 404) {
-      return 'Resource not found.';
-    }
-    if (axiosError.response?.status && axiosError.response.status >= 500) {
-      return 'Server error. Please try again later.';
-    }
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return axiosError.response?.data?.message || "An error occurred";
   }
-  return 'An unexpected error occurred.';
+  return "An unexpected error occurred";
 };
 
 // ==================== Sub-Components ====================
-const PaymentStatusBadge = ({ status }: { status: PaymentStatus }) => {
-  const config = PAYMENT_STATUS_CONFIG[status] || PAYMENT_STATUS_CONFIG.pending;
-  return (
-    <Badge variant="outline" className={`${config.color} flex items-center gap-1`}>
-      {config.icon}
-      {config.label}
-    </Badge>
-  );
-};
-
-const BookingStatusBadge = ({ status }: { status: BookingStatus }) => {
-  const config = BOOKING_STATUS_CONFIG[status] || BOOKING_STATUS_CONFIG.pending;
-  return (
-    <Badge variant="outline" className={config.color}>
-      {config.label}
-    </Badge>
-  );
-};
-
 const SummaryCard = ({
   title,
   value,
@@ -275,7 +237,7 @@ const SummaryCard = ({
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className={`text-2xl font-bold ${valueColor}`}>
-            {typeof value === 'number' ? formatCurrency(value) : value}
+            {typeof value === "number" ? formatCurrency(value) : value}
           </p>
         </div>
         <div className={`h-12 w-12 rounded-full ${iconBgColor} flex items-center justify-center`}>
@@ -286,20 +248,313 @@ const SummaryCard = ({
   </Card>
 );
 
+const RentDueCard = ({
+  rentDueInfo,
+  onPayNow,
+  loading,
+}: {
+  rentDueInfo: RentDueInfo;
+  onPayNow: () => void;
+  loading: boolean;
+}) => (
+  <Card
+    className={`border-2 ${
+      rentDueInfo.isOverdue
+        ? "border-red-400 bg-red-50"
+        : "border-HG-400 bg-HG-50"
+    } shadow-sm rounded-2xl`}
+  >
+    <CardContent className="pt-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className={`h-12 w-12 rounded-full ${
+              rentDueInfo.isOverdue ? "bg-red-100" : "bg-HG-100"
+            } flex items-center justify-center flex-shrink-0`}
+          >
+            <Calendar
+              className={`h-6 w-6 ${
+                rentDueInfo.isOverdue ? "text-red-600" : "text-HG-600"
+              }`}
+            />
+          </div>
+          <div>
+            <p
+              className={`text-sm font-medium ${
+                rentDueInfo.isOverdue ? "text-red-600" : "text-HG-600"
+              }`}
+            >
+              {rentDueInfo.isOverdue
+                ? "Rent Overdue!"
+                : `Month ${rentDueInfo.monthNumber} Rent Due`}
+            </p>
+            <p className="text-lg font-bold">{formatDate(rentDueInfo.nextDueDate)}</p>
+            <p className="text-sm text-muted-foreground">
+              {rentDueInfo.isOverdue
+                ? `${Math.abs(rentDueInfo.daysRemaining)} days overdue`
+                : `${rentDueInfo.daysRemaining} days remaining`}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Amount Due</p>
+            <p className="text-2xl font-bold">{formatCurrency(rentDueInfo.amount)}</p>
+          </div>
+          <Button
+            onClick={onPayNow}
+            disabled={loading}
+            className={`${
+              rentDueInfo.isOverdue
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-HG-500 hover:bg-HG-600"
+            }`}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <CreditCard className="h-4 w-4 mr-2" />
+            )}
+            Pay Now
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const BookingPaymentCard = ({
+  booking,
+  onPayBookingFee,
+  onPayRemaining,
+  onViewDetails,
+  onDownloadInvoice,
+  paymentLoading,
+  downloadingInvoice,
+}: {
+  booking: BookingPayment;
+  onPayBookingFee: (bookingId: string) => void;
+  onPayRemaining: (bookingId: string) => void;
+  onViewDetails: (booking: BookingPayment) => void;
+  onDownloadInvoice: (bookingId: string) => void;
+  paymentLoading: string | null;
+  downloadingInvoice: string | null;
+}) => {
+  const listing = booking.listingId;
+  const progressPercent = Math.round((booking.totalPaid / booking.totalDue) * 100);
+  const currentStep = booking.paymentProgress.isComplete
+    ? 4
+    : booking.paymentProgress.remainingPaid
+    ? 4
+    : booking.paymentProgress.approved
+    ? 3
+    : booking.paymentProgress.bookingFeePaid
+    ? 2
+    : 1;
+
+  return (
+    <Card className="border border-HG-400/20 shadow-sm rounded-xl overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row">
+          {/* Image */}
+          <div className="w-full md:w-48 h-32 md:h-auto bg-gray-100 flex-shrink-0">
+            {listing?.images?.[0]?.url ? (
+              <img
+                src={listing.images[0].url}
+                alt={listing.pgName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building className="h-12 w-12 text-gray-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 p-4 space-y-4">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold text-lg">{booking.pgName}</h3>
+                <p className="text-sm text-gray-500">
+                  {listing?.location?.area}, {listing?.location?.city} • {booking.roomType}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Move-in: {formatDate(booking.moveInDate)} • {booking.duration} months
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className={BOOKING_STATUS_CONFIG[booking.status]?.color}
+              >
+                {BOOKING_STATUS_CONFIG[booking.status]?.label || booking.status}
+              </Badge>
+            </div>
+
+            {/* Payment Steps */}
+            <div className="py-2">
+              <PaymentSteps currentStep={currentStep} size="sm" variant="horizontal" />
+            </div>
+
+            {/* Payment Breakdown Mini */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div
+                className={`p-2 rounded-lg ${
+                  booking.paymentBreakdown.bookingFee.status === "paid"
+                    ? "bg-green-50 border border-green-200"
+                    : "bg-gray-50 border border-gray-200"
+                }`}
+              >
+                <p className="text-xs text-gray-500">Booking Fee</p>
+                <p className="font-semibold text-sm">
+                  {formatCurrency(booking.paymentBreakdown.bookingFee.amount)}
+                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] mt-1 ${
+                    booking.paymentBreakdown.bookingFee.status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {booking.paymentBreakdown.bookingFee.status}
+                </Badge>
+              </div>
+              <div
+                className={`p-2 rounded-lg ${
+                  booking.paymentBreakdown.securityDeposit.status === "paid"
+                    ? "bg-green-50 border border-green-200"
+                    : "bg-gray-50 border border-gray-200"
+                }`}
+              >
+                <p className="text-xs text-gray-500">Deposit</p>
+                <p className="font-semibold text-sm">
+                  {formatCurrency(booking.paymentBreakdown.securityDeposit.amount)}
+                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] mt-1 ${
+                    booking.paymentBreakdown.securityDeposit.status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {booking.paymentBreakdown.securityDeposit.status}
+                </Badge>
+              </div>
+              <div
+                className={`p-2 rounded-lg ${
+                  booking.paymentBreakdown.firstMonthRent.status === "paid"
+                    ? "bg-green-50 border border-green-200"
+                    : "bg-gray-50 border border-gray-200"
+                }`}
+              >
+                <p className="text-xs text-gray-500">First Month</p>
+                <p className="font-semibold text-sm">
+                  {formatCurrency(booking.paymentBreakdown.firstMonthRent.amount)}
+                </p>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] mt-1 ${
+                    booking.paymentBreakdown.firstMonthRent.status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {booking.paymentBreakdown.firstMonthRent.status}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>
+                  Paid: {formatCurrency(booking.totalPaid)} / {formatCurrency(booking.totalDue)}
+                </span>
+                <span>{progressPercent}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    progressPercent === 100 ? "bg-green-500" : "bg-HG-500"
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              {booking.canPayBookingFee && (
+                <Button
+                  size="sm"
+                  onClick={() => onPayBookingFee(booking._id)}
+                  disabled={paymentLoading === booking._id}
+                  className="bg-HG-500 hover:bg-HG-600"
+                >
+                  {paymentLoading === booking._id ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-1" />
+                  )}
+                  Pay Booking Fee
+                </Button>
+              )}
+              {booking.canPayRemaining && (
+                <Button
+                  size="sm"
+                  onClick={() => onPayRemaining(booking._id)}
+                  disabled={paymentLoading === booking._id}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {paymentLoading === booking._id ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-1" />
+                  )}
+                  Pay Remaining ({formatCurrency(booking.pendingAmount)})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onViewDetails(booking)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                Details
+              </Button>
+              {booking.totalPaid > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onDownloadInvoice(booking._id)}
+                  disabled={downloadingInvoice === booking._id}
+                >
+                  {downloadingInvoice === booking._id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const LoadingSkeleton = () => (
   <div className="space-y-6 pt-4 pb-14">
-    {/* Header Skeleton */}
-    <div>
-      <Skeleton className="h-9 w-64 mb-2" />
-      <Skeleton className="h-5 w-96" />
-    </div>
-
-    {/* Summary Cards Skeleton */}
-    <div className="grid gap-4 md:grid-cols-3">
-      {[...Array(3)].map((_, i) => (
-        <Card key={i} className="border border-HG-400/20 shadow-sm rounded-2xl bg-white">
+    <Skeleton className="h-9 w-64 mb-2" />
+    <div className="grid gap-4 md:grid-cols-4">
+      {[...Array(4)].map((_, i) => (
+        <Card key={i} className="border border-HG-400/20 rounded-2xl">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div className="space-y-2">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-32" />
@@ -310,650 +565,516 @@ const LoadingSkeleton = () => (
         </Card>
       ))}
     </div>
-
-    {/* Table Skeleton */}
-    <Card className="border border-HG-400/20 shadow-sm rounded-2xl bg-white">
-      <CardHeader>
-        <Skeleton className="h-6 w-48 mb-2" />
-        <Skeleton className="h-4 w-64" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-lg" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-full max-w-xs" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-8 w-16" />
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    {[...Array(3)].map((_, i) => (
+      <Skeleton key={i} className="h-48 w-full rounded-xl" />
+    ))}
   </div>
 );
-
-const ErrorState = ({ 
-  message, 
-  onRetry 
-}: { 
-  message: string; 
-  onRetry: () => void 
-}) => (
-  <div className="space-y-6 pt-4 pb-14">
-    <Card className="border border-red-200 bg-red-50 rounded-2xl">
-      <CardContent className="pt-6">
-        <div className="text-center py-8">
-          <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-red-800 mb-2">
-            Failed to Load Payments
-          </h3>
-          <p className="text-red-600 mb-4 max-w-md mx-auto">{message}</p>
-          <Button
-            onClick={onRetry}
-            variant="outline"
-            className="border-red-300 text-red-600 hover:bg-red-100"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-);
-
-const EmptyState = ({ filter }: { filter: string }) => (
-  <div className="text-center py-12">
-    <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Payments Found</h3>
-    <p className="text-gray-500">
-      {filter === "all"
-        ? "You haven't made any bookings yet."
-        : `No ${filter.replace(/_/g, " ")} payments found.`}
-    </p>
-  </div>
-);
-
-const RentDueCard = ({ rentDueInfo }: { rentDueInfo: RentDueInfo }) => (
-  <Card 
-    className={`border-2 ${
-      rentDueInfo.isOverdue 
-        ? 'border-red-400 bg-red-50' 
-        : 'border-HG-400 bg-HG-50'
-    } shadow-sm rounded-2xl`}
-  >
-    <CardContent className="pt-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div 
-            className={`h-12 w-12 rounded-full ${
-              rentDueInfo.isOverdue ? 'bg-red-100' : 'bg-HG-100'
-            } flex items-center justify-center flex-shrink-0`}
-          >
-            <Calendar 
-              className={`h-6 w-6 ${
-                rentDueInfo.isOverdue ? 'text-red-600' : 'text-HG-600'
-              }`} 
-            />
-          </div>
-          <div>
-            <p 
-              className={`text-sm font-medium ${
-                rentDueInfo.isOverdue ? 'text-red-600' : 'text-HG-600'
-              }`}
-            >
-              {rentDueInfo.isOverdue ? 'Rent Overdue!' : 'Next Rent Due'}
-            </p>
-            <p className="text-lg font-bold">
-              {formatDate(rentDueInfo.nextDueDate, {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {rentDueInfo.isOverdue
-                ? `${Math.abs(rentDueInfo.daysRemaining)} days overdue`
-                : `${rentDueInfo.daysRemaining} days remaining`}
-            </p>
-          </div>
-        </div>
-        <div className="text-left sm:text-right">
-          <p className="text-sm text-muted-foreground">Amount Due</p>
-          <p className="text-2xl font-bold">
-            {formatCurrency(rentDueInfo.amount)}
-          </p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const PaymentDetailsDialog = ({
-  payment,
-  open,
-  onOpenChange,
-  onDownloadInvoice,
-  isDownloading,
-}: {
-  payment: PaymentRecord | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onDownloadInvoice: (id: string) => void;
-  isDownloading: boolean;
-}) => {
-  if (!payment) return null;
-
-  const totalAmount = payment.amount + payment.securityDeposit;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-HG-500">Payment Details</DialogTitle>
-          <DialogDescription>
-            Complete details of your booking and payment
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* PG Info */}
-          <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {payment.listingId?.images?.[0]?.url ? (
-                <img
-                  src={payment.listingId.images[0].url}
-                  alt={payment.listingId.pgName || 'PG'}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <Building className="h-8 w-8 text-gray-400" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-lg truncate">
-                {payment.listingId?.pgName || 'N/A'}
-              </h3>
-              <p className="text-muted-foreground truncate">
-                {payment.listingId?.location?.area}, {payment.listingId?.location?.city}
-              </p>
-              <p className="text-sm text-HG-500">{payment.roomType}</p>
-            </div>
-          </div>
-
-          {/* Booking Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Booking ID</p>
-              <p className="font-mono text-sm break-all">{payment._id}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Move-in Date</p>
-              <p className="font-medium">
-                {formatDate(payment.moveInDate, {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Duration</p>
-              <p className="font-medium">{payment.duration} months</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Payment Method</p>
-              <p className="font-medium capitalize">{payment.paymentMethod}</p>
-            </div>
-          </div>
-
-          {/* Amount Breakdown */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h4 className="font-semibold">Amount Breakdown</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Monthly Rent</span>
-                <span>{formatCurrency(payment.originalAmount)}</span>
-              </div>
-              {payment.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount {payment.couponCode && `(${payment.couponCode})`}</span>
-                  <span>-{formatCurrency(payment.discountAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Security Deposit</span>
-                <span>{formatCurrency(payment.securityDeposit)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between font-semibold">
-                <span>Total Amount</span>
-                <span className="text-HG-500">{formatCurrency(totalAmount)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Booking Status</p>
-              <BookingStatusBadge status={payment.status} />
-            </div>
-            <div className="space-y-1 text-right">
-              <p className="text-sm text-muted-foreground">Payment Status</p>
-              <PaymentStatusBadge status={payment.paymentStatus} />
-            </div>
-          </div>
-
-          {/* Timestamps */}
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>Booked on: {formatDate(payment.createdAt)} at {formatTime(payment.createdAt)}</p>
-            {payment.cashCollectedAt && (
-              <p>Cash collected: {formatDate(payment.cashCollectedAt)}</p>
-            )}
-            {payment.adminVerifiedAt && (
-              <p>Verified: {formatDate(payment.adminVerifiedAt)}</p>
-            )}
-          </div>
-
-          {/* Download Invoice Button */}
-          {payment.paymentStatus === "completed_cash" && (
-            <Button
-              className="w-full bg-HG-500 hover:bg-HG-600 text-white"
-              onClick={() => onDownloadInvoice(payment._id)}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Invoice...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Download Invoice / Receipt
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 // ==================== Main Component ====================
 export default function PaymentHistoryPage() {
   const { user } = useUserStore();
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [bookings, setBookings] = useState<BookingPayment[]>([]);
+  const [monthlyRents, setMonthlyRents] = useState<MonthlyRent[]>([]);
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
+  const [rentDueInfo, setRentDueInfo] = useState<RentDueInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>("all");
-  const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingPayment | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
-  const [rentDueInfo, setRentDueInfo] = useState<RentDueInfo | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
+  const [razorpayOrder, setRazorpayOrder] = useState<{
+    orderId: string;
+    amount: number;
+    bookingId: string;
+    paymentType: string;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState("bookings");
 
-  // Monitor online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    setIsOnline(navigator.onLine);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const fetchPaymentHistory = useCallback(async () => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      setLoading(false);
-      return;
-    }
-
-    if (!isOnline) {
-      setError('No internet connection');
-      setLoading(false);
-      return;
-    }
+  // Fetch payment data
+  const fetchPaymentData = useCallback(async () => {
+    if (!user?.id) return;
 
     try {
       setLoading(true);
       setError(null);
 
       const response = await axios.get<PaymentApiResponse>(
-        `/api/user/payments`,
-        {
-          params: { userId: user.id },
-          timeout: 15000, // 15 second timeout
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        }
+        `/api/user/payments?userId=${user.id}`
       );
 
       if (response.data.success) {
-        setPayments(response.data.data || []);
-        if (response.data.rentDueInfo) {
-          setRentDueInfo(response.data.rentDueInfo);
-        }
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch payments');
+        setBookings(response.data.data.bookings || []);
+        setMonthlyRents(response.data.data.monthlyRents || []);
+        setSummary(response.data.data.summary || null);
+        setRentDueInfo(response.data.data.rentDueInfo || null);
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err);
-      setError(errorMessage);
-      console.error('Payment fetch error:', err);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isOnline]);
+  }, [user?.id]);
 
   useEffect(() => {
-    fetchPaymentHistory();
-  }, [fetchPaymentHistory]);
+    fetchPaymentData();
+  }, [fetchPaymentData]);
 
-  const handleDownloadInvoice = useCallback(async (bookingId: string) => {
-    if (!isOnline) {
-      toast.error('No internet connection');
-      return;
+  // Initiate payment
+  const initiatePayment = async (bookingId: string, paymentType: "booking_fee" | "remaining") => {
+    try {
+      setPaymentLoading(bookingId);
+
+      const response = await axios.post(`/api/booking/${bookingId}/initiate-payment`, {
+        paymentType,
+      });
+
+      if (response.data.success) {
+        setRazorpayOrder({
+          orderId: response.data.data.orderId,
+          amount: response.data.data.amount,
+          bookingId,
+          paymentType,
+        });
+      } else {
+        toast.error(response.data.message || "Failed to initiate payment");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setPaymentLoading(null);
     }
+  };
 
+  // Handle payment success
+  const handlePaymentSuccess = async (response: RazorpaySuccessResponse) => {
+    if (!razorpayOrder) return;
+
+    try {
+      setPaymentLoading(razorpayOrder.bookingId);
+
+      const verifyResponse = await axios.post(
+        `/api/booking/${razorpayOrder.bookingId}/verify-payment`,
+        {
+          paymentType: razorpayOrder.paymentType,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        }
+      );
+
+      if (verifyResponse.data.success) {
+        toast.success("Payment successful!");
+        setRazorpayOrder(null);
+        fetchPaymentData();
+      } else {
+        toast.error(verifyResponse.data.message || "Payment verification failed");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setPaymentLoading(null);
+    }
+  };
+
+  // Handle rent payment
+  const handleRentPayment = async () => {
+    if (!rentDueInfo) return;
+
+    try {
+      setPaymentLoading("rent");
+
+      const response = await axios.post("/api/user/rent", {
+        rentId: rentDueInfo.rentId,
+      });
+
+      if (response.data.success) {
+        // Open Razorpay for rent payment
+        setRazorpayOrder({
+          orderId: response.data.data.orderId,
+          amount: response.data.data.amount,
+          bookingId: rentDueInfo.rentId,
+          paymentType: "monthly_rent",
+        });
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setPaymentLoading(null);
+    }
+  };
+
+  // Download invoice
+  const handleDownloadInvoice = async (bookingId: string) => {
     try {
       setDownloadingInvoice(bookingId);
 
-       const response = await axios.get(`/api/user/payments/invoice/${bookingId}`, {
-      responseType: "blob",
-      timeout: 30000,
-    });
+      const response = await axios.get(`/api/user/payments/invoice/${bookingId}`, {
+        responseType: "blob",
+      });
 
-
-      // Validate response
-      if (response.data.size === 0) {
-        throw new Error('Empty file received');
-      }
-
-      // Create blob link to download
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `invoice-${bookingId}.pdf`);
+      link.download = `invoice-${bookingId}.pdf`;
       document.body.appendChild(link);
       link.click();
-      
-      // Cleanup
-      setTimeout(() => {
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      }, 100);
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
-      toast.success("Invoice downloaded successfully");
+      toast.success("Invoice downloaded");
     } catch (err) {
-      const errorMessage = getErrorMessage(err);
-      toast.error(errorMessage);
-      console.error('Invoice download error:', err);
+      toast.error("Failed to download invoice");
     } finally {
       setDownloadingInvoice(null);
     }
-  }, [isOnline]);
+  };
 
-  const handleViewDetails = useCallback((payment: PaymentRecord) => {
-    setSelectedPayment(payment);
-    setShowDetails(true);
-  }, []);
-
-  // Memoized calculations
-  const filteredPayments = useMemo(() => {
-    return payments.filter((payment) => {
-      if (filter === "all") return true;
-      return payment.paymentStatus === filter;
-    });
-  }, [payments, filter]);
-
-  const { totalPaid, totalPending } = useMemo(() => {
-    return payments.reduce(
-      (acc, payment) => {
-        const total = payment.amount + payment.securityDeposit;
-        if (payment.paymentStatus === "completed_cash") {
-          acc.totalPaid += total;
-        } else if (["pending", "pending_cash_payment"].includes(payment.paymentStatus)) {
-          acc.totalPending += total;
-        }
-        return acc;
-      },
-      { totalPaid: 0, totalPending: 0 }
-    );
-  }, [payments]);
-
-  // Render states
-  if (loading) {
-    return <LoadingSkeleton />;
-  }
+  if (loading) return <LoadingSkeleton />;
 
   if (error) {
-    return <ErrorState message={error} onRetry={fetchPaymentHistory} />;
+    return (
+      <Card className="border border-red-200 bg-red-50 rounded-2xl">
+        <CardContent className="pt-6 text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="font-semibold text-red-800 mb-2">Failed to Load</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchPaymentData} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-6 pt-4 pb-14">
-      {/* Offline Banner */}
-      {!isOnline && (
-        <Card className="border-orange-300 bg-orange-50">
-          <CardContent className="py-3">
-            <div className="flex items-center gap-2 text-orange-700">
-              <WifiOff className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                You are offline. Some features may not work.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-HG-500">Payment History</h1>
-          <p className="text-muted-foreground mt-2">
-            View your payment history and download invoices
+          <h1 className="text-3xl font-bold text-HG-500">Payments</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your booking payments and rent
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchPaymentHistory}
-          disabled={loading || !isOnline}
-          className="self-start"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        <Button variant="outline" onClick={fetchPaymentData}>
+          <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard
-          title="Total Paid"
-          value={totalPaid}
-          icon={CheckCircle}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          valueColor="text-green-600"
-        />
-        <SummaryCard
-          title="Pending Amount"
-          value={totalPending}
-          icon={Clock}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-          valueColor="text-orange-600"
-        />
-        <SummaryCard
-          title="Total Transactions"
-          value={payments.length.toString()}
-          icon={Receipt}
-          iconBgColor="bg-HG-100"
-          iconColor="text-HG-500"
-          valueColor="text-HG-500"
-        />
-      </div>
+      {summary && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <SummaryCard
+            title="Total Paid"
+            value={summary.totalPaid}
+            icon={CheckCircle}
+            iconBgColor="bg-green-100"
+            iconColor="text-green-600"
+            valueColor="text-green-600"
+          />
+          <SummaryCard
+            title="Pending"
+            value={summary.totalPending}
+            icon={Clock}
+            iconBgColor="bg-orange-100"
+            iconColor="text-orange-600"
+            valueColor="text-orange-600"
+          />
+          <SummaryCard
+            title="Security Deposits"
+            value={summary.totalSecurityDepositsPaid}
+            icon={Shield}
+            iconBgColor="bg-blue-100"
+            iconColor="text-blue-600"
+          />
+          <SummaryCard
+            title="Rent Paid"
+            value={summary.totalMonthlyRentPaid}
+            icon={Home}
+            iconBgColor="bg-HG-100"
+            iconColor="text-HG-500"
+          />
+        </div>
+      )}
 
-      {/* Rent Due Reminder Card */}
-      {rentDueInfo && <RentDueCard rentDueInfo={rentDueInfo} />}
+      {/* Rent Due Alert */}
+      {rentDueInfo && (
+        <RentDueCard
+          rentDueInfo={rentDueInfo}
+          onPayNow={handleRentPayment}
+          loading={paymentLoading === "rent"}
+        />
+      )}
 
-      {/* Filter and Table */}
-      <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl bg-white">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-HG-500">Transaction History</CardTitle>
-              <CardDescription>All your booking payments and invoices</CardDescription>
-            </div>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {FILTER_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredPayments.length === 0 ? (
-            <EmptyState filter={filter} />
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Bookings ({bookings.length})
+          </TabsTrigger>
+          <TabsTrigger value="rent" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Monthly Rent ({monthlyRents.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Bookings Tab */}
+        <TabsContent value="bookings" className="space-y-4 mt-6">
+          {bookings.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="font-semibold text-gray-600 mb-2">No Bookings Yet</h3>
+                <p className="text-gray-500">Your booking payments will appear here</p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>PG Name</TableHead>
-                    <TableHead className="hidden sm:table-cell">Room Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="hidden md:table-cell">Booking Status</TableHead>
-                    <TableHead>Payment Status</TableHead>
-                    <TableHead className="hidden lg:table-cell">Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPayments.map((payment) => (
-                    <TableRow key={payment._id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {payment.listingId?.images?.[0]?.url ? (
-                              <img
-                                src={payment.listingId.images[0].url}
-                                alt={payment.listingId.pgName || 'PG'}
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <Building className="h-5 w-5 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">
-                              {payment.listingId?.pgName || "N/A"}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {payment.listingId?.location?.area}, {payment.listingId?.location?.city}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {payment.roomType}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">
-                            {formatCurrency(payment.amount + payment.securityDeposit)}
-                          </p>
-                          {payment.discountAmount > 0 && (
-                            <p className="text-xs text-green-600">
-                              Saved {formatCurrency(payment.discountAmount)}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <BookingStatusBadge status={payment.status} />
-                      </TableCell>
-                      <TableCell>
-                        <PaymentStatusBadge status={payment.paymentStatus} />
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <p className="text-sm">{formatDate(payment.createdAt)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatTime(payment.createdAt)}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(payment)}
-                            className="border-HG-500 text-HG-500 hover:bg-HG-50"
-                            aria-label="View details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {payment.paymentStatus === "completed_cash" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(payment._id)}
-                              disabled={downloadingInvoice === payment._id || !isOnline}
-                              className="border-green-500 text-green-600 hover:bg-green-50"
-                              aria-label="Download invoice"
-                            >
-                              {downloadingInvoice === payment._id ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            bookings.map((booking) => (
+              <BookingPaymentCard
+                key={booking._id}
+                booking={booking}
+                onPayBookingFee={(id) => initiatePayment(id, "booking_fee")}
+                onPayRemaining={(id) => initiatePayment(id, "remaining")}
+                onViewDetails={(b) => {
+                  setSelectedBooking(b);
+                  setShowDetails(true);
+                }}
+                onDownloadInvoice={handleDownloadInvoice}
+                paymentLoading={paymentLoading}
+                downloadingInvoice={downloadingInvoice}
+              />
+            ))
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Monthly Rent Tab */}
+        <TabsContent value="rent" className="mt-6">
+          {monthlyRents.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="font-semibold text-gray-600 mb-2">No Rent History</h3>
+                <p className="text-gray-500">Monthly rent payments will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Rent History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Month</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Paid At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyRents.map((rent) => {
+                      const statusConfig = RENT_STATUS_CONFIG[rent.status];
+                      const StatusIcon = statusConfig?.icon || Clock;
+
+                      return (
+                        <TableRow key={rent._id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">Month {rent.monthNumber}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(rent.rentMonth)}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(rent.dueDate)}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{formatCurrency(rent.amount)}</p>
+                              {rent.lateFee > 0 && (
+                                <p className="text-xs text-red-500">
+                                  +{formatCurrency(rent.lateFee)} late fee
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`${statusConfig?.color} flex items-center gap-1 w-fit`}
+                            >
+                              <StatusIcon className="h-3 w-3" />
+                              {statusConfig?.label || rent.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {rent.paidAt ? formatDate(rent.paidAt) : "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Payment Details Dialog */}
-      <PaymentDetailsDialog
-        payment={selectedPayment}
-        open={showDetails}
-        onOpenChange={setShowDetails}
-        onDownloadInvoice={handleDownloadInvoice}
-        isDownloading={downloadingInvoice === selectedPayment?._id}
-      />
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+            <DialogDescription>
+              Complete breakdown of your booking payment
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-6">
+              {/* PG Info */}
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="h-16 w-16 rounded-lg bg-gray-200 overflow-hidden">
+                  {selectedBooking.listingId?.images?.[0]?.url ? (
+                    <img
+                      src={selectedBooking.listingId.images[0].url}
+                      alt={selectedBooking.pgName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Building className="h-8 w-8 m-4 text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedBooking.pgName}</h3>
+                  <p className="text-gray-500">
+                    {selectedBooking.listingId?.location?.area},{" "}
+                    {selectedBooking.listingId?.location?.city}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Steps */}
+              <PaymentSteps
+                currentStep={
+                  selectedBooking.paymentProgress.isComplete
+                    ? 4
+                    : selectedBooking.paymentProgress.remainingPaid
+                    ? 4
+                    : selectedBooking.paymentProgress.approved
+                    ? 3
+                    : selectedBooking.paymentProgress.bookingFeePaid
+                    ? 2
+                    : 1
+                }
+                variant="vertical"
+              />
+
+              {/* Payment Breakdown */}
+              <PaymentBreakdown
+                bookingFee={selectedBooking.paymentBreakdown.bookingFee}
+                securityDeposit={selectedBooking.paymentBreakdown.securityDeposit}
+                firstMonthRent={selectedBooking.paymentBreakdown.firstMonthRent}
+                originalAmount={selectedBooking.originalAmount}
+                discountAmount={selectedBooking.discountAmount}
+                couponCode={selectedBooking.couponCode}
+                totalDue={selectedBooking.totalDue}
+                totalPaid={selectedBooking.totalPaid}
+                paymentMethod={selectedBooking.paymentMethod}
+              />
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                {selectedBooking.canPayBookingFee && (
+                  <Button
+                    onClick={() => {
+                      setShowDetails(false);
+                      initiatePayment(selectedBooking._id, "booking_fee");
+                    }}
+                    className="flex-1 bg-HG-500"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pay Booking Fee
+                  </Button>
+                )}
+                {selectedBooking.canPayRemaining && (
+                  <Button
+                    onClick={() => {
+                      setShowDetails(false);
+                      initiatePayment(selectedBooking._id, "remaining");
+                    }}
+                    className="flex-1 bg-green-600"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pay Remaining
+                  </Button>
+                )}
+                {selectedBooking.totalPaid > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownloadInvoice(selectedBooking._id)}
+                    disabled={downloadingInvoice === selectedBooking._id}
+                  >
+                    {downloadingInvoice === selectedBooking._id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Razorpay Checkout Modal */}
+      {razorpayOrder && (
+        <Dialog open={!!razorpayOrder} onOpenChange={() => setRazorpayOrder(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Complete Payment</DialogTitle>
+              <DialogDescription>
+                Amount: {formatCurrency(razorpayOrder.amount)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <RazorpayCheckout
+                orderId={razorpayOrder.orderId}
+                amount={razorpayOrder.amount}
+                description={
+                  razorpayOrder.paymentType === "booking_fee"
+                    ? "Booking Fee Payment"
+                    : razorpayOrder.paymentType === "remaining"
+                    ? "Deposit + First Month Rent"
+                    : "Monthly Rent Payment"
+                }
+                prefill={{
+                  name: user?.fullName,
+                  email: user?.email,
+                  contact: user?.phone,
+                }}
+                onSuccess={handlePaymentSuccess}
+                onFailure={() => {
+                  toast.error("Payment failed. Please try again.");
+                  setRazorpayOrder(null);
+                }}
+                onDismiss={() => setRazorpayOrder(null)}
+                buttonText={`Pay ${formatCurrency(razorpayOrder.amount)}`}
+                fullWidth
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

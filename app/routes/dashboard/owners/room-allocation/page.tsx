@@ -133,6 +133,7 @@ interface OverallStats {
   monthlyRevenue: number;
 }
 
+// Updated PendingBooking interface to handle both old and new payment structures
 interface PendingBooking {
   _id: string;
   fullName: string;
@@ -142,13 +143,102 @@ interface PendingBooking {
   moveInDate: string;
   duration: string;
   status: string;
-  amount: number;
-  securityDeposit: number;
+  paymentMethod?: "online" | "cash";
+  paymentStatus?: string;
+  
+  // Legacy fields (old structure)
+  amount?: number;
+  securityDeposit?: number;
+  
+  // New payment structure
+  monthlyRent?: number;
+  totalDue?: number;
+  totalPaid?: number;
+  bookingFee?: {
+    amount: number;
+    status: string;
+  };
+  firstMonthRent?: {
+    amount: number;
+    status: string;
+  };
+  securityDepositDetails?: {
+    amount: number;
+    status: string;
+  };
+  
   listingId: {
     _id: string;
     pgName: string;
   };
 }
+
+// Helper function to get booking total amount
+const getBookingAmount = (booking: PendingBooking): number => {
+  // Check for new structure first
+  if (booking.totalDue !== undefined && booking.totalDue > 0) {
+    return booking.totalDue;
+  }
+  
+  // Check for monthlyRent
+  if (booking.monthlyRent !== undefined && booking.monthlyRent > 0) {
+    return booking.monthlyRent;
+  }
+  
+  // Try to calculate from parts
+  const bookingFee = booking.bookingFee?.amount || 0;
+  const firstMonth = booking.firstMonthRent?.amount || 0;
+  const security = booking.securityDepositDetails?.amount || 0;
+  
+  if (bookingFee || firstMonth || security) {
+    return bookingFee + firstMonth + security;
+  }
+  
+  // Fall back to legacy amount field
+  if (booking.amount !== undefined && booking.amount > 0) {
+    return booking.amount;
+  }
+  
+  // Fall back to security deposit if nothing else
+  if (booking.securityDeposit !== undefined && booking.securityDeposit > 0) {
+    return booking.securityDeposit;
+  }
+  
+  return 0;
+};
+
+// Helper function to get security deposit amount
+const getSecurityDeposit = (booking: PendingBooking): number => {
+  if (booking.securityDepositDetails?.amount !== undefined) {
+    return booking.securityDepositDetails.amount;
+  }
+  if (booking.securityDeposit !== undefined) {
+    return booking.securityDeposit;
+  }
+  return 0;
+};
+
+// Helper function to format currency safely
+const formatCurrency = (amount: number | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return "0";
+  }
+  return amount.toLocaleString("en-IN");
+};
+
+// Helper function to format date
+const formatDate = (dateString: string | undefined | null): string => {
+  if (!dateString) return "N/A";
+  try {
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "N/A";
+  }
+};
 
 export default function RoomAllocationPage() {
   // State
@@ -475,14 +565,6 @@ export default function RoomAllocationPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
   // Loading state
   if (containerLoading.roomAllocation) {
     return (
@@ -758,7 +840,7 @@ export default function RoomAllocationPage() {
                           <div>
                             <p className="text-sm font-medium">{rt.type}</p>
                             <p className="text-xs text-gray-500">
-                              ₹{rt.monthlyRent?.toLocaleString()}/mo
+                              ₹{formatCurrency(rt.monthlyRent)}/mo
                             </p>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
@@ -885,7 +967,7 @@ export default function RoomAllocationPage() {
                             <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-600">
                               <span className="flex items-center gap-1">
                                 <IndianRupee className="w-3 h-3" />
-                                {room.monthlyRent?.toLocaleString()}/mo
+                                {formatCurrency(room.monthlyRent)}/mo
                               </span>
                               <span>Floor {room.floor}</span>
                             </div>
@@ -930,7 +1012,7 @@ export default function RoomAllocationPage() {
                 </div>
                 <div>
                   <span className="text-gray-500">Rent:</span>
-                  <p className="font-medium">₹{selectedRoom?.monthlyRent?.toLocaleString()}/month</p>
+                  <p className="font-medium">₹{formatCurrency(selectedRoom?.monthlyRent)}/month</p>
                 </div>
               </div>
             </div>
@@ -974,7 +1056,7 @@ export default function RoomAllocationPage() {
                 className="mt-1"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Leave empty to use bookings move-in date
+                Leave empty to use booking&apos;s move-in date
               </p>
             </div>
           </div>
@@ -1264,19 +1346,28 @@ export default function RoomAllocationPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-medium">{booking.fullName}</h4>
-                      <p className="text-sm text-gray-500">{booking.listingId.pgName}</p>
+                      <p className="text-sm text-gray-500">
+                        {booking.listingId?.pgName || "N/A"}
+                      </p>
                     </div>
-                    <Badge>{booking.roomType}</Badge>
+                    <div className="flex gap-2">
+                      <Badge>{booking.roomType}</Badge>
+                      {booking.paymentMethod && (
+                        <Badge variant="outline" className="capitalize">
+                          {booking.paymentMethod}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div className="flex items-center gap-1 text-gray-600">
                       <Phone className="w-3 h-3" />
-                      {booking.phoneNumber}
+                      {booking.phoneNumber || "N/A"}
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Mail className="w-3 h-3" />
-                      <span className="truncate">{booking.email}</span>
+                      <span className="truncate">{booking.email || "N/A"}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <Calendar className="w-3 h-3" />
@@ -1284,9 +1375,35 @@ export default function RoomAllocationPage() {
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
                       <IndianRupee className="w-3 h-3" />
-                      {booking.amount.toLocaleString()}
+                      {formatCurrency(getBookingAmount(booking))}
                     </div>
                   </div>
+
+                  {/* Payment Status */}
+                  {booking.paymentStatus && (
+                    <div className="mt-2 pt-2 border-t">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-500">Payment:</span>
+                        <Badge 
+                          variant="outline" 
+                          className={
+                            booking.paymentStatus === "fully_paid" 
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : booking.paymentStatus === "pending"
+                              ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                              : "bg-gray-50 text-gray-700 border-gray-200"
+                          }
+                        >
+                          {booking.paymentStatus.replace(/_/g, " ")}
+                        </Badge>
+                        {booking.monthlyRent && (
+                          <span className="text-gray-500 ml-2">
+                            Monthly: ₹{formatCurrency(booking.monthlyRent)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
