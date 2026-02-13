@@ -1,3 +1,4 @@
+// app/routes/pg-details/[slug]/page.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -147,7 +148,7 @@ const StarRating = ({ rating, size = "w-4 h-4" }: { rating: number; size?: strin
   );
 };
 
-// ✅ RESTORED: Static 12 Nearby Listings Component
+// Static 12 Nearby Listings Component
 function NearbyListings({
   currentListingId,
   lat,
@@ -275,7 +276,7 @@ export default function ProductPage() {
   const [ownerPgs, setOwnerPgs] = useState<any[]>([]);
   const [ownerPgsLoading, setOwnerPgsLoading] = useState(false);
 
-  // New State for Direction Flow
+  // Direction Flow Tracker
   const [isDirectionFlow, setIsDirectionFlow] = useState(false);
 
   // Review state
@@ -455,39 +456,32 @@ export default function ProductPage() {
     setShowBookingModal(true);
   };
 
-  // ✅ Updated: Normal Visit Button Click (No direction flow)
   const handleVisitClick = () => {
     setIsDirectionFlow(false);
     setShowVisitForm(true);
   };
 
-  // ✅ Updated: Visit Form Cancel (Cancel flow)
   const handleVisitFormClose = () => {
     setShowVisitForm(false);
-    setIsDirectionFlow(false); // Reset flow
+    setIsDirectionFlow(false); 
   };
 
-  // ✅ Updated: Visit Form Success
   const handleVisitFormSuccess = () => {
     if (listing?._id) {
       markVisitRequestSubmitted(listing._id);
     }
     setShowVisitForm(false);
 
-    // If this was triggered by "Get Directions", open the map now
     if (isDirectionFlow) {
       setShowDirectionsModal(true);
-      setIsDirectionFlow(false); // Reset flow
+      setIsDirectionFlow(false); 
     }
   };
 
-  // ✅ Updated: Handle Get Directions Click
   const handleDirectionClick = () => {
     if (listing?._id && hasSubmittedVisitRequest(listing._id)) {
-      // If request already submitted, show map immediately
       setShowDirectionsModal(true);
     } else {
-      // Otherwise, open visit form first and mark flow
       setIsDirectionFlow(true);
       setShowVisitForm(true);
     }
@@ -686,7 +680,8 @@ export default function ProductPage() {
               {/* Details Tab */}
               <TabsContent value="details" className="mt-0">
                 <div className="prose max-w-none space-y-10">
-                  {/* Room Types */}
+                  
+                  {/* ✅ RESTORED: Room Types */}
                   <div>
                     <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">Room Types & Pricing</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -735,7 +730,24 @@ export default function ProductPage() {
                     </div>
                   </div>
 
-                  {/* Amenities */}
+                  {/* ✅ RESTORED & UPDATED: Gender Preference */}
+                  <div>
+                    <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                      Gender Preference
+                    </h3>
+                    <div className="flex items-center gap-3 p-4 bg-HG-50 rounded-lg border border-HG-200">
+                      <div className="p-2 bg-HG-100 rounded-lg">
+                        <Users className="w-5 h-5 text-HG-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {listing?.genderPreference?.toLowerCase() === "unisex" 
+                          ? "Any/Coliving" 
+                          : listing?.genderPreference || "Not Specified"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ✅ RESTORED: Amenities */}
                   {listing?.amenities && listing.amenities.length > 0 && (
                     <div>
                       <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">Amenities</h3>
@@ -754,6 +766,183 @@ export default function ProductPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ✅ RESTORED: Rent Inclusions */}
+                  {(listing?.rentInclusions?.foodIncluded ||
+                    listing?.rentInclusions?.electricityIncluded ||
+                    listing?.rentInclusions?.maintenanceIncluded) && (
+                    <div>
+                      <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Rent Inclusions
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {listing?.rentInclusions?.foodIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <Utensils className="w-5 h-5 text-green-600" />
+                            <span className="text-sm font-medium text-green-700">
+                              Food Included
+                            </span>
+                          </div>
+                        )}
+                        {listing?.rentInclusions?.electricityIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <Zap className="w-5 h-5 text-yellow-600" />
+                            <span className="text-sm font-medium text-yellow-700">
+                              Electricity Included
+                            </span>
+                          </div>
+                        )}
+                        {listing?.rentInclusions?.maintenanceIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <Home className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-700">
+                              Maintenance Included
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ✅ RESTORED: Meal Timings */}
+                  {listing?.rentInclusions?.foodIncluded &&
+                    listing?.mealTimings &&
+                    Object.values(listing.mealTimings).some(
+                      (timing: any) => timing.enabled
+                    ) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Meal Timings
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.entries(listing.mealTimings).map(
+                            ([timing, timingData]: any) => {
+                              if (!timingData.enabled) return null;
+                              const timingLabels: Record<string, string> = {
+                                morning: "Morning",
+                                noon: "Noon",
+                                evening: "Evening",
+                                night: "Night",
+                              };
+                              const formatTime = (time: string) => {
+                                if (!time) return "";
+                                const [hours, minutes] = time.split(":");
+                                const hour = parseInt(hours);
+                                const ampm = hour >= 12 ? "PM" : "AM";
+                                const displayHour = hour % 12 || 12;
+                                return `${displayHour}:${minutes} ${ampm}`;
+                              };
+                              return (
+                                <div
+                                  key={timing}
+                                  className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200"
+                                >
+                                  <Utensils className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="font-medium text-orange-800">
+                                      {timingLabels[timing] || timing}
+                                    </div>
+                                    <div className="text-sm text-orange-600">
+                                      {formatTime(timingData.from)} - {formatTime(timingData.to)}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* ✅ RESTORED: Rules */}
+                  {listing?.rulesAndRegulations &&
+                    listing.rulesAndRegulations.length > 0 && (
+                      <div>
+                        <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Rules & Regulations
+                        </h3>
+                        <ul className="text-gray-700 text-xs md:text-sm space-y-2">
+                          {listing.rulesAndRegulations.map((rule: string, index: number) => (
+                            <li
+                              key={index}
+                              className="relative pl-3 md:pl-5 before:content-['*'] before:absolute before:left-0 before:top-[2px] before:text-red-600"
+                            >
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* ✅ RESTORED: Detailed Rules */}
+                  {listing?.detailedRules &&
+                    (listing.detailedRules.lockInPeriod ||
+                      listing.detailedRules.noticePeriod ||
+                      listing.detailedRules.entryTiming ||
+                      listing.detailedRules.exitTiming ||
+                      listing.detailedRules.guestStayPolicy ||
+                      listing.detailedRules.smokingAlcoholPolicy ||
+                      listing.detailedRules.maintenanceCharges) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Detailed Policies
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {listing?.detailedRules?.lockInPeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Lock-in Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.lockInPeriod}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.noticePeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Notice Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.noticePeriod}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.entryTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-green-600" />
+                                <span className="font-medium text-gray-900">
+                                  Entry Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.entryTiming}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.exitTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-red-600" />
+                                <span className="font-medium text-gray-900">
+                                  Exit Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.exitTiming}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
               </TabsContent>
 
