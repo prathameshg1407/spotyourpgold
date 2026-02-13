@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Booking from "@/models/booking";
 import { sendRentReminderEmail } from "@/services/sendRentReminderEmail";
-import { sendWhatsAppRentReminder } from "@/services/sendWhatsAppNotification";
+import { sendRentReminderToTenant } from "@/services/sendWhatsAppNotification";
 import Notification from "@/models/notification";
 
 export async function GET(req: NextRequest) {
@@ -35,14 +35,24 @@ export async function GET(req: NextRequest) {
 
     for (const booking of activeBookings) {
       const moveInDate = new Date(booking.moveInDate);
+      const targetDate = moveInDate.getDate();
 
       // Calculate next rent due date based on move-in day
-      let nextDueDate = new Date(today);
-      nextDueDate.setDate(moveInDate.getDate());
+      let nextDueDate = new Date(today.getFullYear(), today.getMonth(), targetDate);
+
+      // Fix for months with fewer days (e.g., Move-in 31st, current month is Feb)
+      // Caps the date to the last day of the current month
+      if (nextDueDate.getMonth() !== today.getMonth()) {
+        nextDueDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      }
 
       // If the due date this month has passed, set to next month
       if (nextDueDate < today) {
-        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        nextDueDate = new Date(today.getFullYear(), today.getMonth() + 1, targetDate);
+        // Cap again for the next month just in case
+        if (nextDueDate.getMonth() !== (today.getMonth() + 1) % 12) {
+          nextDueDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        }
       }
 
       const daysRemaining = Math.ceil(
@@ -58,11 +68,15 @@ export async function GET(req: NextRequest) {
           (r: any) => r.type === booking.roomType
         );
 
+        const amountToPay = roomType?.monthlyRent || booking.amount;
+        const pgNameStr = listing?.pgName || "Your PG";
+
+        // 1. Prepare Email Data
         const reminderData = {
           to: booking.email,
           tenantName: booking.fullName,
-          pgName: listing?.pgName || "Your PG",
-          amount: roomType?.monthlyRent || booking.amount,
+          pgName: pgNameStr,
+          amount: amountToPay,
           dueDate: nextDueDate.toLocaleDateString("en-IN", {
             day: "numeric",
             month: "long",
@@ -74,17 +88,22 @@ export async function GET(req: NextRequest) {
         // Send Email
         const emailResult = await sendRentReminderEmail(reminderData);
 
-        // Send WhatsApp
+        // 2. Prepare and Send WhatsApp (✅ FIXED PARAMETER NAMES)
         let whatsappResult = { success: false, message: "Not sent" };
         if (booking.phoneNumber) {
-          whatsappResult = await sendWhatsAppRentReminder({
-            ...reminderData,
-            to: booking.phoneNumber,
+          whatsappResult = await sendRentReminderToTenant({
+            tenantPhone: booking.phoneNumber,
+            tenantName: booking.fullName,
+            tenantId: booking.userId,
+            pgName: pgNameStr,
+            amount: amountToPay,
+            dueDate: nextDueDate, // WhatsApp service formats this inside the function
+            daysRemaining: daysRemaining,
           });
         }
 
-        // Create in-app notification
-        const notificationType = daysRemaining < 0 ? "payment_reminder" : "payment_reminder";
+        // 3. Create in-app notification
+        const notificationType = "payment_reminder";
         const notificationTitle = daysRemaining < 0
           ? `⚠️ Rent Overdue by ${Math.abs(daysRemaining)} days`
           : daysRemaining === 0
@@ -95,7 +114,7 @@ export async function GET(req: NextRequest) {
           userId: booking.userId,
           type: notificationType,
           title: notificationTitle,
-          message: `Your rent of ₹${reminderData.amount.toLocaleString()} for ${reminderData.pgName} is ${
+          message: `Your rent of ₹${amountToPay.toLocaleString()} for ${pgNameStr} is ${
             daysRemaining < 0
               ? `overdue by ${Math.abs(daysRemaining)} days`
               : daysRemaining === 0
@@ -106,7 +125,7 @@ export async function GET(req: NextRequest) {
           relatedType: "booking",
           priority: daysRemaining <= 0 ? "high" : daysRemaining <= 3 ? "medium" : "low",
           metadata: {
-            amount: reminderData.amount,
+            amount: amountToPay,
             dueDate: nextDueDate,
             daysRemaining,
           },

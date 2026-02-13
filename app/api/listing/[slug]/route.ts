@@ -27,7 +27,7 @@ type ListingType = {
     maintenanceIncluded: boolean;
   };
   rulesAndRegulations: string[];
-  images: { url: string }[];
+  images: { url: string; description?: string }[];
   primaryImage?: string;
   location: {
     area: string;
@@ -70,11 +70,12 @@ export async function GET(
           rulesAndRegulations
           detailedRules
           images.url
+          images.description
           videos.url
           primaryImage
           location
           createdAt
-        `)
+        `) // ✅ ADDED images.description
         .populate("ownerId", "fullName")
         .lean();
     } else {
@@ -94,11 +95,12 @@ export async function GET(
           rulesAndRegulations
           detailedRules
           images.url
+          images.description
           videos.url
           primaryImage
           location
           createdAt
-        `)
+        `) // ✅ ADDED images.description
         .populate("ownerId", "fullName")
         .lean();
     }
@@ -153,7 +155,7 @@ export async function GET(
           _id: listing._id,
           slug: listing.slug,
           pgName: listing.pgName,
-          primaryLine: listing.primaryLine || "", // ✅ Add fallback
+          primaryLine: listing.primaryLine || "",
           minRent,
           roomTypes: listing.roomTypes,
           genderPreference: listing.genderPreference,
@@ -163,8 +165,12 @@ export async function GET(
           mealTimings: listing.mealTimings,
           rulesAndRegulations: listing.rulesAndRegulations,
           detailedRules: listing.detailedRules,
-          images: listing.images?.map((img) => ({ url: img.url })) || [],
-          videos: listing.videos?.map((video) => ({ url: video.url })) || [],
+          // ✅ FIX: Map the description so it doesn't get deleted here!
+          images: listing.images?.map((img: any) => ({ 
+            url: img.url, 
+            description: img.description || "" 
+          })) || [],
+          videos: listing.videos?.map((video: any) => ({ url: video.url })) || [],
           primaryImage: listing.primaryImage || "",
           location: listing.location,
           createdAt: listing.createdAt,
