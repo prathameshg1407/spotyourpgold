@@ -45,14 +45,14 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
     <div className="space-y-8">
       {/* Main Image */}
       <div
-        className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg"
+        className="relative aspect-square max-w-sm sm:max-w-none mx-auto bg-gray-300 rounded-2xl overflow-hidden shadow-lg group"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
         <BlurImage
           openInNewTab={true}
-          className="object-cover w-full cursor-pointer"
+          className="object-cover w-full h-full cursor-pointer transition-transform duration-500 group-hover:scale-105"
           src={images[currentImageIndex]?.url || ""}
           width={600}
           height={600}
@@ -65,7 +65,7 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
             <Button
               variant="ghost"
               size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex z-10"
               onClick={previousImage}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -73,7 +73,7 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md hidden md:flex z-10"
               onClick={nextImage}
             >
               <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -81,14 +81,15 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
           </>
         )}
 
-        <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded-full text-xs font-medium">
+        {/* Counter Badge (Bottom Right) */}
+        <div className="absolute font-inter bottom-3 right-3 bg-black/70 text-white px-3 py-1 rounded-lg text-xs font-medium backdrop-blur-md shadow-lg pointer-events-none z-10">
           {currentImageIndex + 1} / {images.length}
         </div>
         
-        {/* Description Overlay */}
+        {/* ✅ FIXED: Description Overlay Badge (Bottom Left) */}
         {images[currentImageIndex]?.description && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3 text-white backdrop-blur-sm">
-             <p className="text-sm font-inter line-clamp-2 md:text-base">
+          <div className="absolute bottom-3 left-3 bg-black/70 text-white px-3 py-1.5 rounded-lg backdrop-blur-md shadow-lg max-w-[70%] pointer-events-none z-10 border border-white/10">
+             <p className="text-xs md:text-sm font-inter font-medium tracking-wide line-clamp-2 capitalize">
                {images[currentImageIndex].description}
              </p>
           </div>
@@ -103,12 +104,12 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
             onClick={() => setCurrentImageIndex(index)}
             className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
               currentImageIndex === index
-                ? "ring-[2.5px] ring-HG-500 shadow-md"
-                : "hover:ring-2 hover:ring-gray-400"
+                ? "ring-[2.5px] ring-HG-500 shadow-md scale-105"
+                : "hover:ring-2 hover:ring-gray-400 opacity-70 hover:opacity-100"
             }`}
           >
             <BlurImage
-              className="object-cover w-full"
+              className="object-cover w-full h-full"
               src={image.url}
               width={200}
               height={200}
@@ -126,12 +127,12 @@ export default function ProductGallery({ images, pgName }: ProductGalleryProps) 
             onClick={() => setCurrentImageIndex(index)}
             className={`relative aspect-square bg-gray-300 rounded-lg overflow-hidden transition-all shadow-sm ${
               currentImageIndex === index
-                ? "ring-[3px] ring-HG-500 shadow-md"
-                : "hover:ring-2 hover:ring-gray-400"
+                ? "ring-[3px] ring-HG-500 shadow-md scale-105"
+                : "hover:ring-2 hover:ring-gray-400 opacity-70 hover:opacity-100"
             }`}
           >
             <BlurImage
-              className="object-cover w-full"
+              className="object-cover w-full h-full"
               src={image.url}
               width={200}
               height={200}

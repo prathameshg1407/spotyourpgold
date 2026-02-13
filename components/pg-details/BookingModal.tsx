@@ -174,7 +174,7 @@ const BookingPaymentBreakdown = ({
               <div className="text-sm text-blue-700">
                 <p className="font-medium">Remaining Payment</p>
                 <p className="text-xs mt-1">
-                  After owner approval, you'll need to pay:
+                  After owner approval, you will need to pay:
                 </p>
                 <ul className="list-disc list-inside mt-1 space-y-0.5 text-xs">
                   <li>Security Deposit: {formatCurrency(securityDeposit)}</li>
@@ -998,7 +998,7 @@ export default function BookingModal({
                     <h5 className="font-semibold text-HG-700 mb-2">Next Steps:</h5>
                     <ol className="text-sm text-HG-600 space-y-2 list-decimal list-inside">
                       <li>Owner reviews your booking request</li>
-                      <li>You'll receive a notification on approval</li>
+                      <li>You will receive a notification on approval</li>
                       <li>Complete remaining payment (Deposit + First Month Rent)</li>
                       <li>Move in on your selected date!</li>
                     </ol>
