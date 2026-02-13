@@ -321,7 +321,7 @@ export default function BookingRequestsPage() {
           <div className="text-right">
             <span className="font-medium">₹{firstMonthAmount.toLocaleString()}</span>
             {booking.paymentMethod === "online" && (
-              <p className="text-xs text-green-600">You'll receive this</p>
+              <p className="text-xs text-green-600">You will receive this</p>
             )}
             {booking.paymentMethod === "cash" && (
               <p className="text-xs text-green-600">You keep this</p>
