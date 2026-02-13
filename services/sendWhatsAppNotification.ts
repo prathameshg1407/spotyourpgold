@@ -657,6 +657,54 @@ export const sendVisitScheduledNotification = async ({
   });
 };
 
+export const sendVisitRequestToOwner = async ({
+  ownerPhone,
+  ownerName,
+  ownerId,
+  pgName,
+  visitorName,
+  visitorPhone,
+  visitDate,
+  visitTime,
+}: {
+  ownerPhone: string;
+  ownerName: string;
+  ownerId?: string;
+  pgName: string;
+  visitorName: string;
+  visitorPhone: string;
+  visitDate: Date | string;
+  visitTime: string;
+}) => {
+  debugLog("VISIT_REQUEST_OWNER", "Input Data", {
+    ownerPhone,
+    ownerName,
+    pgName,
+    visitorName,
+    visitorPhone,
+    visitDate,
+    visitTime,
+  });
+
+  const templateParams = [
+    ownerName,              // {{1}}
+    pgName,                 // {{2}}
+    visitorName,            // {{3}}
+    visitorPhone,           // {{4}}
+    formatDate(visitDate),  // {{5}}
+    visitTime,              // {{6}}
+  ];
+
+  debugLog("VISIT_REQUEST_OWNER", "Template Parameters", templateParams);
+
+  return sendWhatsAppNotification({
+    to: ownerPhone,
+    templateName: "visit_request_alert", // EXACT name from AiSensy dashboard
+    templateParams,
+    userId: ownerId,
+  });
+};
+
 export const sendBulkWhatsAppNotifications = async (
   notifications: Array<{
     to: string;
