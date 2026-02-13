@@ -148,8 +148,8 @@ const StarRating = ({ rating, size = "w-4 h-4" }: { rating: number; size?: strin
   );
 };
 
-// Nearby Listings Component (Static 12)
-function NearbyListings({
+// Updated Infinite Scroll Listings Component (Nearby Logic)
+function InfiniteScrollListings({
   currentListingId,
   lat,
   lng,
@@ -171,26 +171,74 @@ function NearbyListings({
     });
   };
 
+  // Fetch Logic: Use 'search' API with radius if coordinates exist
+  const fetchListings = async (pageNum: number) => {
+    try {
+      const endpoint = "/api/listing/search";
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        per_page: "12",
+        exclude: currentListingId,
+      });
+
+      if (lat && lng) {
+        params.set("lat", lat.toString());
+        params.set("lng", lng.toString());
+        params.set("radius", "10"); // 10km Radius
+      }
+
+      const response = await axios.get(`${endpoint}?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+      return { success: false, data: [] };
+    }
+  };
+
+  const fetchMoreListings = useCallback(async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+    const data = await fetchListings(page);
+
+    if (data.success) {
+      const newListings = data.data;
+      if (newListings.length === 0) {
+        setHasMore(false);
+      } else {
+        setListings((prev) => removeDuplicates([...prev, ...newListings]));
+        setPage((prev) => prev + 1);
+      }
+    }
+    setLoading(false);
+  }, [page, loading, hasMore, currentListingId, lat, lng]);
+
+  // Fetch initial listings
+  const fetchInitialListings = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    
+    // Reset state for new fetch
+    setPage(1);
+    setHasMore(true);
+
+    const data = await fetchListings(1);
+
+    if (data.success) {
+      setListings(removeDuplicates(data.data));
+      setPage(2);
+      setHasMore(data.data.length === 12);
+    }
+    setLoading(false);
+    setInitialLoad(true);
+  }, [currentListingId, lat, lng]);
+
+  // Intersection Observer
   useEffect(() => {
-    if (!lat || !lng || hasFetched) return;
-
-    const fetchNearby = async () => {
-      setLoading(true);
-      try {
-        const endpoint = "/api/listing/search";
-        const params = new URLSearchParams({
-          page: "1",
-          per_page: "12",
-          exclude: currentListingId,
-          lat: lat.toString(),
-          lng: lng.toString(),
-          radius: "10",
-        });
-
-        const response = await axios.get(`${endpoint}?${params.toString()}`);
-        
-        if (response.data.success) {
-          setListings(removeDuplicates(response.data.data).slice(0, 12)); 
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && initialLoad && !loading && hasMore) {
+          fetchMoreListings();
         }
       } catch (error) {
         console.error("Error fetching nearby listings:", error);
@@ -200,8 +248,13 @@ function NearbyListings({
       }
     };
 
-    fetchNearby();
-  }, [currentListingId, lat, lng, hasFetched]);
+  // Initial load trigger
+  useEffect(() => {
+    // Only fetch if we have coordinates or if initial load hasn't happened
+    if (!initialLoad && lat && lng) {
+      fetchInitialListings();
+    }
+  }, [fetchInitialListings, initialLoad, lat, lng]);
 
   if (loading) {
     return (
@@ -227,17 +280,20 @@ function NearbyListings({
     );
   }
 
-  if (listings.length === 0) {
+  if (listings.length === 0 && !loading && initialLoad) {
     return (
-      <div className="mt-16 text-center py-8">
-        <p className="text-gray-500">No other PGs found nearby.</p>
-      </div>
+        <div className="mt-16 text-center py-8">
+            <p className="text-gray-500">No other PGs found nearby.</p>
+        </div>
     );
   }
+
+  if (listings.length === 0 && !loading && !initialLoad) return null;
 
   return (
     <div className="mt-16">
       <SectionHeading>Nearby PG Accommodations</SectionHeading>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
         {listings.map((listing: any, index: number) => (
           <PgCard
@@ -254,17 +310,39 @@ function NearbyListings({
             genderPreference={listing.genderPreference}
             isWishlisted={listing.inWatchList}
             type={listing.type}
-            distance={listing.distance} 
+            distance={listing.distance} // Shows distance from current PG
             amenities={listing.amenities || []}
             rentInclusions={listing.rentInclusions || {}}
           />
         ))}
       </div>
+
+      {/* Loading indicator */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={`skeleton-loading-${index}`}
+              className="w-full max-w-[320px] mx-auto animate-pulse"
+            >
+              <div className="border-4 border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-300 h-44 w-full"></div>
+                <div className="p-4 bg-white">
+                  <div className="bg-gray-300 h-3 rounded mb-2 w-1/2"></div>
+                  <div className="bg-gray-300 h-5 rounded mb-2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scroll trigger */}
+      <div id="scroll-trigger" className="h-4 mt-8"></div>
     </div>
   );
 }
 
-// ==================== MAIN COMPONENT ====================
 export default function ProductPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -687,10 +765,16 @@ export default function ProductPage() {
               {/* Details Tab */}
               <TabsContent value="details" className="mt-0">
                 <div className="prose max-w-none space-y-10">
-                  {/* Room Types */}
+                  {/* ... Details Sections ... */}
+                  {/* (I've kept all the sections you provided intact in the final file above) */}
+                  {/* Room Types, Gender, Amenities, Rules, etc. */}
+                  
+                  {/* Section: Room Types */}
                   <div>
-                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">Room Types & Pricing</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">
+                      Room Types & Pricing
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 text-sm text-gray-700">
                       {listing?.roomTypes?.length > 0 ? (
                         listing.roomTypes.map((room: any, index: number) => {
                           const IconComponent = roomTypeIcons[room?.type?.toLowerCase()] || Bed;
@@ -736,6 +820,23 @@ export default function ProductPage() {
                     </div>
                   </div>
 
+                  {/* Gender */}
+                  <div>
+                    <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                      Gender Preference
+                    </h3>
+                    <div className="flex items-center gap-3 p-4 bg-HG-50 rounded-lg border border-HG-200">
+                      <div className="p-2 bg-HG-100 rounded-lg">
+                        <Users className="w-5 h-5 text-HG-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {listing?.genderPreference === "unisex"
+                          ? "Any/Coliving"
+                          : listing?.genderPreference}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Amenities */}
                   {listing?.amenities && listing.amenities.length > 0 && (
                     <div>
@@ -755,10 +856,186 @@ export default function ProductPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Rent Inclusions */}
+                  {(listing?.rentInclusions?.foodIncluded ||
+                    listing?.rentInclusions?.electricityIncluded ||
+                    listing?.rentInclusions?.maintenanceIncluded) && (
+                    <div>
+                      <h3 className=" text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Rent Inclusions
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {listing?.rentInclusions?.foodIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <Utensils className="w-5 h-5 text-green-600" />
+                            <span className="text-sm font-medium text-green-700">
+                              Food Included
+                            </span>
+                          </div>
+                        )}
+                        {listing?.rentInclusions?.electricityIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <Zap className="w-5 h-5 text-yellow-600" />
+                            <span className="text-sm font-medium text-yellow-700">
+                              Electricity Included
+                            </span>
+                          </div>
+                        )}
+                        {listing?.rentInclusions?.maintenanceIncluded && (
+                          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <Home className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-700">
+                              Maintenance Included
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Meal Timings */}
+                  {listing?.rentInclusions?.foodIncluded &&
+                    listing?.mealTimings &&
+                    Object.values(listing.mealTimings).some(
+                      (timing) => timing.enabled
+                    ) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Meal Timings
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {Object.entries(listing.mealTimings).map(
+                            ([timing, timingData]) => {
+                              if (!timingData.enabled) return null;
+                              const timingLabels = {
+                                morning: "Morning",
+                                noon: "Noon",
+                                evening: "Evening",
+                                night: "Night",
+                              };
+                              const formatTime = (time: string) => {
+                                const [hours, minutes] = time.split(":");
+                                const hour = parseInt(hours);
+                                const ampm = hour >= 12 ? "PM" : "AM";
+                                const displayHour = hour % 12 || 12;
+                                return `${displayHour}:${minutes} ${ampm}`;
+                              };
+                              return (
+                                <div
+                                  key={timing}
+                                  className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200"
+                                >
+                                  <Utensils className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="font-medium text-orange-800">
+                                      {timingLabels[timing as keyof typeof timingLabels]}
+                                    </div>
+                                    <div className="text-sm text-orange-600">
+                                      {formatTime(timingData.from)} - {formatTime(timingData.to)}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Rules */}
+                  {listing?.rulesAndRegulations &&
+                    listing.rulesAndRegulations.length > 0 && (
+                      <div>
+                        <h3 className="  text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Rules & Regulations
+                        </h3>
+                        <ul className="text-gray-700 text-xs md:text-sm space-y-2">
+                          {listing.rulesAndRegulations.map((rule, index) => (
+                            <li
+                              key={index}
+                              className="relative pl-3 md:pl-5 before:content-['*'] before:absolute before:left-0 before:top-[2px] before:text-red-600"
+                            >
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Detailed Rules (Lockin etc) */}
+                  {listing?.detailedRules &&
+                    (listing.detailedRules.lockInPeriod ||
+                      listing.detailedRules.noticePeriod ||
+                      listing.detailedRules.entryTiming ||
+                      listing.detailedRules.exitTiming ||
+                      listing.detailedRules.guestStayPolicy ||
+                      listing.detailedRules.smokingAlcoholPolicy ||
+                      listing.detailedRules.maintenanceCharges) && (
+                      <div>
+                        <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                          Detailed Policies
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {listing?.detailedRules?.lockInPeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Lock-in Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.lockInPeriod}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.noticePeriod && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium text-gray-900">
+                                  Notice Period
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.noticePeriod}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.entryTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-green-600" />
+                                <span className="font-medium text-gray-900">
+                                  Entry Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.entryTiming}
+                              </p>
+                            </div>
+                          )}
+                          {listing?.detailedRules?.exitTiming && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <DoorOpen className="w-4 h-4 text-red-600" />
+                                <span className="font-medium text-gray-900">
+                                  Exit Timing
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700">
+                                {listing.detailedRules.exitTiming}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
               </TabsContent>
 
-              {/* Reviews Tab */}
+              {/* Reviews Content */}
               <TabsContent value="reviews" className="mt-0">
                 <div className="space-y-10">
                   <div className="flex items-center justify-between mb-5">
@@ -796,7 +1073,9 @@ export default function ProductPage() {
                             </div>
                           </div>
                           <div>
-                            <Label htmlFor="review-comment" className="font-poppins text-sm md:text-base">Your Review</Label>
+                            <Label htmlFor="review-comment" className="font-poppins text-sm md:text-base md:tracking-wide">
+                              Your Review
+                            </Label>
                             <Textarea
                               id="review-comment"
                               value={newReview.comment}
@@ -806,8 +1085,12 @@ export default function ProductPage() {
                               className="mt-1 border-2 text-sm md:text-base border-gray-300 shadow-none resize-none focus-visible:ring-0 focus-visible:border-HG-500"
                             />
                           </div>
-                          <div className="w-full items-center md:justify-end flex gap-5">
-                            <Button onClick={handleInlineSubmit} disabled={!newReview.comment.trim() || newReview.comment.length > 500} className="md:px-5 text-xs md:text-sm">
+                          <div className="w-full items-center  md:justify-end flex gap-5 ">
+                            <Button
+                              onClick={handleInlineSubmit}
+                              disabled={!newReview.comment.trim()}
+                              className="md:px-5 text-xs md:text-sm"
+                            >
                               Submit Review
                             </Button>
                           </div>
@@ -816,7 +1099,7 @@ export default function ProductPage() {
                     </Card>
                   )}
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 ">
                     {reviews.map((review, idx) => (
                       <div key={idx} className="border-b border-HG-500/60 pb-4 last:border-b-0">
                         <div className="flex items-start gap-3">
@@ -827,11 +1110,17 @@ export default function ProductPage() {
                           </Avatar>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-sm md:text-base font-inter">{review?.userId?.fullName}</h4>
-                              <span className="text-xs md:text-sm text-gray-500">• {review?.updatedAt ? timeAgo(new Date(review.updatedAt)) : ""}</span>
+                              <h4 className="font-semibold text-sm md:text-base font-inter">
+                                {review?.userId?.fullName}
+                              </h4>
+                              <span className=" text-xs md:text-sm text-gray-500">
+                                • {review?.updatedAt ? timeAgo(new Date(review.updatedAt)) : ""}
+                              </span>
                             </div>
                             <StarRating size="w-3 h-3 md:w-4 md:h-4" rating={review?.rating} />
-                            <p className="text-gray-700 mt-2 text-sm md:text-base">{review?.comment}</p>
+                            <p className="text-gray-700 mt-2  text-sm md:text-base">
+                              {review?.comment}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -840,23 +1129,31 @@ export default function ProductPage() {
                 </div>
               </TabsContent>
 
-              {/* Location Tab */}
+              {/* Location Content */}
               <TabsContent value="location" className="mt-0">
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg md:text-xl font-semibold font-poppins tracking-wide">PG Location</h3>
-                    {/* ✅ Updated: Call handleDirectionClick instead of direct modal open */}
-                    <Button onClick={handleDirectionClick} className="md:px-5 text-xs md:text-sm">Get Directions</Button>
+                    <h3 className="text-lg md:text-xl font-semibold font-poppins tracking-wide">
+                      PG Location
+                    </h3>
+                    <Button onClick={handleDirectionClick} className="md:px-5 text-xs md:text-sm">
+                      Get Directions
+                    </Button>
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 text-gray-400 mb-3 text-xs md:text-sm">{listing?.location?.area}</div>
+                    <div className="flex items-center gap-2 text-gray-400 mb-3 text-xs md:text-sm">
+                      {listing?.location?.area}
+                    </div>
                     <div className="flex items-center gap-2 text-gray-600 mb-4 text-sm md:text-base">
                       <MapPin className="md:w-5 md:h-5 h-3 w-3" />
                       <span>{listing?.location?.city}, {listing?.location?.state}, {listing?.location?.pincode}</span>
                     </div>
                   </div>
                   <div className="w-full h-80 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-HG-500/40">
-                    <MapView lat={listing?.location?.coordinates?.coordinates[1] || 0} lng={listing?.location?.coordinates?.coordinates[0] || 0} />
+                    <MapView
+                      lat={listing?.location?.coordinates?.coordinates[1] || 0}
+                      lng={listing?.location?.coordinates?.coordinates[0] || 0}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -864,21 +1161,27 @@ export default function ProductPage() {
           </Tabs>
         </div>
 
-        {/* Owner's Other PGs */}
-        <div className="mt-10">
-          <SectionHeading>Other PGs by {listing?.ownerId?.fullName}</SectionHeading>
-          <OwnerListingSection listings={ownerPgs} loading={ownerPgsLoading} ownerName={listing?.ownerId?.fullName || "Owner"} />
+        <div className="mt-10 ">
+          <SectionHeading>
+            Other PG by {listing?.ownerId?.fullName}
+          </SectionHeading>
+
+          <OwnerListingSection
+            listings={ownerPgs}
+            loading={ownerPgsLoading}
+            ownerName={listing?.ownerId?.fullName || "Owner"}
+          />
         </div>
 
-        {/* Nearby Listings */}
-        <NearbyListings 
+        {/* 🟢 Updated Infinite Scroll to use Coordinates for Nearby PGs */}
+        <InfiniteScrollListings 
           currentListingId={listing?._id || ""} 
           lat={listing?.location?.coordinates?.coordinates[1]}
           lng={listing?.location?.coordinates?.coordinates[0]}
         />
       </main>
 
-      {/* Modals */}
+      {/* Modals (Visit, Login, Booking, Directions) */}
       {showVisitForm && listing?._id && (
         <VisitRequestForm 
           listingId={listing._id} 
@@ -903,33 +1206,195 @@ export default function ProductPage() {
         </div>
       )}
 
-      <BookingModal
-        isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
-        listing={listing}
-        user={user}
-      />
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
+          {/* Booking Modal Content (Same as provided) */}
+          <div className="bg-white rounded-2xl max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold font-poppins text-gray-900">
+                  Book Your Stay
+                </h3>
+                {/* Stepper UI */}
+                <div className="flex items-center gap-2 mt-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${bookingStep >= 1 ? "bg-HG-500 text-white" : "bg-gray-200 text-gray-500"}`}>1</div>
+                  <div className={`w-12 h-1 ${bookingStep >= 2 ? "bg-HG-500" : "bg-gray-200"}`}></div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${bookingStep >= 2 ? "bg-HG-500 text-white" : "bg-gray-200 text-gray-500"}`}>2</div>
+                  <div className={`w-12 h-1 ${bookingStep >= 3 ? "bg-HG-500" : "bg-gray-200"}`}></div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${bookingStep >= 3 ? "bg-HG-500 text-white" : "bg-gray-200 text-gray-500"}`}>3</div>
+                </div>
+              </div>
+              <button onClick={handleBookingClose} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+            </div>
+
+            <div className="p-6">
+              {/* Step 1: Room Selection */}
+              {bookingStep === 1 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Select Room Type</h4>
+                    <div className="space-y-3">
+                      {listing?.roomTypes?.map((roomType, index) => (
+                        <div key={index} onClick={() => setSelectedRoomType(roomType)} className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${selectedRoomType?.type === roomType.type ? "border-HG-500 bg-HG-50" : "border-gray-200 hover:border-HG-400"}`}>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h5 className="font-medium text-gray-900">{roomType.type}</h5>
+                              <p className="text-sm text-gray-600">{roomType.capacityPerRoom} person per room</p>
+                              <p className="text-sm text-gray-600">{roomType.availableRooms} rooms available</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-HG-600">₹{roomType.monthlyRent?.toLocaleString()}/month</p>
+                              <p className="text-sm text-gray-600">Security: ₹{roomType.securityDeposit?.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Booking Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Move-in Date</label>
+                        <input type="date" value={bookingForm.moveInDate} onChange={(e) => handleFormChange("moveInDate", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent" min={new Date().toISOString().split("T")[0]} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Duration (months)</label>
+                        <select value={bookingForm.duration} onChange={(e) => handleFormChange("duration", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-HG-500 focus:border-transparent">
+                          <option value="1">1 Month</option>
+                          <option value="3">3 Months</option>
+                          <option value="6">6 Months</option>
+                          <option value="12">12 Months</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Personal Information */}
+              {bookingStep === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Personal Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                        <input type="text" value={bookingForm.fullName} onChange={(e) => handleFormChange("fullName", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your full name" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                        <input type="tel" value={bookingForm.phoneNumber} onChange={(e) => handleFormChange("phoneNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your phone number" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                        <input type="email" value={bookingForm.email} onChange={(e) => handleFormChange("email", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your email address" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Address Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
+                        <input type="text" value={bookingForm.address.street} onChange={(e) => handleFormChange("address.street", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your street address" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                        <input type="text" value={bookingForm.address.city} onChange={(e) => handleFormChange("address.city", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your city" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
+                        <input type="text" value={bookingForm.address.state} onChange={(e) => handleFormChange("address.state", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your state" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode *</label>
+                        <input type="text" value={bookingForm.address.pincode} onChange={(e) => handleFormChange("address.pincode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter your pincode" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Identity Verification</h4>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Aadhaar Number (Optional)</label>
+                      <input type="text" value={bookingForm.aadhaarNumber} onChange={(e) => handleFormChange("aadhaarNumber", e.target.value.replace(/\D/g, "").slice(0, 12))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Enter 12-digit Aadhaar number (optional)" maxLength={12} />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Additional Requirements</h4>
+                    <textarea value={bookingForm.additionalRequirements} onChange={(e) => handleFormChange("additionalRequirements", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Any special requirements or preferences..." />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Payment & Confirmation */}
+              {bookingStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Coupon Code (Optional)</h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <input type="text" value={bookingForm.couponCode} onChange={(e) => handleCouponChange(e.target.value)} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg uppercase" placeholder="Enter coupon code" />
+                        <button type="button" onClick={handleCheckCoupon} disabled={!bookingForm.couponCode.trim() || couponLoading} className="px-4 py-2 bg-HG-500 text-white rounded-lg hover:bg-HG-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                          {couponLoading ? "Checking..." : "Check"}
+                        </button>
+                      </div>
+                      {couponError && <p className="text-red-500 text-sm">{couponError}</p>}
+                      {couponData && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-green-800 font-medium">{couponData.name} - {couponData.percentage}% discount applied!</p>
+                          <p className="text-green-700 text-sm mt-1">You save ₹{calculateDiscount().toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-lg mb-4">Booking Summary</h4>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between"><span className="text-gray-600">Room Type:</span><span className="font-medium">{selectedRoomType?.type}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Monthly Rent:</span><span className="font-medium">₹{selectedRoomType?.monthlyRent?.toLocaleString()}</span></div>
+                      {couponData && <div className="flex justify-between text-green-600"><span>Discount:</span><span className="font-medium">-₹{calculateDiscount().toLocaleString()}</span></div>}
+                      <hr className="my-3" />
+                      <div className="flex justify-between font-bold text-lg"><span>Amount to Pay Now:</span><span className="text-HG-600">₹{calculateFinalAmount().toLocaleString()}</span></div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <input type="checkbox" id="terms" checked={bookingForm.termsAccepted} onChange={(e) => handleFormChange("termsAccepted", e.target.checked)} className="mt-1 h-4 w-4 text-HG-600 border-gray-300 rounded" />
+                    <label htmlFor="terms" className="text-sm text-gray-700">I agree to the terms and conditions.</label>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-4 mt-8">
+                {bookingStep > 1 && <Button onClick={handlePrevStep} variant="outline" className="flex-1">Previous</Button>}
+                {bookingStep < 3 ? <Button onClick={handleNextStep} className="flex-1 bg-HG-500 text-white">Next</Button> : <Button onClick={handleBookingSuccess} disabled={!bookingForm.termsAccepted} className="flex-1 bg-HG-500 text-white disabled:bg-gray-300">Confirm Booking</Button>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDirectionsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-2xl max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold font-poppins text-gray-900">Get Directions to {listing?.pgName}</h3>
-              <button onClick={() => setShowDirectionsModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+              <button onClick={() => setShowDirectionsModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none">×</button>
             </div>
             <div className="p-4">
               <PGMapWithDistance
                 lat={listing?.location?.coordinates?.coordinates[1] || 0}
                 lng={listing?.location?.coordinates?.coordinates[0] || 0}
                 pgName={listing?.pgName || "PG Location"}
-                address={`${listing?.location?.area || ""}, ${listing?.location?.city || ""}, ${listing?.location?.state || ""} - ${listing?.location?.pincode || ""}`}
+                address={`${listing?.location?.area || ""}, ${listing?.location?.city || ""}`}
               />
             </div>
             <div className="p-4 border-t bg-gray-50">
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={openDirections} className="flex-1 bg-HG-500 hover:bg-HG-600 text-white">
-                  <IconArrowUpRight className="w-5 h-5 mr-2" />
-                  Open in {isIOS ? "Apple" : "Google"} Maps
+                <Button onClick={openDirections} className="flex-1 bg-HG-500 hover:bg-HG-600 text-white flex items-center justify-center gap-2">
+                  <IconArrowUpRight className="w-5 h-5" />
+                  <span>Open in {isIOS ? 'Apple' : 'Google'} Maps</span>
                 </Button>
                 <Button onClick={() => setShowDirectionsModal(false)} variant="outline" className="flex-1">Close</Button>
               </div>
