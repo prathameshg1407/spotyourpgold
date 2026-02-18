@@ -2508,39 +2508,10 @@ export default function AddNewPG() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handlePayment = async (payNow: boolean, proofFile?: File | null) => {
-    setIsSubmitting(true);
-
-    try {
-      if (payNow && proofFile) {
-        const base64 = await toBase64(proofFile);
-
-        const res = await axios.put("/api/owner/listPg/payment", {
-          proof: base64,
-          listingId: listingId || formData.id,
-        });
-
-        if (res?.data?.success) {
-          setPaymentStatus("paid");
-        } else {
-          setPaymentStatus("failed");
-          toast.error("Payment proof upload failed.");
-          return;
-        }
-      } else {
-        // User selected "Submit with fee pending"
-        setPaymentStatus("pending");
-      }
-
-      setIsPaymentModalOpen(false);
-      router.replace("/routes/dashboard/owners/listings");
-    } catch (error) {
-      console.error("Payment error:", error);
-      setPaymentStatus("failed");
-      toast.error("Payment failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handlePaymentSuccess = () => {
+    setPaymentStatus("paid");
+    setIsPaymentModalOpen(false);
+    router.replace("/routes/dashboard/owners/listings");
   };
 
   const toBase64 = (file: File): Promise<string> => {
@@ -2952,7 +2923,8 @@ export default function AddNewPG() {
         isOpen={isPaymentModalOpen}
         paymentStatus={paymentStatus}
         isSubmitting={isSubmitting}
-        onPayment={handlePayment}
+        listingId={listingId || formData.id}
+        onPaymentSuccess={handlePaymentSuccess}
         onNavigate={() => router.replace("/routes/dashboard/owners/listings")}
       />
     </div>
