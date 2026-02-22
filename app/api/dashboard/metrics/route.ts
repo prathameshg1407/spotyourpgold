@@ -284,6 +284,11 @@ async function getAdminMetrics() {
               ],
             },
           },
+          paidListings: {
+            $sum: {
+              $cond: [{ $eq: ["$paymentStatus", "completed"] }, 1, 0],
+            },
+          },
         },
       },
     ]);
@@ -293,12 +298,41 @@ async function getAdminMetrics() {
       activeListings: 0,
       featuredListings: 0,
       pendingListings: 0,
+      paidListings: 0,
     };
+
+    // Calculate listing fee revenue (₹999 per paid listing)
+    const listingFeeRevenue = listingStats.paidListings * 999;
 
     // Get pending visit requests
     const pendingVisitRequests = await VisitRequest.countDocuments({
       status: "pending",
     });
+
+    // Get booking commission revenue (10% of total rent collected)
+    const bookingCommissionAggregation = await Booking.aggregate([
+      {
+        $match: {
+          status: { $in: ["active", "completed"] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCommission: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ["$firstMonthRent.amount", 0] },
+                0.1,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    const bookingCommission = bookingCommissionAggregation[0]?.totalCommission || 0;
+    const totalRevenue = listingFeeRevenue + bookingCommission;
 
     return {
       totalUsers,
@@ -308,7 +342,10 @@ async function getAdminMetrics() {
       pendingListings: listingStats.pendingListings,
       featuredListings: listingStats.featuredListings,
       pendingVisitRequests,
-      monthlyRevenue: 0, // As requested, keeping revenue as 0 for now
+      listingFeeRevenue,
+      bookingCommissionRevenue: Math.round(bookingCommission),
+      totalRevenue: Math.round(totalRevenue),
+      paidListings: listingStats.paidListings,
     };
   } catch (error) {
     console.error("Admin metrics error:", error);

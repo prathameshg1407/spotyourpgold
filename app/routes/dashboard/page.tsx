@@ -1271,13 +1271,51 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-black font-inter">
-                Monthly Revenue
+                Listing Fee Revenue
               </p>
               <h2 className="text-3xl font-poppins font-semibold text-HG-500">
-                ₹{(adminStats.monthlyRevenue || 0).toLocaleString()}
+                ₹{(adminStats.listingFeeRevenue || 0).toLocaleString()}
               </h2>
               <p className="text-xs text-muted-foreground font-inter">
-                Platform earnings
+                From {adminStats.paidListings || 0} paid listings
+              </p>
+            </div>
+            <div className="p-3 rounded-full bg-emerald-100 text-emerald-500">
+              <CreditCard className="h-6 w-6 md:h-8 md:w-8" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-black font-inter">
+                Booking Commission
+              </p>
+              <h2 className="text-3xl font-poppins font-semibold text-HG-500">
+                ₹{(adminStats.bookingCommissionRevenue || 0).toLocaleString()}
+              </h2>
+              <p className="text-xs text-muted-foreground font-inter">
+                10% from bookings
+              </p>
+            </div>
+            <div className="p-3 rounded-full bg-green-100 text-green-500">
+              <Banknote className="h-6 w-6 md:h-8 md:w-8" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border border-HG-400/20 shadow-sm md:shadow-lg rounded-2xl p-4 bg-white hover:shadow-xl transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-black font-inter">
+                Total Revenue
+              </p>
+              <h2 className="text-3xl font-poppins font-semibold text-HG-500">
+                ₹{(adminStats.totalRevenue || 0).toLocaleString()}
+              </h2>
+              <p className="text-xs text-muted-foreground font-inter">
+                All platform earnings
               </p>
             </div>
             <div className="p-3 rounded-full bg-emerald-100 text-emerald-500">
