@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import Coupon from "@/models/coupon";
+import User from "@/models/user";
 import { authUser } from "@/actions/authUser";
 import mongoose from "mongoose";
 

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle, X, Clock } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 declare global {
   interface Window {
@@ -41,6 +42,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [showDialog, setShowDialog] = useState(true);
 
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const baseAmount = 999;
+  const discountAmount = appliedCoupon ? Math.round((baseAmount * appliedCoupon.percentage) / 100) : 0;
+  const payableAmount = baseAmount - discountAmount;
+
   // Load Razorpay script
   useEffect(() => {
     const script = document.createElement("script");
@@ -54,6 +63,31 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     };
   }, []);
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    setIsApplyingCoupon(true);
+    try {
+      const res = await axios.post("/api/coupon-validate", { couponCode });
+      if (res.data.success) {
+        setAppliedCoupon(res.data.data);
+        toast.success(`Coupon applied: ${res.data.data.percentage}% off!`);
+      } else {
+        toast.error(res.data.message || "Invalid coupon");
+        setAppliedCoupon(null);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to apply coupon");
+      setAppliedCoupon(null);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode("");
+    setAppliedCoupon(null);
+  };
+
   const handleRazorpayPayment = async () => {
     if (!razorpayLoaded) {
       toast.error("Payment system is loading. Please try again.");
@@ -66,6 +100,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       // Create Razorpay order
       const orderRes = await axios.post("/api/owner/listPg/initiate-payment", {
         listingId,
+        couponCode: appliedCoupon ? couponCode : undefined,
       });
 
       if (!orderRes.data.success) {
@@ -155,8 +190,50 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {paymentStatus === "pending" && !isSubmitting && !isProcessing && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-1.5">
-              <div className="text-3xl font-poppins font-bold text-HG-500">₹999</div>
+              <div className="text-3xl font-poppins font-bold text-HG-500">
+                ₹{payableAmount}
+              </div>
+              {appliedCoupon && (
+                <div className="text-sm text-green-600 line-through">
+                  ₹{baseAmount}
+                </div>
+              )}
               <p className="text-[13px] text-gray-600">One-time listing fee</p>
+            </div>
+
+            <div className="space-y-3">
+              {!appliedCoupon ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleApplyCoupon}
+                    disabled={isApplyingCoupon || !couponCode}
+                    variant="outline"
+                  >
+                    {isApplyingCoupon ? "Applying..." : "Apply"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-green-700">{appliedCoupon.name} Applied</span>
+                    <span className="text-xs text-green-600">You saved ₹{discountAmount}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleRemoveCoupon}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
