@@ -3,12 +3,13 @@ import { connectToDB } from "@/services/connectdb";
 import authUser from "@/actions/authUser";
 import { getRazorpayInstance } from "@/lib/razorpay";
 import Listing from "@/models/listing";
+import Coupon from "@/models/coupon";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
     await connectToDB();
-    
+
     const user = await authUser();
     if (!user || user.role === "user") {
       return NextResponse.json(
@@ -17,11 +18,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
       razorpay_signature,
-      listingId 
+      listingId
     } = await req.json();
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !listingId) {
@@ -68,12 +69,23 @@ export async function POST(req: Request) {
     // Fetch payment details from Razorpay
     const razorpay = getRazorpayInstance();
     const payment = await razorpay.payments.fetch(razorpay_payment_id);
+    const order = await razorpay.orders.fetch(razorpay_order_id);
 
     if (payment.status !== "captured" && payment.status !== "authorized") {
       return NextResponse.json(
         { success: false, message: "Payment not successful" },
         { status: 400 }
       );
+    }
+
+    // Increment coupon usage if an applied coupon code is present in order notes
+    const appliedCouponCode = order.notes?.couponCode;
+    if (appliedCouponCode && appliedCouponCode !== "none") {
+      const coupon = await Coupon.findOne({ name: String(appliedCouponCode).toUpperCase() });
+      if (coupon) {
+        coupon.usageCount = (coupon.usageCount || 0) + 1;
+        await coupon.save();
+      }
     }
 
     // Update listing with payment details
