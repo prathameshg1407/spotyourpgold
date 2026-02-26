@@ -51,6 +51,7 @@ interface SettlementData {
       onlineBookingFees: number;
       cashBookingFeeCollected: number;
       monthlyCommissionCollected: number;
+      listingFees: number;
     };
     receivables: {
       cashBookingFeePending: number;
@@ -258,54 +259,48 @@ export default function AdminSettlementDashboardPage() {
 
           {/* Net Position Card */}
           <Card
-            className={`bg-gradient-to-br ${
-              overview.netPosition >= 0
+            className={`bg-gradient-to-br ${overview.netPosition >= 0
                 ? "from-emerald-50 to-emerald-100 border-emerald-200"
                 : "from-red-50 to-red-100 border-red-200"
-            }`}
+              }`}
           >
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p
-                    className={`text-sm font-medium ${
-                      overview.netPosition >= 0
+                    className={`text-sm font-medium ${overview.netPosition >= 0
                         ? "text-emerald-700"
                         : "text-red-700"
-                    }`}
+                      }`}
                   >
                     Net Position
                   </p>
                   <p
-                    className={`text-2xl font-bold ${
-                      overview.netPosition >= 0
+                    className={`text-2xl font-bold ${overview.netPosition >= 0
                         ? "text-emerald-800"
                         : "text-red-800"
-                    }`}
+                      }`}
                   >
                     {formatCurrency(Math.abs(overview.netPosition))}
                   </p>
                   <p
-                    className={`text-xs ${
-                      overview.netPosition >= 0
+                    className={`text-xs ${overview.netPosition >= 0
                         ? "text-emerald-600"
                         : "text-red-600"
-                    }`}
+                      }`}
                   >
                     {overview.netPosition >= 0 ? "Net positive" : "Net liability"}
                   </p>
                 </div>
                 <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    overview.netPosition >= 0 ? "bg-emerald-200" : "bg-red-200"
-                  }`}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center ${overview.netPosition >= 0 ? "bg-emerald-200" : "bg-red-200"
+                    }`}
                 >
                   <Wallet
-                    className={`h-5 w-5 ${
-                      overview.netPosition >= 0
+                    className={`h-5 w-5 ${overview.netPosition >= 0
                         ? "text-emerald-700"
                         : "text-red-700"
-                    }`}
+                      }`}
                   />
                 </div>
               </div>
@@ -430,6 +425,16 @@ export default function AdminSettlementDashboardPage() {
                   </div>
                   <p className="font-bold text-green-700">
                     {formatCurrency(overview.revenue.monthlyCommissionCollected)}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Listing Fees</p>
+                    <p className="text-xs text-gray-500">Property listing payments</p>
+                  </div>
+                  <p className="font-bold text-green-700">
+                    {formatCurrency(overview.revenue.listingFees)}
                   </p>
                 </div>
 
@@ -610,11 +615,10 @@ export default function AdminSettlementDashboardPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            idx === 0
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${idx === 0
                               ? "bg-blue-100 text-blue-700"
                               : "bg-gray-100 text-gray-600"
-                          }`}
+                            }`}
                         >
                           {idx + 1}
                         </div>
@@ -680,13 +684,12 @@ export default function AdminSettlementDashboardPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            idx === 0
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${idx === 0
                               ? "bg-red-100 text-red-700"
                               : idx === 1
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
                         >
                           {idx + 1}
                         </div>
@@ -767,8 +770,8 @@ export default function AdminSettlementDashboardPage() {
                               activity.commissionType?.includes("booking_fee")
                                 ? "border-orange-300 text-orange-700"
                                 : activity.commissionType?.includes("payout")
-                                ? "border-blue-300 text-blue-700"
-                                : "border-green-300 text-green-700"
+                                  ? "border-blue-300 text-blue-700"
+                                  : "border-green-300 text-green-700"
                             }
                           >
                             {activity.commissionType === "booking_fee_revenue" &&
@@ -822,8 +825,8 @@ export default function AdminSettlementDashboardPage() {
                               activity.status === "completed"
                                 ? "bg-green-100 text-green-800"
                                 : activity.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
                             }
                           >
                             {activity.status === "completed" && (

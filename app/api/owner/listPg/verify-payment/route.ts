@@ -92,6 +92,10 @@ export async function POST(req: Request) {
     listing.paymentStatus = "completed";
     listing.paymentId = razorpay_payment_id;
     listing.paymentProof = `razorpay_${razorpay_payment_id}`;
+    listing.listingFeePaid = Number(payment.amount) / 100; // Store the exact amount paid
+    if (appliedCouponCode && appliedCouponCode !== "none") {
+      listing.listingFeeCoupon = String(appliedCouponCode).toUpperCase();
+    }
     await listing.save();
 
     return NextResponse.json({
