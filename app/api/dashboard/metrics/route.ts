@@ -115,10 +115,10 @@ async function getOwnerMetrics(userId: string) {
     const occupancyRate =
       listingStats.totalRooms > 0
         ? Math.round(
-            ((listingStats.totalRooms - listingStats.availableRooms) /
-              listingStats.totalRooms) *
-              100
-          )
+          ((listingStats.totalRooms - listingStats.availableRooms) /
+            listingStats.totalRooms) *
+          100
+        )
         : 0;
 
     // Get reviews for owner's listings
@@ -289,6 +289,15 @@ async function getAdminMetrics() {
               $cond: [{ $eq: ["$paymentStatus", "completed"] }, 1, 0],
             },
           },
+          listingFeeRevenue: {
+            $sum: {
+              $cond: [
+                { $eq: ["$paymentStatus", "completed"] },
+                { $ifNull: ["$listingFeePaid", 999] },
+                0
+              ]
+            }
+          },
         },
       },
     ]);
@@ -299,10 +308,11 @@ async function getAdminMetrics() {
       featuredListings: 0,
       pendingListings: 0,
       paidListings: 0,
+      listingFeeRevenue: 0,
     };
 
-    // Calculate listing fee revenue (₹999 per paid listing)
-    const listingFeeRevenue = listingStats.paidListings * 999;
+    // Use exact amount from database
+    const listingFeeRevenue = listingStats.listingFeeRevenue;
 
     // Get pending visit requests
     const pendingVisitRequests = await VisitRequest.countDocuments({

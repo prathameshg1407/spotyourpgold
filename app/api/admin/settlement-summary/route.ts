@@ -5,6 +5,7 @@ import Commission from "@/models/commission";
 import Booking from "@/models/booking";
 import MonthlyRentPayment from "@/models/MonthlyRentPayment";
 import User from "@/models/user";
+import Listing from "@/models/listing";
 import { authUser } from "@/actions/authUser";
 
 export async function GET(req: NextRequest) {
@@ -18,6 +19,24 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // ============ REVENUE: LISTING FEES ============
+    const listingFeerevenueData = await Listing.aggregate([
+      {
+        $match: {
+          paymentStatus: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCollected: {
+            $sum: { $ifNull: ["$listingFeePaid", 999] },
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
     // ============ REVENUE: BOOKING FEES (10% from online bookings) ============
     const bookingFeeRevenue = await Booking.aggregate([
@@ -268,6 +287,7 @@ export async function GET(req: NextRequest) {
 
     // Revenue (Admin receives)
     const onlineBookingFees = bookingFeeRevenue[0]?.totalCollected || 0;
+    const listingFees = listingFeerevenueData[0]?.totalCollected || 0;
 
     // Receivables (Owner owes Admin)
     const cashBookingFeePending = getAmount(cashBookingFeeReceivables, "pending");
@@ -285,7 +305,7 @@ export async function GET(req: NextRequest) {
     const monthlyPayoutCompleted = getAmount(monthlyPayouts, "completed");
 
     // Totals
-    const totalRevenue = onlineBookingFees + cashBookingFeeCollected + monthlyCommissionCollected;
+    const totalRevenue = onlineBookingFees + cashBookingFeeCollected + monthlyCommissionCollected + listingFees;
     const totalReceivables = cashBookingFeePending + monthlyCommissionPending + monthlyCommissionOverdue;
     const totalPayables = firstMonthPayoutPending + depositPending + monthlyPayoutPending;
 
@@ -325,6 +345,7 @@ export async function GET(req: NextRequest) {
             onlineBookingFees,
             cashBookingFeeCollected,
             monthlyCommissionCollected,
+            listingFees,
           },
 
           // Receivables breakdown (Owner owes Admin)

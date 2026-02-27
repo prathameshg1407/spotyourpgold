@@ -38,7 +38,7 @@ const listingSchema = new mongoose.Schema(
         securityDeposit: { type: Number, required: true, min: 0 },
       },
     ],
-    
+
     // ✅ UPDATED: Gender Preference with Co-living support
     genderPreference: {
       type: String,
@@ -209,6 +209,8 @@ const listingSchema = new mongoose.Schema(
     },
     paymentId: { type: String },
     paymentProof: { type: String },
+    listingFeePaid: { type: Number, default: 0 },
+    listingFeeCoupon: { type: String, default: null },
   },
   {
     timestamps: true,
