@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     const listing = await Listing.findById(listingId)
       .populate("ownerId", "fullName email phone")
       .session(session);
-      
+
     if (!listing) {
       await session.abortTransaction();
       return NextResponse.json(
@@ -131,28 +131,28 @@ export async function POST(req: NextRequest) {
       termsAccepted,
       paymentMethod,
       monthlyRent: finalMonthlyRent,
-      
+
       // Payment Structure
       bookingFee: {
         amount: bookingFeeAmount,
         status: "pending",
       },
-      
+
       securityDeposit: {
         amount: securityDeposit,
         status: "pending",
       },
-      
+
       firstMonthRent: {
         amount: firstMonthRentAmount,
         status: "pending",
       },
-      
+
       // Discount details
       originalAmount: monthlyRent,
       discountAmount,
       couponCode: couponCode || null,
-      
+
       // Totals
       totalDue: bookingFeeAmount + securityDeposit + firstMonthRentAmount,
       totalPaid: 0,
@@ -207,9 +207,8 @@ export async function POST(req: NextRequest) {
           userId: listing.ownerId._id,
           type: "booking_request",
           title: "New Booking Request",
-          message: `New ${paymentMethod === "cash" ? "cash" : "online"} booking request for ${
-            listing.pgName
-          } from ${fullName}.`,
+          message: `New ${paymentMethod === "cash" ? "cash" : "online"} booking request for ${listing.pgName
+            } from ${fullName}.`,
           relatedId: booking._id,
           relatedType: "booking",
           priority: "high",
@@ -259,9 +258,6 @@ export async function POST(req: NextRequest) {
           pgName: listing.pgName,
           roomType: roomType,
           moveInDate: moveInDate,
-          totalAmount: booking.totalDue,
-          bookingId: booking._id.toString(),
-          paymentMethod: paymentMethod,
         });
         console.log("[WhatsApp] Tenant confirmation sent successfully");
       } catch (error) {
@@ -291,11 +287,11 @@ export async function POST(req: NextRequest) {
         razorpayOrder:
           paymentMethod === "online"
             ? {
-                orderId: razorpayOrder?.id,
-                amount: bookingFeeAmount,
-                currency: "INR",
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-              }
+              orderId: razorpayOrder?.id,
+              amount: bookingFeeAmount,
+              currency: "INR",
+              key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            }
             : null,
       },
     });
@@ -334,13 +330,13 @@ export async function GET(req: NextRequest) {
     }
 
     const query: any = { userId: new mongoose.Types.ObjectId(userId) };
-    
+
     if (status && status !== "all") {
       query.status = status;
     }
 
     const totalCount = await Booking.countDocuments(query);
-    
+
     const bookings = await Booking.find(query)
       .populate({
         path: "listingId",

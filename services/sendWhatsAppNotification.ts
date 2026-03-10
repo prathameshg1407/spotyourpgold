@@ -54,17 +54,17 @@ interface NotificationLogData {
 // ============================================
 const formatPhoneNumber = (phone: string): string => {
   debugLog("FORMAT_PHONE", `Input phone: "${phone}"`);
-  
+
   if (!phone) {
     debugLog("FORMAT_PHONE", "❌ Phone is null/undefined");
     return "";
   }
-  
+
   const cleaned = phone.replace(/\D/g, "");
   debugLog("FORMAT_PHONE", `Cleaned phone: "${cleaned}"`);
-  
+
   let formatted = "";
-  
+
   if (cleaned.length === 10) {
     formatted = `91${cleaned}`;
     debugLog("FORMAT_PHONE", `10 digits detected, adding 91: "${formatted}"`);
@@ -78,7 +78,7 @@ const formatPhoneNumber = (phone: string): string => {
     formatted = cleaned;
     debugLog("FORMAT_PHONE", `⚠️ Unusual format, returning as is: "${formatted}"`);
   }
-  
+
   return formatted;
 };
 
@@ -127,7 +127,7 @@ const sendWithRetry = async (
 ): Promise<WhatsAppResponse> => {
   try {
     console.log(`\n[WhatsApp Debug] Attempt ${retryCount + 1}`);
-    
+
     // Log full payload on first attempt
     if (retryCount === 0 && DEBUG_MODE) {
       debugLog("PAYLOAD", "Full request payload", payload);
@@ -152,10 +152,10 @@ const sendWithRetry = async (
     const result = await response.json();
 
     console.log(`[WhatsApp] Response Status: ${response.status}`);
-    
+
     if (DEBUG_MODE) {
       debugLog("API_RESPONSE", `Status: ${response.status}`, result);
-      
+
       // Log specific delivery info
       if (result.messages && result.messages[0]) {
         console.log(`[WhatsApp] Message ID: ${result.messages[0].id}`);
@@ -167,15 +167,15 @@ const sendWithRetry = async (
 
     if (!response.ok) {
       debugLog("API_ERROR", `HTTP ${response.status} Error`, result);
-      
+
       if (response.status === 401 || response.status === 403) {
         throw new Error(`Authentication failed: ${result.error?.message || result.message || 'Invalid credentials'}`);
       }
-      
+
       if (response.status === 422) {
         throw new Error(`Validation Error: ${result.error?.message || result.message || 'Invalid template or parameters'}`);
       }
-      
+
       throw new Error(result.error?.message || result.message || `HTTP ${response.status}`);
     }
 
@@ -190,7 +190,7 @@ const sendWithRetry = async (
 
     const isAuthError = error.message?.includes('Authentication failed');
     const isValidationError = error.message?.includes('Validation Error');
-    
+
     if (isAuthError || isValidationError || retryCount >= MAX_RETRY_ATTEMPTS) {
       throw error;
     }
@@ -224,9 +224,9 @@ export const sendWhatsAppNotification = async ({
 
   if (!AISENSY_PROJECT_ID || !AISENSY_API_PASSWORD) {
     console.error("[WhatsApp Error] Missing AiSensy credentials in environment");
-    return { 
-      success: false, 
-      message: "WhatsApp service not configured" 
+    return {
+      success: false,
+      message: "WhatsApp service not configured"
     };
   }
 
@@ -239,7 +239,7 @@ export const sendWhatsAppNotification = async ({
   }
 
   const formattedPhone = formatPhoneNumber(to);
-  
+
   if (!formattedPhone || formattedPhone.length < 10) {
     debugLog("VALIDATION", `Invalid phone number: "${to}" -> "${formattedPhone}"`);
     await logNotification({
@@ -278,9 +278,9 @@ export const sendWhatsAppNotification = async ({
   try {
     console.log(`\n[WhatsApp] Sending "${templateName}" to ${formattedPhone}`);
     console.log(`[WhatsApp] Template Parameters:`, templateParams);
-    
+
     const result = await sendWithRetry(payload);
-    
+
     await logNotification({
       userId,
       phoneNumber: formattedPhone,
@@ -292,11 +292,11 @@ export const sendWhatsAppNotification = async ({
     });
 
     console.log(`[WhatsApp Success] Message sent! ID: ${result.messageId}`);
-    
+
     return result;
   } catch (error: any) {
     console.error(`[WhatsApp Failed] ${templateName}:`, error.message);
-    
+
     await logNotification({
       userId,
       phoneNumber: formattedPhone,
@@ -383,9 +383,6 @@ export const sendBookingConfirmationToTenant = async ({
   pgName,
   roomType,
   moveInDate,
-  totalAmount,
-  bookingId,
-  paymentMethod,
 }: {
   tenantPhone: string;
   tenantName: string;
@@ -393,9 +390,6 @@ export const sendBookingConfirmationToTenant = async ({
   pgName: string;
   roomType: string;
   moveInDate: Date | string;
-  totalAmount: number;
-  bookingId: string;
-  paymentMethod: "online" | "cash";
 }) => {
   debugLog("TENANT_NOTIFICATION", "Input Data", {
     tenantPhone,
@@ -404,27 +398,20 @@ export const sendBookingConfirmationToTenant = async ({
     pgName,
     roomType,
     moveInDate,
-    totalAmount,
-    bookingId,
-    paymentMethod,
   });
 
   const templateParams = [
     tenantName,
     pgName,
-    "SpotYourPG Team",
-    tenantPhone,
     roomType,
     formatDate(moveInDate),
-    String(totalAmount),
-    paymentMethod === "online" ? "online" : "cash",
   ];
 
   debugLog("TENANT_NOTIFICATION", "Template Parameters", templateParams);
 
   return sendWhatsAppNotification({
     to: tenantPhone,
-    templateName: "new_booking_alert",
+    templateName: "user_booking_received",
     templateParams,
     userId: tenantId,
   });
@@ -439,8 +426,6 @@ export const sendBookingApprovedToTenant = async ({
   pgName,
   roomType,
   moveInDate,
-  ownerName,
-  ownerPhone,
 }: {
   tenantPhone: string;
   tenantName: string;
@@ -448,8 +433,6 @@ export const sendBookingApprovedToTenant = async ({
   pgName: string;
   roomType: string;
   moveInDate: Date | string;
-  ownerName: string;
-  ownerPhone: string;
 }) => {
   debugLog("APPROVAL_NOTIFICATION", "Input Data", {
     tenantPhone,
@@ -457,22 +440,16 @@ export const sendBookingApprovedToTenant = async ({
     pgName,
     roomType,
     moveInDate,
-    ownerName,
-    ownerPhone,
   });
 
   return sendWhatsAppNotification({
     to: tenantPhone,
-    templateName: "new_booking_alert",
+    templateName: "user_booking_received",
     templateParams: [
       tenantName,
       pgName,
-      ownerName,
-      ownerPhone,
       roomType,
       formatDate(moveInDate),
-      "Approved",
-      "Confirmed",
     ],
     userId: tenantId,
   });
@@ -714,23 +691,23 @@ export const sendBulkWhatsAppNotifications = async (
   }>
 ): Promise<Array<WhatsAppResponse>> => {
   debugLog("BULK_NOTIFICATIONS", `Processing ${notifications.length} notifications`);
-  
+
   const results: Array<WhatsAppResponse> = [];
-  
+
   const BATCH_SIZE = 10;
   const BATCH_DELAY = 2000;
-  
+
   for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
     const batch = notifications.slice(i, i + BATCH_SIZE);
-    
-    console.log(`[Bulk] Processing batch ${Math.floor(i/BATCH_SIZE) + 1} with ${batch.length} notifications`);
-    
+
+    console.log(`[Bulk] Processing batch ${Math.floor(i / BATCH_SIZE) + 1} with ${batch.length} notifications`);
+
     const batchPromises = batch.map((notification) =>
       sendWhatsAppNotification(notification)
     );
-    
+
     const batchResults = await Promise.allSettled(batchPromises);
-    
+
     batchResults.forEach((result, index) => {
       if (result.status === "fulfilled") {
         results.push(result.value);
@@ -744,15 +721,15 @@ export const sendBulkWhatsAppNotifications = async (
         console.log(`[Bulk] Notification ${i + index + 1}: Failed - ${result.reason}`);
       }
     });
-    
+
     if (i + BATCH_SIZE < notifications.length) {
       console.log(`[Bulk] Waiting ${BATCH_DELAY}ms before next batch...`);
       await delay(BATCH_DELAY);
     }
   }
-  
+
   console.log(`[Bulk] Completed. Success: ${results.filter(r => r.success).length}/${notifications.length}`);
-  
+
   return results;
 };
 
@@ -763,11 +740,11 @@ export const testWhatsAppConnection = async (phoneNumber: string = "919999999999
   console.log("\n" + "=".repeat(60));
   console.log("TESTING WHATSAPP CONNECTION");
   console.log("=".repeat(60));
-  
+
   console.log("Environment Variables:");
   console.log(`AISENSY_PROJECT_ID: ${AISENSY_PROJECT_ID ? '✅ Set' : '❌ Missing'}`);
   console.log(`AISENSY_API_PASSWORD: ${AISENSY_API_PASSWORD ? '✅ Set' : '❌ Missing'}`);
-  
+
   const result = await sendWhatsAppNotification({
     to: phoneNumber,
     templateName: "new_booking_alert",
@@ -783,9 +760,9 @@ export const testWhatsAppConnection = async (phoneNumber: string = "919999999999
     ],
     userId: "test123",
   });
-  
+
   console.log("\nTest Result:", result);
   console.log("=".repeat(60) + "\n");
-  
+
   return result;
 };
