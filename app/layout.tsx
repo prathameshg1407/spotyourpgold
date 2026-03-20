@@ -5,6 +5,7 @@ import { DockWrapper } from "@/components/DockWrapper";
 import { Toaster } from "@/components/ui/sonner";
 import PageLoader from "@/components/PageLoader";
 import AuthProvider from "@/components/AuthProvider";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import ConditionalFooter from "@/components/ConditionalFooter";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body
         className={` ${inter.variable} ${poppins.variable} ${parisienne.variable} `}
       >
+        <GoogleAnalytics />
         <AuthProvider />
         <PageLoader />
         <div className="min-h-screen flex flex-col">
