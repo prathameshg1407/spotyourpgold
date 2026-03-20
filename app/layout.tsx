@@ -5,7 +5,6 @@ import { DockWrapper } from "@/components/DockWrapper";
 import { Toaster } from "@/components/ui/sonner";
 import PageLoader from "@/components/PageLoader";
 import AuthProvider from "@/components/AuthProvider";
-import GoogleAnalytics from "@/components/GoogleAnalytics";
 import ConditionalFooter from "@/components/ConditionalFooter";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -36,6 +35,9 @@ export const metadata: Metadata = {
     shortcut: "/logo.png",
     apple: "/logo.png",
   },
+  verification: {
+    google: "sGLhlAT5_HBEp3M6kyWrSTLOkdf5b1MPC11C6uFseXE",
+  },
 };
 
 export default function RootLayout({
@@ -52,7 +54,6 @@ export default function RootLayout({
       <body
         className={` ${inter.variable} ${poppins.variable} ${parisienne.variable} `}
       >
-        <GoogleAnalytics />
         <AuthProvider />
         <PageLoader />
         <div className="min-h-screen flex flex-col">
