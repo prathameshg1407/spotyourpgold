@@ -65,6 +65,11 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "vysj57fe51");
           `}
         </Script>
+        <Script
+          id="contentsquare-uxa"
+          src="https://t.contentsquare.net/uxa/1ff4595738c32.js"
+          strategy="afterInteractive"
+        />
         <GoogleAnalytics />
         <AuthProvider />
         <PageLoader />
