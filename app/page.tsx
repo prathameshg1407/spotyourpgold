@@ -1,6 +1,11 @@
-"use server";
-
 import Home from "./clientComponents/Home";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "PG in Indore for Students & Working People | Hostel, Rooms & Flats | SpotYourPG",
+  description:
+    "Find PG in Indore for students and working people. Get affordable PG with food, WiFi and safety. You can also check hostels, rooms and flats and choose the right place easily.",
+};
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
