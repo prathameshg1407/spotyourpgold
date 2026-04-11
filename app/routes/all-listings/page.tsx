@@ -649,8 +649,8 @@ function AllListingsContent() {
               {/* Left Section - Logo and Back Button */}
               <div className="flex items-center gap-3 min-w-0">
                 <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
-                  <Image src="/logo.png" alt="SYPG Logo" width={40} height={40} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
-                  <span className="hidden sm:block text-HG-500 font-semibold text-sm">SYPG</span>
+                  <Image src="/logo.png" alt="SpotYourPG Logo" width={40} height={40} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+                  <span className="hidden sm:block text-HG-500 font-semibold text-sm">SpotYourPG</span>
                 </Link>
 
                 <div className="hidden md:block w-px h-6 bg-gray-200 flex-shrink-0"></div>

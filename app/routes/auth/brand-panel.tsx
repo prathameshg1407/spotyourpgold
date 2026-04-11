@@ -56,7 +56,7 @@ const LogoIcon = () => (
   
     <Link href={"/"}>
     <p className="font-poppins font-bold text-HG-500 text-2xl pb-10">
-      SYPG
+      SpotYourPG
     </p>
     </Link>
 )

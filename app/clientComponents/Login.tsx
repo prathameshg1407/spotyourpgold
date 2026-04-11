@@ -38,7 +38,7 @@ const Login = ({ onSuccess }: LoginProps = {}) => {
   const MobileLogoIcon = () => (
     <Link href={"/"}>
       <p className="font-poppins font-bold text-HG-500 text-lg tracking-wider">
-        SYPG
+        SpotYourPG
       </p>
     </Link>
   );

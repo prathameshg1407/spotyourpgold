@@ -1887,7 +1887,7 @@ export default function OnboardingPage() {
           <div className="mb-12">
             <Link href={"/"}>
               <p className="font-poppins font-bold text-HG-500 text-2xl pb-10">
-                SYPG
+                SpotYourPG
               </p>
             </Link>
             <h1 className="text-[28px] font-inter leading-[1.2] font-light text-gray-600 mb-2">
