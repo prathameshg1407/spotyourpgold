@@ -196,6 +196,7 @@ export async function PUT(
   try {
     await connectToDB();
     const { slug } = await context.params;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
 
     const user = await authUser();
 
@@ -209,7 +210,12 @@ export async function PUT(
       );
     }
 
-    const listing = await Listing.findOne({ slug }).select("isFeatured");
+    let listing;
+    if (isObjectId) {
+      listing = await Listing.findById(slug).select("isFeatured");
+    } else {
+      listing = await Listing.findOne({ slug }).select("isFeatured");
+    }
 
     if (!listing) {
       return NextResponse.json({

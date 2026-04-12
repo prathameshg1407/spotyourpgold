@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import DiscountSection from "@/components/DiscountSection";
 import CategorySection from "@/components/CategorySection";
+import PromotionalPopup from "@/components/PromotionalPopup";
 
 const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -303,6 +304,7 @@ const Home = ({ page, per_page }: { page: number; per_page: number }) => {
   return (
     <>
       <NavBar />
+      <PromotionalPopup />
 
       {hasActiveSearch && (
         <section className="pt-32 md:pt-40 px-4 md:px-8 md:-mb-28">
