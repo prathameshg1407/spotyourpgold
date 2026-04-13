@@ -55,7 +55,7 @@ const PromotionalPopup = () => {
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-transparent shadow-none">
         <DialogTitle className="sr-only">Promotional Discount Offer</DialogTitle>
         <DialogDescription className="sr-only">
-          Get a 5% discount on your first rent payment by logging in and booking your ideal PG today.
+          Get a 5% discount on your first rent payment for PGs and Hostels by logging in and booking today.
         </DialogDescription>
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -101,10 +101,10 @@ const PromotionalPopup = () => {
           <div className="p-8 space-y-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-poppins font-bold text-gray-900">
-                Get <span className="text-HG-500">5% Discount</span> on First Rent
+                Get <span className="text-HG-500">5% Discount</span> on PGs & Hostels
               </h2>
               <p className="text-gray-600 font-inter text-sm">
-                Book your ideal PG today and enjoy exclusive savings on your first month's rent. Use this limited-time opportunity!
+                Book your ideal PG or Hostel today and enjoy exclusive savings on your first month's rent. Use this limited-time opportunity!
               </p>
             </div>
 
@@ -125,8 +125,8 @@ const PromotionalPopup = () => {
                   <ShieldCheck className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-900">Verified PGs</p>
-                  <p className="text-[10px] text-gray-500">Approved listings</p>
+                  <p className="text-xs font-bold text-gray-900">Verified Listings</p>
+                  <p className="text-[10px] text-gray-500">PGs & Hostels</p>
                 </div>
               </div>
             </div>
