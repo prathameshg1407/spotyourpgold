@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     }
 
     const listings = await Listing.find({})
-      .select("_id ownerId pgName isApproved isFeatured paymentProof")
+      .select("_id ownerId pgName isApproved isFeatured paymentProof slug")
       .populate("ownerId", "_id fullName")
       .sort({ createdAt: -1 })
       .lean();

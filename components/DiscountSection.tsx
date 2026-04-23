@@ -32,12 +32,11 @@ export default function DiscountSection() {
             </Badge>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 font-poppins">
-            Get <span className="text-HG-500">5% Discount</span> on First Rent
-            Payment
+            Get <span className="text-HG-500">5% Discount</span> on PGs & Hostels
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto font-inter">
-            Book your ideal PG today and enjoy exclusive savings on your first
-            month&apos;s rent.
+            Book your ideal PG or Hostel today and enjoy exclusive savings on
+            your first month&apos;s rent.
           </p>
         </motion.div>
 
@@ -74,7 +73,7 @@ export default function DiscountSection() {
                         <div>
                           <p className="font-medium text-sm">Instant Savings</p>
                           <p className="text-xs text-white/80">
-                            Save up to ₹1,500 on premium PGs
+                            Save up to ₹1,500 on PGs & Hostels
                           </p>
                         </div>
                       </div>
@@ -82,9 +81,9 @@ export default function DiscountSection() {
                       <div className="flex items-start gap-3">
                         <CheckCircle className="w-4 h-4 text-white/90 mt-1 flex-shrink-0" />
                         <div>
-                          <p className="font-medium text-sm">Verified PGs</p>
+                          <p className="font-medium text-sm">Verified Listings</p>
                           <p className="text-xs text-white/80">
-                            Apply on all approved listings
+                            PGs & Hostels
                           </p>
                         </div>
                       </div>
@@ -107,7 +106,7 @@ export default function DiscountSection() {
                       Ready to Save?
                     </h4>
                     <p className="text-gray-600 mb-4 font-inter text-sm">
-                      Browse verified PGs and apply discount at checkout.
+                      Browse verified PGs & Hostels and apply discount at checkout.
                     </p>
 
                     <Link href="/routes/all-listings">
@@ -116,7 +115,7 @@ export default function DiscountSection() {
                         className="w-full bg-HG-500 hover:bg-HG-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group"
                       >
                         <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-                        Browse PGs & Save Now
+                        Browse Listing & Save Now
                         <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                       </Button>
                     </Link>

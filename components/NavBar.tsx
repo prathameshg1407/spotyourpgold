@@ -133,7 +133,7 @@ const NavBar = () => {
             height={64}
             className="h-12 w-12 md:h-16 md:w-16 object-contain"
           />
-          SYPG
+          SpotYourPG
         </Link>
 
         {/* Search Section - Hidden on mobile */}

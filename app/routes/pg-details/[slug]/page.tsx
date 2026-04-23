@@ -39,6 +39,9 @@ import {
   Camera,
   Refrigerator,
   BrushIcon,
+  AlertCircle,
+  BedDouble,
+  Store,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -611,7 +614,19 @@ export default function ProductPage() {
           {/* Product Details */}
           <div className="flex flex-col justify-between gap-5 pb-10 md:pb-0">
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h1 className="md:text-3xl font-semibold mb-1 md:mb-3 font-poppins">{listing?.pgName}</h1>
+              <div className="flex items-center gap-3 mb-1 md:mb-3">
+                <h1 className="md:text-3xl font-semibold font-poppins">{listing?.pgName}</h1>
+                {listing?.isCoLiving && (
+                  <span className="text-[10px] md:text-xs font-bold bg-orange-100 text-orange-600 px-2 py-1 rounded-lg uppercase tracking-wider border border-orange-200">
+                    Co-Living
+                  </span>
+                )}
+              </div>
+              {listing?.primaryLine && (
+                <p className="text-sm md:text-base font-medium text-HG-500 bg-HG-400/10 px-3 py-1 rounded-lg w-fit mb-4">
+                  {listing.primaryLine}
+                </p>
+              )}
               <div className="flex flex-col items-start gap-3 mb-2 md:mb-3">
                 <div className="flex items-center gap-2 text-xs md:text-sm">
                   <StarRating rating={averageRating} />
@@ -681,6 +696,113 @@ export default function ProductPage() {
               <TabsContent value="details" className="mt-0">
                 <div className="prose max-w-none space-y-10">
                   
+                  {/* ✅ Property Overview (Flat/Commercial Specific) */}
+                  {(listing?.type === "flats" || listing?.type === "commercial") && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">Property Overview</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {listing.type === "flats" && listing.flatsDetails && (
+                          <>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Carpet Area</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <Building className="w-4 h-4 text-HG-500" />
+                                {listing.flatsDetails.carpetArea} sq ft
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Configuration</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <BedDouble className="w-4 h-4 text-HG-500" />
+                                {listing.flatsDetails.bedrooms} BHK, {listing.flatsDetails.bathrooms} Bath
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Furnishing</div>
+                              <div className="flex items-center gap-2 font-semibold capitalize">
+                                <Sofa className="w-4 h-4 text-HG-500" />
+                                {listing.flatsDetails.furnishingLevel?.replace("-", " ")}
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Parking</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <Car className="w-4 h-4 text-HG-500" />
+                                {listing.flatsDetails.parkingCar ? "Car & Bike" : listing.flatsDetails.parkingBike ? "Bike Only" : "No Parking"}
+                              </div>
+                            </div>
+                            {listing.flatsDetails.balconyCount > 0 && (
+                              <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                <div className="text-xs text-gray-500 mb-1">Balconies</div>
+                                <div className="flex items-center gap-2 font-semibold">
+                                  <Home className="w-4 h-4 text-HG-500" />
+                                  {listing.flatsDetails.balconyCount} Balcony
+                                </div>
+                              </div>
+                            )}
+                            {listing.flatsDetails.hasTerrace && (
+                              <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                <div className="text-xs text-gray-500 mb-1">Terrace</div>
+                                <div className="flex items-center gap-2 font-semibold">
+                                  <ArrowLeft className="w-4 h-4 text-HG-500 rotate-90" />
+                                  Private Terrace
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {listing.type === "commercial" && listing.commercialDetails && (
+                          <>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Area</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <Building className="w-4 h-4 text-HG-500" />
+                                {listing.commercialDetails.carpetArea} sq ft
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Floor</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <Home className="w-4 h-4 text-HG-500" />
+                                Floor {listing.commercialDetails.floorNumber}
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Electricity</div>
+                              <div className="flex items-center gap-2 font-semibold">
+                                <Zap className="w-4 h-4 text-HG-500" />
+                                {listing.commercialDetails.electricityLoad} KW
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Furnishing</div>
+                              <div className="flex items-center gap-2 font-semibold capitalize">
+                                <Sofa className="w-4 h-4 text-HG-500" />
+                                {listing.commercialDetails.furnishingLevel?.replace("-", " ")}
+                              </div>
+                            </div>
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                              <div className="text-xs text-gray-500 mb-1">Suitable For</div>
+                              <div className="flex items-center gap-2 font-semibold capitalize">
+                                <Store className="w-4 h-4 text-HG-500" />
+                                {listing.commercialDetails.preferredTenant}
+                              </div>
+                            </div>
+                            {listing.commercialDetails.hasPowerBackup && (
+                              <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                <div className="text-xs text-gray-500 mb-1">Backup</div>
+                                <div className="flex items-center gap-2 font-semibold">
+                                  <Zap className="w-4 h-4 text-green-500" />
+                                  Full Power Backup
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ✅ RESTORED: Room Types */}
                   <div>
                     <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-4 md:mb-6 font-poppins">Room Types & Pricing</h3>
@@ -804,6 +926,23 @@ export default function ProductPage() {
                     </div>
                   )}
 
+                  {/* ✅ ADDED: Additional Details */}
+                  {listing?.additionalDetails && listing.additionalDetails.length > 0 && (
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
+                        Additional Details
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {listing.additionalDetails.map((detail: string, index: number) => (
+                          <div key={index} className="flex items-center gap-3 p-4 rounded-lg bg-HG-50 border border-HG-200">
+                            <Star className="w-5 h-5 text-HG-500 flex-shrink-0" />
+                            <span className="text-sm font-medium text-gray-700 capitalize">{detail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ✅ RESTORED: Meal Timings */}
                   {listing?.rentInclusions?.foodIncluded &&
                     listing?.mealTimings &&
@@ -874,7 +1013,7 @@ export default function ProductPage() {
                       </div>
                     )}
 
-                  {/* ✅ RESTORED: Detailed Rules */}
+                  {/* ✅ RESTORED & UPDATED: Detailed Rules */}
                   {listing?.detailedRules &&
                     (listing.detailedRules.lockInPeriod ||
                       listing.detailedRules.noticePeriod ||
@@ -882,62 +1021,83 @@ export default function ProductPage() {
                       listing.detailedRules.exitTiming ||
                       listing.detailedRules.guestStayPolicy ||
                       listing.detailedRules.smokingAlcoholPolicy ||
-                      listing.detailedRules.maintenanceCharges) && (
+                      listing.detailedRules.maintenanceCharges ||
+                      listing.detailedRules.registrationFees) && (
                       <div>
                         <h3 className="text-lg md:text-xl font-semibold tracking-wide mb-2 md:mb-4 font-poppins">
                           Detailed Policies
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {listing?.detailedRules?.lockInPeriod && (
+                          {listing.detailedRules.lockInPeriod && (
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex items-center gap-2 mb-2">
                                 <Clock className="w-4 h-4 text-gray-600" />
-                                <span className="font-medium text-gray-900">
-                                  Lock-in Period
-                                </span>
+                                <span className="font-medium text-gray-900">Lock-in Period</span>
                               </div>
-                              <p className="text-sm text-gray-700">
-                                {listing.detailedRules.lockInPeriod}
-                              </p>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.lockInPeriod}</p>
                             </div>
                           )}
-                          {listing?.detailedRules?.noticePeriod && (
+                          {listing.detailedRules.noticePeriod && (
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex items-center gap-2 mb-2">
                                 <Calendar className="w-4 h-4 text-gray-600" />
-                                <span className="font-medium text-gray-900">
-                                  Notice Period
-                                </span>
+                                <span className="font-medium text-gray-900">Notice Period</span>
                               </div>
-                              <p className="text-sm text-gray-700">
-                                {listing.detailedRules.noticePeriod}
-                              </p>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.noticePeriod}</p>
                             </div>
                           )}
-                          {listing?.detailedRules?.entryTiming && (
+                          {listing.detailedRules.entryTiming && (
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex items-center gap-2 mb-2">
                                 <DoorOpen className="w-4 h-4 text-green-600" />
-                                <span className="font-medium text-gray-900">
-                                  Entry Timing
-                                </span>
+                                <span className="font-medium text-gray-900">Entry Timing</span>
                               </div>
-                              <p className="text-sm text-gray-700">
-                                {listing.detailedRules.entryTiming}
-                              </p>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.entryTiming}</p>
                             </div>
                           )}
-                          {listing?.detailedRules?.exitTiming && (
+                          {listing.detailedRules.exitTiming && (
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex items-center gap-2 mb-2">
                                 <DoorOpen className="w-4 h-4 text-red-600" />
-                                <span className="font-medium text-gray-900">
-                                  Exit Timing
-                                </span>
+                                <span className="font-medium text-gray-900">Exit Timing</span>
                               </div>
-                              <p className="text-sm text-gray-700">
-                                {listing.detailedRules.exitTiming}
-                              </p>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.exitTiming}</p>
+                            </div>
+                          )}
+                          {listing.detailedRules.maintenanceCharges && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Zap className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-gray-900">Maintenance Charges</span>
+                              </div>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.maintenanceCharges}</p>
+                            </div>
+                          )}
+                          {listing.detailedRules.registrationFees && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Shield className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium text-gray-900">Registration Fees</span>
+                              </div>
+                              <p className="text-sm text-gray-700">{listing.detailedRules.registrationFees}</p>
+                            </div>
+                          )}
+                          {listing.detailedRules.guestStayPolicy && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Users className="w-4 h-4 text-indigo-600" />
+                                <span className="font-medium text-gray-900">Guest Policy</span>
+                              </div>
+                              <p className="text-sm text-gray-700 capitalize">{listing.detailedRules.guestStayPolicy?.replace("-", " ")}</p>
+                            </div>
+                          )}
+                          {listing.detailedRules.smokingAlcoholPolicy && (
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AlertCircle className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium text-gray-900">Smoking/Alcohol</span>
+                              </div>
+                              <p className="text-sm text-gray-700 capitalize">{listing.detailedRules.smokingAlcoholPolicy?.replace("-", " ")}</p>
                             </div>
                           )}
                         </div>
