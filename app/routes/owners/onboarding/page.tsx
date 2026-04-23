@@ -750,15 +750,31 @@ export default function OnboardingPage() {
           general: res.data?.message,
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.dismiss(loadingToast);
-      toast.error("Failed to submit information. Try again.", {
-        duration: 3000,
+      
+      // Keep technical error for console logging
+      console.error("Registration Error:", error.response?.data || error.message);
+      
+      // User-friendly messages
+      let friendlyMessage = "Something went wrong on our end. Please try again in a moment!";
+      
+      if (error.response?.status === 400) {
+        friendlyMessage = error.response.data?.message || "Please check your information and try again.";
+      } else if (error.response?.status === 401) {
+        friendlyMessage = "Your session has expired. Please log in again.";
+      } else if (error.response?.data?.message?.includes("already exists")) {
+        friendlyMessage = "It looks like you've already started this process!";
+      }
+
+      toast.error(friendlyMessage, {
+        duration: 4000,
         closeButton: true,
       });
+      
       setErrors((prev) => ({
         ...prev,
-        general: "Failed to submit information. Try again.",
+        general: friendlyMessage,
       }));
     } finally {
       setIsLoading(false);

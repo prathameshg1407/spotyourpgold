@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         success: false,
         message:
           "Please fill all required fields. (phone, street, city, state, pincode)",
-      });
+      }, { status: 400 });
     }
 
     const user = await authUser();
@@ -37,16 +37,16 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: false,
         message: "User does not exist.",
-      });
+      }, { status: 404 });
     }
 
     // Ensure profile doesn't already exist
     const existingProfile = await OwnerProfile.findOne({ userId: user?.id });
     if (existingProfile) {
       return NextResponse.json({
-        success: true,
+        success: false,
         message: "Owner profile already exists.",
-      });
+      }, { status: 400 });
     }
 
     let aadhaarFrontUrl = null;
@@ -95,15 +95,26 @@ export async function POST(req: Request) {
       },
     });
 
+    // Update User role and ownerStatus
+    await User.findByIdAndUpdate(user?.id, {
+      role: "owner",
+      ownerStatus: "pending",
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Owner profile created successfully.",
+      message: "Owner profile created successfully. Your account is now pending verification.",
     });
-  } catch (error) {
-    console.error("[Owner_register_API]", error);
+  } catch (error: any) {
+    console.error("[Owner_register_API] Error Details:", {
+      message: error.message,
+      stack: error.stack,
+      errors: error.errors, // For mongoose validation errors
+    });
     return NextResponse.json({
       success: false,
       message: "Failed to register as owner.",
-    });
+      error: error.message, // Send error message back for easier debugging
+    }, { status: 500 });
   }
 }
