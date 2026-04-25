@@ -78,14 +78,21 @@ export default function VisitRequestsPage() {
   );
   const [adminNotes, setAdminNotes] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
   const { containerLoading, setContainerLoading } = useLoadingStore();
 
-  const fetchVisitRequests = useCallback(async () => {
+  const fetchVisitRequests = useCallback(async (page = 1) => {
     setContainerLoading("visitRequests", true);
     try {
-      const response = await axios.get("/api/admin/visit-requests");
+      const response = await axios.get(`/api/admin/visit-requests?page=${page}&limit=20`);
       if (response.data.success) {
         setVisitRequests(response.data.data);
+        setPagination(response.data.pagination);
       } else {
         toast.error("Failed to fetch visit requests");
       }
@@ -282,7 +289,7 @@ export default function VisitRequestsPage() {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Building className="w-4 h-4" />
-          <span>{filteredRequests.length} requests</span>
+          <span>{pagination.total} requests</span>
         </div>
       </div>
 
@@ -557,6 +564,31 @@ export default function VisitRequestsPage() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchVisitRequests(pagination.page - 1)}
+            disabled={pagination.page === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchVisitRequests(pagination.page + 1)}
+            disabled={pagination.page === pagination.totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
 
       {/* Notes Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
