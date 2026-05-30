@@ -4,6 +4,17 @@ frontend:
     preBuild:
       commands:
         - npm ci --include=dev
+        - echo "MONGODB_URI=$MONGODB_URI" >> .env.production
+        - echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" >> .env.production
+        - echo "APP_AWS_REGION=$APP_AWS_REGION" >> .env.production
+        - echo "APP_S3_BUCKET_NAME=$APP_S3_BUCKET_NAME" >> .env.production
+        - echo "APP_AWS_ACCESS_KEY_ID=$APP_AWS_ACCESS_KEY_ID" >> .env.production
+        - echo "APP_AWS_SECRET_ACCESS_KEY=$APP_AWS_SECRET_ACCESS_KEY" >> .env.production
+        - echo "JWT_SECRET=$JWT_SECRET" >> .env.production
+        - echo "CRON_SECRET=$CRON_SECRET" >> .env.production
+        - echo "EMAIL_USER=$EMAIL_USER" >> .env.production
+        - echo "EMAIL_PASS=$EMAIL_PASS" >> .env.production
+        - echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env.production
     build:
       commands:
         - npm run build
