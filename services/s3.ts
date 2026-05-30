@@ -1,14 +1,14 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.APP_AWS_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.APP_AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.APP_AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
+const BUCKET_NAME = process.env.APP_S3_BUCKET_NAME!;
 
 export const uploadToS3 = async (
   buffer: Buffer,
@@ -28,7 +28,7 @@ export const uploadToS3 = async (
   await s3Client.send(command);
 
   return {
-    url: `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`,
+    url: `https://${BUCKET_NAME}.s3.${process.env.APP_AWS_REGION}.amazonaws.com/${fileKey}`,
     public_id: fileKey,
   };
 };
