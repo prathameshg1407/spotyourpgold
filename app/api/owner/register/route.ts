@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import User from "@/models/user";
 import OwnerProfile from "@/models/ownerProfile";
-import { uploadToCloudinary } from "@/services/cloudinary";
+import { uploadDataUriToS3 } from "@/services/s3";
 import authUser from "@/actions/authUser";
 
 export async function POST(req: Request) {
@@ -56,13 +56,13 @@ export async function POST(req: Request) {
 
     // Optional: Upload Aadhaar documents only if provided
     if (aadhaarFront) {
-      const res = await uploadToCloudinary(aadhaarFront);
+      const res = await uploadDataUriToS3(aadhaarFront);
       aadhaarFrontUrl = res.url;
       aadhaarFrontPublicId = res.public_id;
     }
 
     if (aadhaarBack) {
-      const res = await uploadToCloudinary(aadhaarBack);
+      const res = await uploadDataUriToS3(aadhaarBack);
       aadhaarBackUrl = res.url;
       aadhaarBackPublicId = res.public_id;
     }
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     // Upload additional documents (optional)
     const uploadedDocuments = await Promise.all(
       documents.map(async (doc: string) => {
-        const { url, public_id } = await uploadToCloudinary(doc);
+        const { url, public_id } = await uploadDataUriToS3(doc);
         return { url, public_id };
       })
     );

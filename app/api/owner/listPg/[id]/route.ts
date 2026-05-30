@@ -3,9 +3,9 @@ import Listing from "@/models/listing";
 import User from "@/models/user";
 import { generateListingSlug } from "@/lib/slug";
 import {
-  deleteFromCloudinary,
-  uploadToCloudinary,
-} from "@/services/cloudinary";
+  deleteFromS3,
+  uploadDataUriToS3,
+} from "@/services/s3";
 import { connectToDB } from "@/services/connectdb";
 import { NextResponse } from "next/server";
 
@@ -175,7 +175,7 @@ export async function PUT(
     // ✅ Upload only new images
     uploadedImages = await Promise.all(
       newImagesToUpload.map(async (item) => {
-        const { url, public_id } = await uploadToCloudinary(
+        const { url, public_id } = await uploadDataUriToS3(
           item.base64,
           "sypg/listing-images",
           "sypgListingImages"
@@ -188,7 +188,7 @@ export async function PUT(
     if (newBase64Videos.length > 0) {
       uploadedVideos = await Promise.all(
         newBase64Videos.map(async (video: string) => {
-          const { url, public_id } = await uploadToCloudinary(
+          const { url, public_id } = await uploadDataUriToS3(
             video,
             "sypg/listing-videos",
             "sypgListingVideos"
@@ -213,7 +213,7 @@ export async function PUT(
         const publicId = typeof img === 'string' ? extractPublicId(img) : img.public_id;
         if (!reusedImagePublicIds.has(publicId)) {
           try {
-            await deleteFromCloudinary(publicId);
+            await deleteFromS3(publicId);
           } catch (err) {
             console.warn(`Failed to delete ${publicId}:`, err);
           }
@@ -222,7 +222,7 @@ export async function PUT(
       ...(existingListing.videos || []).map(async (video: any) => {
         if (!reusedVideoPublicIds.has(video.public_id)) {
           try {
-            await deleteFromCloudinary(video.public_id);
+            await deleteFromS3(video.public_id);
           } catch (err) {
             console.warn(`Failed to delete ${video.public_id}:`, err);
           }
@@ -336,14 +336,14 @@ export async function PUT(
     await Promise.all([
       ...uploadedImages.map(async (img) => {
         try {
-          await deleteFromCloudinary(img.public_id);
+          await deleteFromS3(img.public_id);
         } catch (err) {
           console.warn(`Failed to delete image ${img.public_id}:`, err);
         }
       }),
       ...uploadedVideos.map(async (video) => {
         try {
-          await deleteFromCloudinary(video.public_id);
+          await deleteFromS3(video.public_id);
         } catch (err) {
           console.warn(`Failed to delete video ${video.public_id}:`, err);
         }
@@ -442,7 +442,7 @@ export async function DELETE(
     await Promise.all(
       listing.images.map(async (img: any) => {
         try {
-          await deleteFromCloudinary(img.public_id);
+          await deleteFromS3(img.public_id);
         } catch (err) {
           console.warn(`Failed to delete image ${img.public_id}:`, err);
         }

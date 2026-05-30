@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: false,
    skipTrailingSlashRedirect: true, 
   images: {
-    domains: ['flowbite.com', 'images.unsplash.com', "res.cloudinary.com", "placehold.co"],
+    domains: ['flowbite.com', 'images.unsplash.com', "sypgold.s3.ap-south-1.amazonaws.com", "placehold.co"],
   },
   eslint: {
     // This allows production builds to successfully complete even if

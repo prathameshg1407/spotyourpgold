@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/services/connectdb";
 import mongoose from "mongoose";
 import OwnerProfile from "@/models/ownerProfile";
-import { uploadToCloudinary } from "@/services/cloudinary";
+import { uploadToS3 } from "@/services/s3";
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,14 +50,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert file to base64 for Cloudinary
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
-    const dataURI = `data:${file.type};base64,${base64}`;
 
-    // Upload file to Cloudinary
-    const uploadResult = await uploadToCloudinary(dataURI, "owner-documents");
+    // Upload file to S3
+    const uploadResult = await uploadToS3(buffer, file.type, "owner-documents");
 
     if (!uploadResult) {
       return NextResponse.json(

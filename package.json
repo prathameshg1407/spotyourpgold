@@ -11,6 +11,7 @@
     "migrate:slugs:all": "npx tsx scripts/generate-slugs-for-existing-listings.ts --all"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1057.0",
     "@next/third-parties": "^15.3.6",
     "@playwright/browser-chromium": "^1.57.0",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -35,7 +36,6 @@
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
-    "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "crypto": "^1.0.1",
     "date-fns": "^4.1.0",

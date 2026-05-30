@@ -2,9 +2,9 @@ import authUser from "@/actions/authUser";
 import Listing from "@/models/listing";
 import User from "@/models/user";
 import {
-  deleteFromCloudinary,
-  uploadToCloudinary,
-} from "@/services/cloudinary";
+  deleteFromS3,
+  uploadDataUriToS3,
+} from "@/services/s3";
 import { connectToDB } from "@/services/connectdb";
 import { NextResponse } from "next/server";
 import { generateListingSlug } from "@/lib/slug";
@@ -163,13 +163,13 @@ export async function POST(req: Request) {
       });
     }
 
-    // ✅ Upload images to Cloudinary
+    // ✅ Upload images to S3
         uploadedImages = await Promise.all(
             images.map(async (img: any) => {
                 const imageString = typeof img === 'string' ? img : img.base64;
                 const description = typeof img === 'string' ? '' : img.description;
 
-                const { url, public_id } = await uploadToCloudinary(
+                const { url, public_id } = await uploadDataUriToS3(
                     imageString,
                     "sypg/listing-images",
                     "sypgListingImages"
@@ -178,11 +178,11 @@ export async function POST(req: Request) {
             })
         );
 
-    // ✅ Upload videos to Cloudinary (if any)
+    // ✅ Upload videos to S3 (if any)
     if (videos.length > 0) {
       uploadedVideos = await Promise.all(
         videos.map(async (video: string) => {
-          const { url, public_id } = await uploadToCloudinary(
+          const { url, public_id } = await uploadDataUriToS3(
             video,
             "sypg/listing-videos",
             "sypgListingVideos"
@@ -290,14 +290,14 @@ export async function POST(req: Request) {
     await Promise.all([
       ...uploadedImages.map(async (img) => {
         try {
-          await deleteFromCloudinary(img.public_id);
+          await deleteFromS3(img.public_id);
         } catch (err) {
           console.warn(`Failed to delete image ${img.public_id}:`, err);
         }
       }),
       ...uploadedVideos.map(async (video) => {
         try {
-          await deleteFromCloudinary(video.public_id);
+          await deleteFromS3(video.public_id);
         } catch (err) {
           console.warn(`Failed to delete video ${video.public_id}:`, err);
         }
