@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import Listing from "@/models/listing";
 import { uploadToS3 } from "@/services/s3";
 
+import { connectToDB } from "@/services/connectdb";
+
 const CLOUDINARY_DOMAIN = "res.cloudinary.com";
 
 async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
@@ -22,9 +24,7 @@ export async function GET() {
   }
 
   try {
-    if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(process.env.MONGODB_URI);
-    }
+    await connectToDB();
 
     const listings = await Listing.find({});
     let updatedCount = 0;
