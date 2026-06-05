@@ -269,13 +269,34 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST - Manual ticket escalation
+ * POST Handler - Polymorphic Route Detector
+ * Handles both manual form body requests and fallback automated POST crons cleanly.
  */
 export async function POST(req: NextRequest) {
   try {
+    // Clone the request stream so we can safely read the body without consuming it
+    const cloneReq = req.clone();
+    const body = await cloneReq.json().catch(() => null);
+
+    // If payload details match a manual dashboard action, trigger internal logic
+    if (body && (body.ticketId || body.adminId)) {
+      return handleManualEscalation(req, body);
+    }
+  } catch (e) {
+    // Fail-safe wrapper for empty/non-JSON requests
+  }
+
+  // If there is no specific dashboard layout structure, evaluate as automated cron request
+  return GET(req);
+}
+
+/**
+ * Isolated logic block for processing manual target ticket escalations
+ */
+async function handleManualEscalation(req: NextRequest, body: any) {
+  try {
     await connectToDB();
 
-    const body = await req.json();
     const { ticketId, adminId, reason } = body;
 
     // Validate required fields

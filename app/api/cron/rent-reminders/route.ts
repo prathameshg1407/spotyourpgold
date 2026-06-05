@@ -6,6 +6,9 @@ import { sendRentReminderEmail } from "@/services/sendRentReminderEmail";
 import { sendRentReminderToTenant } from "@/services/sendWhatsAppNotification";
 import Notification from "@/models/notification";
 
+/**
+ * GET - Core logic execution for rent reminders
+ */
 export async function GET(req: NextRequest) {
   try {
     // Verify cron secret
@@ -158,4 +161,12 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * POST Handler Fallback
+ * Catches incoming default POST calls from cron-job.org and targets the validation logic smoothly.
+ */
+export async function POST(req: NextRequest) {
+  return GET(req);
 }
