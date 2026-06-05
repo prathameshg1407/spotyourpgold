@@ -1,0 +1,124 @@
+2026-05-30T15:51:50.979Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2026-05-30T15:51:51.764Z [INFO]: # Cloning repository: git@github.com:prathameshg1407/spotyourpgold.git
+2026-05-30T15:51:52.952Z [INFO]: 
+2026-05-30T15:51:52.953Z [INFO]: Cloning into 'spotyourpgold'...
+2026-05-30T15:51:52.953Z [INFO]: # Switching to commit: 775ef95dfcaedfdb322d04b400948b3f27739222
+2026-05-30T15:51:52.991Z [INFO]: Note: switching to '775ef95dfcaedfdb322d04b400948b3f27739222'.
+                                 You are in 'detached HEAD' state. You can look around, make experimental
+                                 changes and commit them, and you can discard any commits you make in this
+                                 state without impacting any branches by switching back to a branch.
+                                 If you want to create a new branch to retain commits you create, you may
+                                 do so (now or later) by using -c with the switch command. Example:
+                                 git switch -c <new-branch-name>
+                                 Or undo this operation with:
+                                 git switch -
+                                 Turn off this advice by setting config variable advice.detachedHead to false
+                                 HEAD is now at 775ef95 build: add amplify.yml to force npm over pnpm
+2026-05-30T15:51:53.016Z [INFO]: Successfully cleaned up Git credentials
+2026-05-30T15:51:53.017Z [INFO]: # Checking for Git submodules at: /codebuild/output/src3031243919/src/spotyourpgold/.gitmodules
+2026-05-30T15:51:53.025Z [INFO]: # Retrieving environment cache...
+2026-05-30T15:51:53.071Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
+2026-05-30T15:51:53.072Z [INFO]: ---- Setting Up SSM Secrets ----
+2026-05-30T15:51:53.072Z [INFO]: SSM params {"Path":"/amplify/d134donm55hsze/main/","WithDecryption":true}
+2026-05-30T15:51:53.107Z [WARNING]: !Failed to set up process.env.secrets
+2026-05-30T15:51:53.326Z [INFO]: # No package override configuration found.
+2026-05-30T15:51:53.329Z [INFO]: # Retrieving cache...
+2026-05-30T15:51:53.403Z [INFO]: # Retrieved cache
+2026-05-30T15:51:55.069Z [INFO]: ## Starting Backend Build
+                                 ## Checking for associated backend environment...
+                                 ## No backend environment association found, continuing...
+                                 ## Completed Backend Build
+2026-05-30T15:51:55.075Z [INFO]: {"backendDuration": 0}
+                                 ## Starting Frontend Build
+                                 # Starting phase: preBuild
+                                 # Executing command: npm ci
+2026-05-30T15:52:01.286Z [WARNING]: npm warn deprecated crypto@1.0.1: This package is no longer supported. It's now a built-in Node module. If you've depended on crypto, you should switch to the one that's built-in.
+2026-05-30T15:52:02.064Z [WARNING]: npm warn deprecated jpeg-exif@1.1.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-05-30T15:52:44.850Z [INFO]: added 474 packages, and audited 475 packages in 49s
+2026-05-30T15:52:44.856Z [INFO]: 59 packages are looking for funding
+                                 run `npm fund` for details
+2026-05-30T15:52:44.990Z [INFO]: 14 vulnerabilities (6 moderate, 7 high, 1 critical)
+                                 To address all issues, run:
+                                 npm audit fix
+                                 Run `npm audit` for details.
+2026-05-30T15:52:45.012Z [INFO]: # Completed phase: preBuild
+                                 # Starting phase: build
+                                 # Executing command: npm run build
+2026-05-30T15:52:45.112Z [INFO]: > spotyourpg@0.1.0 build
+                                 > next build
+2026-05-30T15:52:45.692Z [INFO]: ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-05-30T15:52:45.704Z [INFO]: Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-05-30T15:52:45.705Z [INFO]: This information is used to shape Next.js' roadmap and prioritize features.
+                                 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+                                 https://nextjs.org/telemetry
+2026-05-30T15:52:45.796Z [INFO]: ▲ Next.js 15.5.7
+2026-05-30T15:52:45.797Z [INFO]: 
+2026-05-30T15:52:45.926Z [INFO]: Creating an optimized production build ...
+2026-05-30T15:53:04.823Z [WARNING]: Failed to compile.
+2026-05-30T15:53:04.828Z [WARNING]: app/layout.tsx
+                                    An error occurred in `next/font`.
+                                    Error: Cannot find module 'autoprefixer'
+                                    Require stack:
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-config.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-build/impl.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/compiled/jest-worker/processChild.js
+                                    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/server/require-hook.js:57:36
+                                    at Function.resolve (node:internal/modules/helpers:145:19)
+                                    at loadPlugin (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:53:32)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:56
+                                    at Array.map (<anonymous>)
+                                    at getPostCssPlugins (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:47)
+                                    at async /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js:125:36
+                                    app/layout.tsx
+                                    An error occurred in `next/font`.
+                                    Error: Cannot find module 'autoprefixer'
+                                    Require stack:
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-config.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-build/impl.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/compiled/jest-worker/processChild.js
+                                    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/server/require-hook.js:57:36
+                                    at Function.resolve (node:internal/modules/helpers:145:19)
+                                    at loadPlugin (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:53:32)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:56
+                                    at Array.map (<anonymous>)
+                                    at getPostCssPlugins (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:47)
+                                    at async /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js:125:36
+                                    app/layout.tsx
+                                    An error occurred in `next/font`.
+                                    Error: Cannot find module 'autoprefixer'
+                                    Require stack:
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/index.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-config.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack-build/impl.js
+                                    - /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/compiled/jest-worker/processChild.js
+                                    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/server/require-hook.js:57:36
+                                    at Function.resolve (node:internal/modules/helpers:145:19)
+                                    at loadPlugin (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:53:32)
+                                    at /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:56
+                                    at Array.map (<anonymous>)
+                                    at getPostCssPlugins (/codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/plugins.js:185:47)
+                                    at async /codebuild/output/src3031243919/src/spotyourpgold/node_modules/next/dist/build/webpack/config/blocks/css/index.js:125:36
+                                    ./app/clientComponents/Home.tsx
+                                    Module not found: Can't resolve '@/components/AdvancedFilter'
+                                    https://nextjs.org/docs/messages/module-not-found
+                                    ./app/clientComponents/Home.tsx
+                                    Module not found: Can't resolve '@/components/NavBar'
+                                    https://nextjs.org/docs/messages/module-not-found
+2026-05-30T15:53:04.837Z [WARNING]: > Build failed because of webpack errors
+2026-05-30T15:53:04.906Z [ERROR]: !!! Build failed
+2026-05-30T15:53:04.907Z [INFO]: Please read more about Amplify Hosting's support for SSR frameworks to find if your build failure is related to an unsupported feature: https://docs.aws.amazon.com/amplify/latest/userguide/amplify-ssr-framework-support.html. You may also find this troubleshooting guide useful: https://docs.aws.amazon.com/amplify/latest/userguide/troubleshooting-ssr-deployment.html
+2026-05-30T15:53:04.907Z [ERROR]: !!! Error: Command failed with exit code 1
+2026-05-30T15:53:04.907Z [INFO]: # Starting environment caching...
+2026-05-30T15:53:04.907Z [INFO]: # Environment caching completed
+
