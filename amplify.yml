@@ -16,6 +16,14 @@ frontend:
         - echo "EMAIL_USER=$EMAIL_USER" >> .env
         - echo "EMAIL_PASS=$EMAIL_PASS" >> .env
         - echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
+        - echo "NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID" >> .env
+        - echo "RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID" >> .env
+        - echo "RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET" >> .env
+        - echo "AISENSY_API_KEY=$AISENSY_API_KEY" >> .env
+        - echo "AISENSY_PROJECT_ID=$AISENSY_PROJECT_ID" >> .env
+        - echo "AISENSY_PROJECT_API_PWD=$AISENSY_PROJECT_API_PWD" >> .env
+        - echo "AISENSY_API_PASSWORD=$AISENSY_API_PASSWORD" >> .env
+        - echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL" >> .env
     build:
       commands:
         - npm run build
