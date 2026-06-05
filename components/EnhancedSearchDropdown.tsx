@@ -76,7 +76,7 @@ export default function EnhancedSearchDropdown({
   const debouncedSearch = useDebouncedValue(value, 300);
   
   // Use the key directly or from env
-  const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAVclzWRArjC6F-08mT50hhX2gjeJlulkE";
+  const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // ==========================================
   // 1. INITIALIZE GOOGLE MAPS SERVICE

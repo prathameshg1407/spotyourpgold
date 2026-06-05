@@ -34,7 +34,7 @@ export default function GoogleMapDetail({
 
     setLoading(true);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAVclzWRArjC6F-08mT50hhX2gjeJlulkE";
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
       if (!apiKey) {
         throw new Error("Google Maps API key not configured");
       }

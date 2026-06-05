@@ -544,7 +544,7 @@ export default function Step2Location({
       {/* 3. Keep Script for direct page loads, but ensure ID matches Navbar if possible */}
       <Script
         id="google-maps-script" // Adding an ID helps Next.js deduplicate
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAVclzWRArjC6F-08mT50hhX2gjeJlulkE"}&libraries=places`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
         onLoad={initAutocomplete}
         strategy="lazyOnload"
       />
