@@ -46,7 +46,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
-  const baseAmount = 999;
+  const baseAmount = 5999;
   const discountAmount = appliedCoupon ? Math.round((baseAmount * appliedCoupon.percentage) / 100) : 0;
   const payableAmount = baseAmount - discountAmount;
 

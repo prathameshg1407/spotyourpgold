@@ -415,7 +415,7 @@ export const Step6Review: React.FC<Step6ReviewProps> = ({
                   Listing Fee Required
                 </h4>
                 <p className="text-sm text-yellow-700 mt-1">
-                  A listing fee of ₹999 is required to publish your PG. You can
+                  A listing fee of ₹5999 is required to publish your PG. You can
                   pay now or submit with fee pending.
                 </p>
               </div>

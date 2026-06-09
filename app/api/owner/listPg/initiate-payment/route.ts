@@ -5,7 +5,7 @@ import { getRazorpayInstance, getRazorpayKeyId } from "@/lib/razorpay";
 import Listing from "@/models/listing";
 import Coupon from "@/models/coupon";
 
-const BASE_LISTING_FEE = 999; // ₹999
+const BASE_LISTING_FEE = 5999; // ₹5999
 
 export async function POST(req: Request) {
   try {
