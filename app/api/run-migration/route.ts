@@ -56,7 +56,7 @@ export async function GET() {
   try {
     await connectToDB();
 
-    const listings = await Listing.find({});
+    const listings = await Listing.find({ pgName: "Kulnar Homes - The Boutique Hostel" });
     let updatedCount = 0;
     const logs: string[] = [];
 
@@ -130,7 +130,7 @@ export async function GET() {
       }
 
       if (isUpdated) {
-        await listing.save();
+        await listing.save({ validateBeforeSave: false });
         updatedCount++;
       }
     }
