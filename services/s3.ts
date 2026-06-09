@@ -18,7 +18,7 @@ export const uploadToS3 = async (
       {
         folder,
         resource_type: "auto",
-        public_id: `${publicidname}-${Date.now()}`,
+        public_id: `${publicidname}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       },
       (error, result) => {
         if (error || !result) {
