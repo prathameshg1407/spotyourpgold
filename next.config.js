@@ -3,7 +3,13 @@ const nextConfig = {
   reactStrictMode: false,
    skipTrailingSlashRedirect: true, 
   images: {
-    domains: ['flowbite.com', 'images.unsplash.com', "sypgold.s3.ap-south-1.amazonaws.com", "placehold.co", "res.cloudinary.com"],
+    domains: ['flowbite.com', 'images.unsplash.com', "placehold.co", "res.cloudinary.com"],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
+    ],
   },
   eslint: {
     // This allows production builds to successfully complete even if
